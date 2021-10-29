@@ -1,62 +1,146 @@
+from __future__ import annotations
+
+from psyke.regression.feature_not_found_exception import FeatureNotFoundException
+from psyke.regression.iter.expansion import Expansion
+from psyke.regression.iter.limit import Limit
+from psyke.regression.iter.minupdate import MinUpdate
 from psyke.regression.iter.zipped_dimension import ZippedDimension
+import random
+import math as m
+import numpy as np
+import pandas as pd
 
 
 class HyperCube:
 
-    def __init__(self):
-        self.__dimension = {}
-        self.__limits = ()
-        self.__output = 0.0
+    def __init__(self, dimension: dict[str, tuple] = {}, limits: set[Limit] = set(), output: float = 0.0):
+        self.__dimension = dimension
+        self.__limits = limits
+        self.__output = output
         self.__epsilon = 1.0 / 1000
 
-    def __eq__(self, other):
-        all([(abs(dimension.this_cube[0] - dimension.other_cube[0]) < self.__epsilon)
-             & (abs(dimension.this_cube[1] - dimension.other_cube[1]) < self.__epsilon)
-             for dimension in self.__zip_dimensions(other)])
+    @property
+    def dimensions(self):
+        return self.__dimension
 
-    # Just for debugging
-    def __str__(self):
-        text = ''
-        for k, v in self.__dimension.items():
-            text = text + k + ': ' + str(v[0]) + '; ' + str(v[1]) + '\n'
-        return text
+    @property
+    def limit_count(self):
+        return len(self.__limits)
 
-    def get(self, feature):
+    @property
+    def mean(self):
+        return self.__output
+
+    def __eq__(self, other: HyperCube):
+        return all([(abs(dimension.this_cube[0] - dimension.other_cube[0]) < self.__epsilon)
+                    & (abs(dimension.this_cube[1] - dimension.other_cube[1]) < self.__epsilon)
+                    for dimension in self.__zip_dimensions(other)])
+
+    def get(self, feature: str) -> tuple:
         if feature in self.__dimension.keys():
             return self.__dimension[feature]
         else:
-            raise Exception('FeatureNotFoundException: ' + feature)
+            raise FeatureNotFoundException(feature)
 
-    def expand(self, expansion, hypercubes):
+    def get_first(self, feature: str) -> float:
+        return self.__dimension.get(feature)[0] if self.__dimension.get(feature) is not None else None
+
+    def get_second(self, feature: str) -> float:
+        return self.__dimension.get(feature)[1] if self.__dimension.get(feature) is not None else None
+
+    def copy(self) -> HyperCube:
+        return HyperCube(self.dimensions.copy(), self.__limits.copy(), self.mean)
+
+    def expand(self, expansion: Expansion, hypercubes: list[HyperCube]):
         feature, direction = expansion.feature, expansion.direction
         a, b = self.get(feature)
-        self.__dimension[feature] = (expansion.get()[0], b) \
-            if direction == '-' else (a, expansion.get()[1])
-        other_cube = self.overlap_all(hypercubes)
-        if other_cube is not None:
-            self.__dimension[feature] = (other_cube[1], b) if direction == '-' else (other_cube[0], a)
+        self.__dimension[feature] = (expansion.get()[0], b) if direction == '-' else (a, expansion.get()[1])
+        other_cube = self.overlap(hypercubes)
+        if isinstance(other_cube, HyperCube):
+            self.__dimension[feature] = (other_cube.get_second(feature), b)\
+                if direction == '-' else (other_cube.get_first(feature), a)
 
-    def overlap(self, hypercube):
-        return any([not ((dimension.other_cube[0] >= dimension.this_cube[1]) |
-                         (dimension.this_cube[0] >= dimension.other_cube[1]))
-                    for dimension in self.__zip_dimensions(hypercube)])
+    def expand_all(self, updates: list[MinUpdate], surrounding: HyperCube):
+        for update in updates:
+            self.__expand_one(update, surrounding)
 
-    def overlap_all(self, hypercubes):
-        for hypercube in hypercubes:
-            if (self != hypercube) & self.overlap(hypercube):
-                return hypercube
+    def __expand_one(self, update: MinUpdate, surrounding: HyperCube):
+        self.__dimension[update.name] = \
+            (max(self.get_first(update.name) - update.value, surrounding.get_first(update.name)),
+             min(self.get_second(update.name) + update.value, surrounding.get_second(update.name)))
+
+    def overlap(self, hypercubes):
+        if hasattr(hypercubes, '__iter__'):
+            for hypercube in hypercubes:
+                if (self != hypercube) & self.overlap(hypercube):
+                    return hypercube
+            return None
+        else:
+            return all([not ((dimension.other_cube[0] >= dimension.this_cube[1]) |
+                             (dimension.this_cube[0] >= dimension.other_cube[1]))
+                        for dimension in self.__zip_dimensions(hypercubes)])
+
+    def has_volume(self) -> bool:
+        return all([dimension[1] - dimension[0] > self.__epsilon for dimension in self.__dimension.values()])
+
+    def update_dimension(self, feature: str, lower, upper=None):
+        if upper is None:
+            self.__dimension[feature] = lower
+        else:
+            self.update_dimension(feature, (lower, upper))
+
+    def __zip_dimensions(self, hypercube: HyperCube) -> list[ZippedDimension]:
+        return [ZippedDimension(dimension, self.get(dimension), hypercube.get(dimension))
+                for dimension in self.__dimension.keys()]
+
+    def equal(self, hypercubes: [HyperCube]) -> bool:
+        return any([self == cube for cube in hypercubes])
+
+    def contains(self, t: dict[str, tuple]) -> bool:
+        return all([self.get_first(k) <= v & v < self.get_second(k) for k, v in t])
+
+    def __filter_dataframe(self, dataset: pd.DataFrame):
+        return dataset[dataset.apply(
+            lambda row: all([(v[0] <= row[k]) & (row[k] < v[1]) for k, v in self.__dimension.items()]), axis=1)]
+
+    def count(self, dataset: pd.DataFrame) -> int:
+        return self.__filter_dataframe(dataset).shape[0]
+
+    def create_tuple(self) -> dict:
+        return {k: random.uniform(self.get_first(k), self.get_second(k)) for k in self.__dimension.keys()}
+
+    def add_limit(self, limit_or_feature, direction: str = None):
+        if isinstance(limit_or_feature, Limit):
+            self.__limits.add(limit_or_feature)
+        else:
+            self.add_limit(Limit(limit_or_feature, direction))
+
+    def check_limits(self, feature: str):
+        filtered = [limit for limit in self.__limits if limit.feature == feature]
+        if len(filtered) == 0:
+            return None
+        else:
+            if len(filtered) == 1:
+                return filtered[0].direction
             else:
-                return None
+                if len(filtered) == 2:
+                    return '*'
+                else:
+                    raise Exception('Not allowed direction')
 
-    def has_volume(self):
-        all([dimension[1] - dimension[0] > self.__epsilon for dimension in self.__dimension.values()])
+    def update_mean(self, dataset: pd.DataFrame, predictor):
+        filtered = self.__filter_dataframe(dataset)
+        self.__output = np.mean(predictor.predict(filtered))
 
-    def update_dimension(self, feature, values):
-        self.__dimension[feature] = values
+    @staticmethod
+    def create_surrounding_cube(dataset: pd.DataFrame) -> HyperCube:
+        return HyperCube({column: (m.floor(min(dataset[column])), m.ceil(max(dataset[column])))
+                          for column in dataset.columns})
 
-    def __zip_dimensions(self, hypercube):
-        for dimension in self.__dimension.keys():
-            yield ZippedDimension(dimension, self.get(dimension), hypercube.get(dimension))
+    @staticmethod
+    def cube_from_point(point: dict) -> HyperCube:
+        return HyperCube({k: (v, v) for k, v in point[:-1].items()}, output=point[-1].value())
 
-    def equal_all(self, hypercubes):
-        any([self == it for it in hypercubes])
+    @staticmethod
+    def check_overlap(to_check: list[HyperCube], hypercubes: list[HyperCube]) -> bool:
+        return any([cube.overlap(hypercubes) for cube in to_check])
