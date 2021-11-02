@@ -43,10 +43,10 @@ class HyperCube:
             raise FeatureNotFoundException(feature)
 
     def get_first(self, feature: str) -> float:
-        return self.__dimension.get(feature)[0] if self.__dimension.get(feature) is not None else None
+        return self.get(feature)[0]
 
     def get_second(self, feature: str) -> float:
-        return self.__dimension.get(feature)[1] if self.__dimension.get(feature) is not None else None
+        return self.get(feature)[1]
 
     def copy(self) -> HyperCube:
         return HyperCube(self.dimensions.copy(), self.__limits.copy(), self.mean)
@@ -58,7 +58,7 @@ class HyperCube:
         other_cube = self.overlap(hypercubes)
         if isinstance(other_cube, HyperCube):
             self.__dimension[feature] = (other_cube.get_second(feature), b)\
-                if direction == '-' else (other_cube.get_first(feature), a)
+                if direction == '-' else (a, other_cube.get_first(feature))
 
     def expand_all(self, updates: list[MinUpdate], surrounding: HyperCube):
         for update in updates:
@@ -96,8 +96,8 @@ class HyperCube:
     def equal(self, hypercubes: [HyperCube]) -> bool:
         return any([self == cube for cube in hypercubes])
 
-    def contains(self, t: dict[str, tuple]) -> bool:
-        return all([self.get_first(k) <= v & v < self.get_second(k) for k, v in t])
+    def contains(self, t: dict[str, float]) -> bool:
+        return all([(self.get_first(k) <= v) & (v < self.get_second(k)) for k, v in t.items()])
 
     def __filter_dataframe(self, dataset: pd.DataFrame):
         return dataset[dataset.apply(
@@ -139,8 +139,15 @@ class HyperCube:
 
     @staticmethod
     def cube_from_point(point: dict) -> HyperCube:
-        return HyperCube({k: (v, v) for k, v in point[:-1].items()}, output=point[-1].value())
+        return HyperCube({k: (v, v) for k, v in list(point.items())[:-1]}, output=list(point.values())[-1])
 
     @staticmethod
     def check_overlap(to_check: list[HyperCube], hypercubes: list[HyperCube]) -> bool:
-        return any([cube.overlap(hypercubes) for cube in to_check])
+        checked = []
+        while len(to_check) > 0:
+            cube = to_check.pop()
+            checked += [cube]
+            for hypercube in hypercubes:
+                if (hypercube in checked) & cube.overlap(hypercube):
+                    return True
+        return False
