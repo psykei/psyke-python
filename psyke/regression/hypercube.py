@@ -1,5 +1,4 @@
 from __future__ import annotations
-
 from psyke.regression.feature_not_found_exception import FeatureNotFoundException
 from psyke.regression.iter.expansion import Expansion
 from psyke.regression.iter.limit import Limit
@@ -31,11 +30,6 @@ class HyperCube:
     def mean(self):
         return self.__output
 
-    def __eq__(self, other: HyperCube):
-        return all([(abs(dimension.this_cube[0] - dimension.other_cube[0]) < self.__epsilon)
-                    & (abs(dimension.this_cube[1] - dimension.other_cube[1]) < self.__epsilon)
-                    for dimension in self.__zip_dimensions(other)])
-
     def get(self, feature: str) -> tuple:
         if feature in self.__dimension.keys():
             return self.__dimension[feature]
@@ -57,7 +51,7 @@ class HyperCube:
         self.__dimension[feature] = (expansion.get()[0], b) if direction == '-' else (a, expansion.get()[1])
         other_cube = self.overlap(hypercubes)
         if isinstance(other_cube, HyperCube):
-            self.__dimension[feature] = (other_cube.get_second(feature), b)\
+            self.__dimension[feature] = (other_cube.get_second(feature), b) \
                 if direction == '-' else (a, other_cube.get_first(feature))
 
     def expand_all(self, updates: list[MinUpdate], surrounding: HyperCube):
@@ -93,13 +87,18 @@ class HyperCube:
         return [ZippedDimension(dimension, self.get(dimension), hypercube.get(dimension))
                 for dimension in self.__dimension.keys()]
 
-    def equal(self, hypercubes: [HyperCube]) -> bool:
-        return any([self == cube for cube in hypercubes])
+    def equal(self, hypercubes) -> bool:
+        if isinstance(hypercubes, list):
+            return any([self.equal(cube) for cube in hypercubes])
+        else:
+            return all([(abs(dimension.this_cube[0] - dimension.other_cube[0]) < self.__epsilon)
+                        & (abs(dimension.this_cube[1] - dimension.other_cube[1]) < self.__epsilon)
+                        for dimension in self.__zip_dimensions(hypercubes)])
 
     def contains(self, t: dict[str, float]) -> bool:
         return all([(self.get_first(k) <= v) & (v < self.get_second(k)) for k, v in t.items()])
 
-    def __filter_dataframe(self, dataset: pd.DataFrame):
+    def __filter_dataframe(self, dataset: pd.DataFrame) -> pd.DataFrame:
         return dataset[dataset.apply(
             lambda row: all([(v[0] <= row[k]) & (row[k] < v[1]) for k, v in self.__dimension.items()]), axis=1)]
 
@@ -135,7 +134,7 @@ class HyperCube:
     @staticmethod
     def create_surrounding_cube(dataset: pd.DataFrame) -> HyperCube:
         return HyperCube({column: (m.floor(min(dataset[column])), m.ceil(max(dataset[column])))
-                          for column in dataset.columns})
+                          for column in dataset.columns[:-1]})
 
     @staticmethod
     def cube_from_point(point: dict) -> HyperCube:
@@ -144,10 +143,11 @@ class HyperCube:
     @staticmethod
     def check_overlap(to_check: list[HyperCube], hypercubes: list[HyperCube]) -> bool:
         checked = []
-        while len(to_check) > 0:
-            cube = to_check.pop()
+        to_check_copy = to_check.copy()
+        while len(to_check_copy) > 0:
+            cube = to_check_copy.pop()
             checked += [cube]
             for hypercube in hypercubes:
-                if (hypercube in checked) & cube.overlap(hypercube):
+                if (hypercube not in checked) & cube.overlap(hypercube):
                     return True
         return False

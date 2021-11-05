@@ -94,7 +94,7 @@ class TestHypercube(AbstractTestHypercube):
         self.assertFalse(no_volume.has_volume())
 
     def test_equal(self):
-        self.assertTrue(self.cube == self.cube)
+        self.assertTrue(self.cube.equal(self.cube))
         self.assertFalse(self.cube.equal(self.hypercubes))
         self.assertTrue(self.hypercubes[0].equal(self.hypercubes))
 
@@ -152,7 +152,7 @@ class TestHypercube(AbstractTestHypercube):
 
     def test_create_surrounding_cube(self):
         surrounding = HyperCube.create_surrounding_cube(self.dataset)
-        for feature in self.dataset[:-1].columns:
+        for feature in self.dataset.columns[:-1]:
             self.assertEqual((math.floor(min(self.dataset[feature])), math.ceil(max(self.dataset[feature]))),
                              surrounding.dimensions[feature])
 
@@ -163,7 +163,8 @@ class TestHypercube(AbstractTestHypercube):
         self.assertEqual(mean, cube.mean)
 
     def test_check_overlap(self):
-        self.assertTrue(HyperCube.check_overlap(self.hypercubes, self.hypercubes + [self.cube]))
+        self.assertTrue(HyperCube.check_overlap([self.hypercubes[0]], [self.hypercubes[0].copy()]))
+        self.assertTrue(HyperCube.check_overlap(self.hypercubes, self.hypercubes + [self.hypercubes[0].copy()]))
         self.assertFalse(HyperCube.check_overlap(self.hypercubes, self.hypercubes))
         self.assertFalse(HyperCube.check_overlap(self.hypercubes[0:1], self.hypercubes[1:]))
 
