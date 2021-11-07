@@ -1,6 +1,6 @@
 import math
+import pickle
 import unittest
-
 import pandas as pd
 from psyke.regression.feature_not_found_exception import FeatureNotFoundException
 from psyke.regression.hypercube import HyperCube
@@ -18,7 +18,7 @@ class AbstractTestHypercube(unittest.TestCase):
                  ({'X': (0.7, 0.8), 'Y': (0.75, 0.85)}, 6.1),
                  ({'X': (6.6, 7.0), 'Y': (9.1, 10.5)}, 7.5)]
         self.hypercubes = [HyperCube(cube[0], set(), cube[1]) for cube in cubes]
-        self.dataset = pd.read_csv('resources/arti.csv')
+        self.dataset = pd.read_csv('test/resources/arti.csv')
         self.filtered_dataset = self.dataset[self.dataset.apply(
             lambda row: (0.2 <= row['X'] < 0.6) & (0.7 <= row['Y'] < 0.9), axis=1)]
 
@@ -137,7 +137,9 @@ class TestHypercube(AbstractTestHypercube):
         self.assertEqual('*', self.cube.check_limits('Y'))
 
     def test_update_mean(self):
-        pass # predictor = Rbf(pd.read_csv('resources/arti.csv'))
+        with open('test/resources/artiGPR.txt', 'rb') as file:
+            predictor = pickle.load(file)
+            self.cube.update_mean(self.dataset.iloc[:, :-1], predictor)
 
     def test_update_dimension(self):
         new_lower, new_upper = 0.6, 1.4
@@ -192,8 +194,7 @@ class TestHypercube(AbstractTestHypercube):
         return (({'X': 0.5, 'Y': 0.8}, True),
                 ({'X': 0.1, 'Y': 0.8}, False),
                 ({'X': 0.5, 'Y': 0.95}, False),
-                ({'X': 0.1, 'Y': 0.95}, False)
-                )
+                ({'X': 0.1, 'Y': 0.95}, False))
 
 
 if __name__ == '__main__':

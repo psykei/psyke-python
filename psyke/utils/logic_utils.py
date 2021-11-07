@@ -4,6 +4,8 @@ from psyke.schema.value import *
 from psyke.schema.value import Constant
 from psyke.schema.discrete_feature import DiscreteFeature
 
+precision = 4
+
 
 def create_functor(constraint: Value, positive: bool) -> str:
     if isinstance(constraint, LessThan):
@@ -21,11 +23,11 @@ def create_term(v: Var, constraint: Value, positive: bool = True) -> Struct:
         raise Exception('IllegalArgumentException: None variable')
     functor = create_functor(constraint, positive)
     if isinstance(constraint, LessThan):
-        return struct(functor, v, real(round(constraint.value, 2)))
+        return struct(functor, v, real(round(constraint.value, precision)))
     if isinstance(constraint, GreaterThan):
-        return struct(functor, v, real(round(constraint.value, 2)))
+        return struct(functor, v, real(round(constraint.value, precision)))
     if isinstance(constraint, Between):
-        return struct(functor, v, real(round(constraint.lower, 2)), real(round(constraint.upper, 2)))
+        return struct(functor, v, real(round(constraint.lower, precision)), real(round(constraint.upper, precision)))
     if isinstance(constraint, Constant):
         return struct(functor, v, atom(str(Constant(constraint).value)))
 
@@ -41,6 +43,6 @@ def create_head(functor: str, variables: list[var], output) -> Struct:
         variables.append(atom(output))
         return struct(functor, variables)
     else:
-        value = round(output, 2) if isinstance(output, float) else output
+        value = round(output, precision) if isinstance(output, float) else output
         variables.append(numeric(value))
         return struct(functor, variables)
