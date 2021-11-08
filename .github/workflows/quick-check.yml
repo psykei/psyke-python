@@ -13,14 +13,13 @@ env:
 jobs:
   run-unit-tests:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: ["3.9"]
     steps:
       - name: Show Env
         run: | 
           python --version
           pip --version
+        with:
+          python-version: '3.9.6'
 
       - name: Checkout code
         uses: actions/checkout@v2
@@ -32,6 +31,10 @@ jobs:
 
       - name: Restore Python dependencies
         run: pip install -r requirements.txt
+        with:
+          python-version: '3.9.6'
 
       - name: Test
         run: python -m unittest
+        with:
+          python-version: '3.9.6'
