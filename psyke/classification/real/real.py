@@ -63,6 +63,10 @@ class REAL(Extractor):
     def __get_or_set(self, dataset: pd.DataFrame) -> IndexedRuleSet:
         return self.__create_ruleset(dataset)
 
+    def __predict(self, sample: pd.Series) -> int:
+        x = [index for index, rule in self.__ruleset.flatten() if self.__rule_from_example(sample).is_sub_rule_of(rule)]
+        return x[0] if len(x) > 0 else -1
+
     def __remove_antecedents(self, samples: pd.DataFrame, predicate: str,
                              mutable_predicates: list[str]) -> pd.DataFrame:
         data, is_subset = self.__subset(samples, predicate)
@@ -89,5 +93,5 @@ class REAL(Extractor):
         self.__ruleset = self.__get_or_set(dataset)
         return self.__create_theory(dataset, self.__ruleset)
 
-    def predict(self, dataset) -> list:
-        pass
+    def predict(self, dataset) -> list[int]:
+        return [self.__predict(data) for data in dataset]

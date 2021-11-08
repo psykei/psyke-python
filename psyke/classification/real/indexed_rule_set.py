@@ -6,8 +6,8 @@ from psyke.classification.real.rule import Rule
 
 class IndexedRuleSet(dict[int, list[Rule]]):
 
-    def flatten(self) -> list[(int, Rule)]:
-        return [((key, value) for value in values) for key, values in self]
+    def flatten(self) -> list[tuple[int, Rule]]:
+        return [(key, value) for key, values in self for value in values]
 
     def optimize(self):
         useless_rules = [IndexedRuleSet.__useless_rules(entry) for entry in self]
