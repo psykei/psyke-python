@@ -18,23 +18,18 @@ jobs:
         run: | 
           python --version
           pip --version
-        with:
-          python-version: '3.9.6'
 
       - name: Checkout code
         uses: actions/checkout@v2
         with:
           fetch-depth: 0 # all history
+          python-version: '3.9.6'
 
       # - name: Get All Tags
       #   run: git fetch --tags -f
 
       - name: Restore Python dependencies
         run: pip install -r requirements.txt
-        with:
-          python-version: '3.9.6'
 
       - name: Test
         run: python -m unittest
-        with:
-          python-version: '3.9.6'
