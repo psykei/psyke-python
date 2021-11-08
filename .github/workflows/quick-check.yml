@@ -13,10 +13,11 @@ env:
 jobs:
   run-unit-tests:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.9"]
     steps:
       - name: Show Env
-        with:
-          python-version: '3.9.6'
         run: | 
           python --version
           pip --version
