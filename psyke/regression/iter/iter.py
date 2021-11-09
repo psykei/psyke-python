@@ -3,11 +3,12 @@ from psyke.extractor import Extractor
 from psyke.regression.hypercube import HyperCube
 from psyke.regression.iter.expansion import Expansion
 from psyke.regression.iter.minupdate import MinUpdate
+from psyke.utils import get_default_random_seed
 from psyke.utils.logic_utils import *
 from tuprolog.theory import *
 import random
 
-DomainProperties = (list[MinUpdate], HyperCube)
+DomainProperties = (Iterable[MinUpdate], HyperCube)
 
 
 class ITER(Extractor):
@@ -15,7 +16,8 @@ class ITER(Extractor):
     Explanator implementing ITER algorithm, doi:10.1007/11823728_26.
     """
 
-    def __init__(self, predictor, min_update, n_points, max_iterations, min_examples, threshold, fill_gaps):
+    def __init__(self, predictor, min_update, n_points, max_iterations, min_examples, threshold, fill_gaps,
+                 seed=get_default_random_seed()):
         super().__init__(predictor)
         self.predictor = predictor
         self.discretization = []
@@ -27,10 +29,9 @@ class ITER(Extractor):
         self.fill_gaps = fill_gaps
         self.__fake_dataset = pd.DataFrame()
         self.__hypercubes = []
-        self.__seed = 123
-        self.__generator = random.Random(123)
+        self.__generator = random.Random(seed)
 
-    def __best_cube(self, dataset: pd.DataFrame, cube: HyperCube, cubes: list[Expansion]) -> Union[Expansion, None]:
+    def __best_cube(self, dataset: pd.DataFrame, cube: HyperCube, cubes: Iterable[Expansion]) -> Union[Expansion, None]:
         filtered = filter(lambda c: c.cube.count(dataset) is not None, cubes)
         expansions = []
         for limit in filtered:
@@ -50,12 +51,12 @@ class ITER(Extractor):
         else:
             return None
 
-    def __calculate_min_updates(self, surrounding: HyperCube) -> list[MinUpdate]:
+    def __calculate_min_updates(self, surrounding: HyperCube) -> Iterable[MinUpdate]:
         return [MinUpdate(name, (interval[1] - interval[0]) * self.min_update) for (name, interval) in
                 surrounding.dimensions.items()]
 
     @staticmethod
-    def __create_body(variables: dict[str, Var], dimensions: dict[str, (float, float)]) -> list[Struct]:
+    def __create_body(variables: dict[str, Var], dimensions: dict[str, (float, float)]) -> Iterable[Struct]:
         return [create_term(variables[name], Between(values[0], values[1])) for name, values in dimensions.items()]
 
     def __create_fake_samples(self, cube: HyperCube, n: int):
@@ -71,8 +72,8 @@ class ITER(Extractor):
                 (b, min(b + size, surrounding.get_second(feature))))
 
     @staticmethod
-    def __create_temp_cube(cube: HyperCube, domain: DomainProperties, hypercubes: list[HyperCube], feature: str,
-                           direction: str) -> list[Expansion]:
+    def __create_temp_cube(cube: HyperCube, domain: DomainProperties, hypercubes: Iterable[HyperCube], feature: str,
+                           direction: str) -> Iterable[Expansion]:
         temp_cube, values = ITER.__create_range(cube, domain, feature, direction)
         temp_cube.update_dimension(feature, values)
         overlap = temp_cube.overlap(hypercubes)
@@ -86,7 +87,7 @@ class ITER(Extractor):
 
     @staticmethod
     def __create_temp_cubes(dataset: pd.DataFrame, cube: HyperCube, domain: DomainProperties,
-                            hypercubes: list[HyperCube]) -> list[Expansion]:
+                            hypercubes: Iterable[HyperCube]) -> Iterable[Expansion]:
         tmp_cubes = []
         for feature in dataset.columns[:-1]:
             limit = cube.check_limits(feature)
@@ -110,15 +111,15 @@ class ITER(Extractor):
             )
         return new_theory
 
-    def __cubes_to_update(self, dataset: pd.DataFrame, hypercubes: list[HyperCube], domain: DomainProperties) \
-            -> list[tuple[HyperCube, Expansion]]:
+    def __cubes_to_update(self, dataset: pd.DataFrame, hypercubes: Iterable[HyperCube], domain: DomainProperties) \
+            -> Iterable[tuple[HyperCube, Expansion]]:
         results = [(hypercube, self.__best_cube(dataset, hypercube, self.__create_temp_cubes(
             dataset, hypercube, domain, hypercubes))) for hypercube in hypercubes]
         return [result for result in results if result[1] is not None]
 
-    def __expand_or_create(self, cube: HyperCube, expansion: Expansion, hypercubes: list[HyperCube]):
+    def __expand_or_create(self, cube: HyperCube, expansion: Expansion, hypercubes: Iterable[HyperCube]):
         if expansion.distance > self.threshold:
-            hypercubes.append(expansion.cube)
+            hypercubes += [expansion.cube]
         else:
             cube.expand(expansion, hypercubes)
 
@@ -130,10 +131,10 @@ class ITER(Extractor):
         close_sample = close_samples.iloc[0, :].to_dict()
         return close_sample
 
-    def __generate_starting_points(self, dataset: pd.DataFrame) -> list[HyperCube]:
+    def __generate_starting_points(self, dataset: pd.DataFrame) -> Iterable[HyperCube]:
         min_output = min(dataset.iloc[:, -1])
         max_output = max(dataset.iloc[:, -1])
-        points: list[float]
+        points: Iterable[float]
         if - math.inf < self.n_points <= 0:
             raise (Exception('InvalidAttributeValueException'))
         else:
@@ -144,7 +145,7 @@ class ITER(Extractor):
                           range(1, self.n_points)]
         return [HyperCube.cube_from_point(ITER.__find_closer_sample(dataset, point)) for point in points]
 
-    def __init(self, dataset: pd.DataFrame) -> (list[HyperCube], DomainProperties):
+    def __init(self, dataset: pd.DataFrame) -> tuple[Iterable[HyperCube], DomainProperties]:
         self.__fake_dataset = dataset.iloc[:, :-1]
         surrounding = HyperCube.create_surrounding_cube(dataset)
         min_updates = self.__calculate_min_updates(surrounding)
@@ -153,7 +154,7 @@ class ITER(Extractor):
             hypercube.update_mean(dataset.iloc[:, :-1], self.predictor)
         return self.__hypercubes, (min_updates, surrounding)
 
-    def __init_hypercubes(self, dataset, min_updates, surrounding) -> list[HyperCube]:
+    def __init_hypercubes(self, dataset, min_updates, surrounding) -> Iterable[HyperCube]:
         while True:
             hypercubes = self.__generate_starting_points(dataset)
             for hypercube in hypercubes:
@@ -163,15 +164,15 @@ class ITER(Extractor):
                 break
         return hypercubes
 
-    def __iterate(self, dataset: pd.DataFrame, hypercubes: list[HyperCube], domain: DomainProperties,
+    def __iterate(self, dataset: pd.DataFrame, hypercubes: Iterable[HyperCube], domain: DomainProperties,
                   left_iteration: int) -> int:
         iterations = 1
-        while ((len(dataset.columns) - 1) * 2 * len(hypercubes)) >= \
+        while ((len(dataset.columns) - 1) * 2 * len(list(hypercubes))) >= \
                 reduce(lambda acc, cube: acc + cube.limit_count, hypercubes, 0):
             if iterations == left_iteration:
                 break
             updates = self.__cubes_to_update(dataset, hypercubes, domain)
-            if len(updates) > 0:
+            if len(list(updates)) > 0:
                 min_distance = min([expansion.distance for _, expansion in updates])
                 to_update = [(_, expansion) for _, expansion in updates
                              if math.isclose(expansion.distance, min_distance)][0]
@@ -186,7 +187,7 @@ class ITER(Extractor):
         return math.nan
 
     @staticmethod
-    def __resolve_overlap(cube: HyperCube, overlapping_cube: HyperCube, hypercubes: list[HyperCube], feature: str,
+    def __resolve_overlap(cube: HyperCube, overlapping_cube: HyperCube, hypercubes: Iterable[HyperCube], feature: str,
                           direction: str) -> HyperCube:
         a, b = cube.get(feature)
         cube.update_dimension(feature, max(overlapping_cube.get_second(feature), a) if direction == '-' else a,
@@ -202,9 +203,9 @@ class ITER(Extractor):
                 break
             iterations += self.__iterate(dataset, hypercubes, domain, self.max_iterations - iterations)
             if self.fill_gaps:
-                raise Exception('NotImplementedError')
+                raise NotImplementedError('Feature fill_gaps is not supported yet')
         self.__hypercubes = hypercubes
         return self.__create_theory(dataset)
 
-    def predict(self, dataset: pd.DataFrame) -> list:
+    def predict(self, dataset: pd.DataFrame) -> Iterable:
         return [self.__predict(dict(row.to_dict())) for _, row in dataset.iterrows()]

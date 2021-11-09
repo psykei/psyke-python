@@ -27,23 +27,21 @@ class TestIter(unittest.TestCase):
             'X3': var('X'), 'Y3': var('Y')
         }
         expected = theory(
-            (
-                rule(
-                    create_head('z', [vars['X0'], vars['Y0']], 0.4),
-                    [create_term(vars['X0'], Between(0.0, 0.5095)), create_term(vars['Y0'], Between(0.5193, 1.0))]
-                ),
-                rule(
-                    create_head('z', [vars['X1'], vars['Y1']], 0.6499),
-                    [create_term(vars['X1'], Between(0.0, 0.5095)), create_term(vars['Y1'], Between(0.0, 0.5193))]
-                ),
-                rule(
-                    create_head('z', [vars['X2'], vars['Y2']], 0.2415),
-                    [create_term(vars['X2'], Between(0.5095, 1.0)), create_term(vars['Y2'], Between(0.0, 0.5193))]
-                ),
-                rule(
-                    create_head('z', [vars['X3'], vars['Y3']], -0.0481),
-                    [create_term(vars['X3'], Between(0.5095, 1.0)), create_term(vars['Y3'], Between(0.5193, 1.0))]
-                )
+            rule(
+                create_head('z', [vars['X0'], vars['Y0']], 0.4),
+                [create_term(vars['X0'], Between(0.0, 0.5095)), create_term(vars['Y0'], Between(0.5193, 1.0))]
+            ),
+            rule(
+                create_head('z', [vars['X1'], vars['Y1']], 0.6499),
+                [create_term(vars['X1'], Between(0.0, 0.5095)), create_term(vars['Y1'], Between(0.0, 0.5193))]
+            ),
+            rule(
+                create_head('z', [vars['X2'], vars['Y2']], 0.2415),
+                [create_term(vars['X2'], Between(0.5095, 1.0)), create_term(vars['Y2'], Between(0.0, 0.5193))]
+            ),
+            rule(
+                create_head('z', [vars['X3'], vars['Y3']], -0.0481),
+                [create_term(vars['X3'], Between(0.5095, 1.0)), create_term(vars['Y3'], Between(0.5193, 1.0))]
             )
         )
         self.assertTrue(expected.equals(self.theory, False))

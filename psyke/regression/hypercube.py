@@ -1,4 +1,7 @@
 from __future__ import annotations
+
+from typing import Iterable
+
 from psyke.regression.feature_not_found_exception import FeatureNotFoundException
 from psyke.regression.iter.expansion import Expansion
 from psyke.regression.iter.limit import Limit
@@ -66,9 +69,9 @@ class HyperCube:
                     raise Exception('Not allowed direction')
 
     @staticmethod
-    def check_overlap(to_check: list[HyperCube], hypercubes: list[HyperCube]) -> bool:
+    def check_overlap(to_check: Iterable[HyperCube], hypercubes: Iterable[HyperCube]) -> bool:
         checked = []
-        to_check_copy = to_check.copy()
+        to_check_copy = list(to_check).copy()
         while len(to_check_copy) > 0:
             cube = to_check_copy.pop()
             checked += [cube]
@@ -106,7 +109,7 @@ class HyperCube:
                         & (abs(dimension.this_cube[1] - dimension.other_cube[1]) < self.__epsilon)
                         for dimension in self.__zip_dimensions(hypercubes)])
 
-    def expand(self, expansion: Expansion, hypercubes: list[HyperCube]):
+    def expand(self, expansion: Expansion, hypercubes: Iterable[HyperCube]):
         feature, direction = expansion.feature, expansion.direction
         a, b = self.get(feature)
         self.__dimension[feature] = (expansion.get()[0], b) if direction == '-' else (a, expansion.get()[1])
