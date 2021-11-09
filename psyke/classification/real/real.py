@@ -7,6 +7,7 @@ from psyke.classification.real.indexed_rule_set import IndexedRuleSet
 from psyke.classification.real.rule import Rule
 from psyke.extractor import Extractor
 from psyke.schema.discrete_feature import DiscreteFeature
+from psyke.utils.hashable import HashableDataFrame
 from psyke.utils.logic_utils import create_variable_list, create_head, create_term
 
 
@@ -15,6 +16,7 @@ class REAL(Extractor):
     def __init__(self, predictor, discretization: set[DiscreteFeature]):
         super().__init__(predictor, discretization)
         self.__ruleset: IndexedRuleSet = IndexedRuleSet()
+        self.__output_mapping = {}
 
     def __covers(self, sample: pd.Series, rules: list[Rule]) -> bool:
         new_rule = self.__rule_from_example(sample)
@@ -34,12 +36,13 @@ class REAL(Extractor):
 
     def __create_new_rule(self, sample: pd.Series) -> Rule:
         rule = self.__rule_from_example(sample)
+        # print(rule.to_lists())
         return self.__generalise(rule, sample)
 
     def __create_ruleset(self, dataset: pd.DataFrame) -> IndexedRuleSet:
         ruleset = IndexedRuleSet.create_indexed_ruleset(dataset)
         for _, sample in dataset.iloc[:, :-1].iterrows():
-            rules = ruleset[self.predictor.predict(sample)]
+            rules = ruleset.get(self.__output_mapping[self.predictor.predict(pd.DataFrame([sample]))[0]])
             if not self.__covers(sample, rules):
                 rules.append(self.__create_new_rule(sample))
         return ruleset.optimize()
@@ -60,7 +63,7 @@ class REAL(Extractor):
         return Rule(mutable_rule[0], mutable_rule[1])
 
     @lru_cache(maxsize=512)
-    def __get_or_set(self, dataset: pd.DataFrame) -> IndexedRuleSet:
+    def __get_or_set(self, dataset: HashableDataFrame) -> IndexedRuleSet:
         return self.__create_ruleset(dataset)
 
     def __predict(self, sample: pd.Series) -> int:
@@ -90,7 +93,8 @@ class REAL(Extractor):
         return samples_all, len(set(self.predictor.predict(samples_all))) == 1
 
     def extract(self, dataset: pd.DataFrame) -> Theory:
-        self.__ruleset = self.__get_or_set(dataset)
+        self.__output_mapping = {value: index for index, value in enumerate(set(dataset.iloc[:, -1]))}
+        self.__ruleset = self.__get_or_set(HashableDataFrame(dataset))
         return self.__create_theory(dataset, self.__ruleset)
 
     def predict(self, dataset) -> list[int]:

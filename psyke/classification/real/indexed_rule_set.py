@@ -10,7 +10,7 @@ class IndexedRuleSet(dict[int, list[Rule]]):
         return [(key, value) for key, values in self for value in values]
 
     def optimize(self):
-        useless_rules = [IndexedRuleSet.__useless_rules(entry) for entry in self]
+        useless_rules = [IndexedRuleSet.__useless_rules(entry) for _, entry in self.items()]
         for key, rule in useless_rules:
             self[key].remove(rule)
 

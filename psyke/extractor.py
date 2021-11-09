@@ -40,7 +40,16 @@ class Extractor(object):
     def iter(predictor, min_update: float = 0.1, n_points: int = 1, max_iterations: int = 600, min_examples: int = 250,
              threshold: float = 0.1, fill_gaps: bool = False) -> Extractor:
         """
-        Creates a new Iter extractor.
+        Creates a new ITER extractor.
         """
         from psyke.regression.iter.iter import ITER
         return ITER(predictor, min_update, n_points, max_iterations, min_examples, threshold, fill_gaps)
+
+    @staticmethod
+    def real(predictor, discretization=None) -> Extractor:
+        """
+        Creates a new REAL extractor.
+        """
+        from psyke.classification.real.real import REAL
+        return REAL(predictor, [] if discretization is None else discretization)
+
