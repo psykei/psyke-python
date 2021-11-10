@@ -1,10 +1,11 @@
+from parameterized import parameterized_class
 from psyke.extractor import Extractor
-from psyke.schema.value import Between
-from psyke.utils.logic_utils import create_head, create_term
-from psyke.utils.predictor import Predictor
+from psyke.predictor import Predictor
+from psyke.utils.parsing import parse_theory
 from test.resources import CLASSPATH
-from tuprolog.core import scope, rule
-from tuprolog.theory import theory
+from tuprolog.core import scope
+from tuprolog.theory import Theory
+import csv
 import numpy as np
 import pandas as pd
 import unittest
@@ -13,39 +14,39 @@ resource_dir = str(CLASSPATH) + '/'
 ts = scope()
 
 
+def _get_tests_from_file(file: str) -> list[dict[str:Theory]]:
+    result = []
+    with open(file) as f:
+        rows = csv.DictReader(f, delimiter=';', quotechar='"')
+        for row in rows:
+            result.append({
+                'training_set': row['training_set'],
+                'test_set': row['test_set'],
+                'predictor': row['predictor'],
+                'expected_theory': parse_theory(row['theory'])
+            })
+    return result
+
+
+@parameterized_class(_get_tests_from_file(resource_dir + 'expected_theories.csv'))
 class TestIter(unittest.TestCase):
-    dataset = pd.DataFrame(pd.read_csv(resource_dir + 'arti.csv'))
-    training_set = pd.read_csv(resource_dir + 'artiTrain50.csv')
-    test_set = dataset.loc[~dataset.index.isin(training_set.index)]
-    predictor = Predictor.load_from_onnx(resource_dir + 'artiKNN3.onnx')
-    iter = Extractor.iter(predictor, min_update=1.0 / 20, threshold=0.19)
-    theory = iter.extract(training_set)
 
     def test_extract(self):
-        expected = theory(
-            rule(
-                create_head('z', [ts.var('X'), ts.var('Y')], 0.4),
-                [create_term(ts.var('X'), Between(0.0, 0.5095)), create_term(ts.var('Y'), Between(0.4693, 1.0))]
-            ),
-            rule(
-                create_head('z', [ts.var('X'), ts.var('Y')], 0.6848),
-                [create_term(ts.var('X'), Between(0.0, 0.5095)), create_term(ts.var('Y'), Between(0.0, 0.4693))]
-            ),
-            rule(
-                create_head('z', [ts.var('X'), ts.var('Y')], 0.376),
-                [create_term(ts.var('X'), Between(0.5095, 1.0)), create_term(ts.var('Y'), Between(0.0, 0.4693))]
-            ),
-            rule(
-                create_head('z', [ts.var('X'), ts.var('Y')], 0.0437),
-                [create_term(ts.var('X'), Between(0.5095, 1.0)), create_term(ts.var('Y'), Between(0.4693, 1.0))]
-            )
-        )
-        self.assertTrue(expected.equals(self.theory, False))
+        training_set = pd.read_csv(resource_dir + self.training_set)
+        predictor = Predictor.load_from_onnx(resource_dir + self.predictor)
+        iter_extractor = Extractor.iter(predictor, min_update=1.0 / 20, threshold=0.19)
+        theory = iter_extractor.extract(training_set)
+        self.assertTrue(self.expected_theory.equals(theory, False))
 
     def test_predict(self):
-        predictions = self.iter.predict(self.test_set.iloc[:, :-1])
+        training_set = pd.read_csv(resource_dir + self.training_set)
+        test_set = pd.read_csv(resource_dir + self.test_set)
+        predictor = Predictor.load_from_onnx(resource_dir + self.predictor)
+        iter_extractor = Extractor.iter(predictor, min_update=1.0 / 20, threshold=0.19)
+        iter_extractor.extract(training_set)
+        predictions = iter_extractor.predict(test_set.iloc[:, :-1])
         from_theory = []
-        for _, point in self.test_set.iloc[:, :-1].iterrows():
+        for _, point in test_set.iloc[:, :-1].iterrows():
             if (point['X'] >= 0.5095) & (point['Y'] < 0.4693):
                 from_theory.append(0.376)
             if (point['X'] >= 0.5095) & (point['Y'] >= 0.4693):

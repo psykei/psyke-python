@@ -1,5 +1,5 @@
 import pandas as pd
-from tuprolog.core import Var, Struct, struct, real, atom, var, numeric
+from tuprolog.core import Var, Struct, struct, real, atom, var, numeric, logic_list
 from psyke.schema.value import Value, LessThan, GreaterThan, Between
 from psyke.schema.value import Constant
 from psyke.schema.discrete_feature import DiscreteFeature
@@ -27,7 +27,8 @@ def create_term(v: Var, constraint: Value, positive: bool = True) -> Struct:
     if isinstance(constraint, GreaterThan):
         return struct(functor, v, real(round(constraint.value, precision)))
     if isinstance(constraint, Between):
-        return struct(functor, v, real(round(constraint.lower, precision)), real(round(constraint.upper, precision)))
+        return struct(functor, v,
+                      logic_list(real(round(constraint.lower, precision)), real(round(constraint.upper, precision))))
     if isinstance(constraint, Constant):
         return struct(functor, v, atom(str(Constant(constraint).value)))
 

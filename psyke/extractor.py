@@ -1,9 +1,8 @@
 from __future__ import annotations
 from psyke.schema.discrete_feature import DiscreteFeature
-from psyke.utils.predictor import Predictor
+from psyke.predictor import Predictor
 from tuprolog.theory import Theory
 from typing import Iterable, Mapping
-
 
 
 class Extractor(object):
