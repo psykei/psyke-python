@@ -6,7 +6,9 @@ from psyke.regression.iter.minupdate import MinUpdate
 from psyke.utils import get_default_random_seed
 from psyke.utils.logic_utils import *
 from tuprolog.theory import *
+from tuprolog.core import clause
 import random
+import math
 
 DomainProperties = (Iterable[MinUpdate], HyperCube)
 

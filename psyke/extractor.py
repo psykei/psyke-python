@@ -1,7 +1,9 @@
 from __future__ import annotations
-from tuprolog.theory import Theory
 from psyke.schema.discrete_feature import DiscreteFeature
+from psyke.utils.predictor import Predictor
+from tuprolog.theory import Theory
 from typing import Iterable, Mapping
+
 
 
 class Extractor(object):
@@ -15,7 +17,7 @@ class Extractor(object):
         Each set corresponds to a set of features derived from a single non-discrete feature.
     """
 
-    def __init__(self, predictor, discretization: Mapping[DiscreteFeature] = None):
+    def __init__(self, predictor: Predictor, discretization: Mapping[DiscreteFeature] = None):
         self.predictor = predictor
         self.discretization = discretization
 
