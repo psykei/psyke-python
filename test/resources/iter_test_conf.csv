@@ -1,0 +1,2 @@
+training_set;test_set;predictor;extractor_type;extractor_params;theory
+artiTrain50.csv;artiTest50.csv;artiKNN3.onnx;ITER;"{'min_update': 0.05, 'threshold': 0.19}";"z(X, Y, 0.4) :- (in(X, [0.0, 0.5095]), in(Y, [0.4693, 1.0])). z(X, Y, 0.6848) :- (in(X, [0.0, 0.5095]), in(Y, [0.0, 0.4693])). z(X, Y, 0.376) :- (in(X, [0.5095, 1.0]), in(Y, [0.0, 0.4693])). z(X, Y, 0.0437) :- (in(X, [0.5095, 1.0]), in(Y, [0.4693, 1.0]))"
