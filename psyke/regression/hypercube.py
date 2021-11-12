@@ -1,7 +1,7 @@
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Iterable
-
 from psyke.regression.feature_not_found_exception import FeatureNotFoundException
 from psyke.regression.iter.expansion import Expansion
 from psyke.regression.iter.limit import Limit
@@ -41,9 +41,13 @@ class HyperCube:
             (max(self.get_first(update.name) - update.value, surrounding.get_first(update.name)),
              min(self.get_second(update.name) + update.value, surrounding.get_second(update.name)))
 
+    # TODO: this is slow! Must be optimized as soon as possible.
     def __filter_dataframe(self, dataset: pd.DataFrame) -> pd.DataFrame:
-        return dataset[dataset.apply(
-            lambda row: all([(v[0] <= row[k]) & (row[k] < v[1]) for k, v in self.__dimension.items()]), axis=1)]
+        m = np.array([v[0] for _, v in self.__dimension.items()])
+        M = np.array([v[1] for _, v in self.__dimension.items()])
+        D = dataset.to_numpy(copy=True)
+        indices = np.all((D >= m) & (D < M), axis=1)
+        return dataset[indices]
 
     def __zip_dimensions(self, hypercube: HyperCube) -> list[ZippedDimension]:
         return [ZippedDimension(dimension, self.get(dimension), hypercube.get(dimension))
@@ -87,7 +91,7 @@ class HyperCube:
         return HyperCube(self.dimensions.copy(), self.__limits.copy(), self.mean)
 
     def count(self, dataset: pd.DataFrame) -> int:
-        return self.__filter_dataframe(dataset).shape[0]
+        return self.__filter_dataframe(dataset.iloc[:, :-1]).shape[0]
 
     @staticmethod
     def create_surrounding_cube(dataset: pd.DataFrame) -> HyperCube:
@@ -155,5 +159,5 @@ class HyperCube:
             self.update_dimension(feature, (lower, upper))
 
     def update_mean(self, dataset: pd.DataFrame, predictor):
-        filtered = self.__filter_dataframe(dataset)
+        filtered = self.__filter_dataframe(dataset.iloc[:, :-1])
         self.__output = np.mean(predictor.predict(filtered))

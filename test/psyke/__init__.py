@@ -1,6 +1,17 @@
 from tuprolog.core import rule, struct, logic_list, scope
-
 from psyke.extractor import Extractor
+
+_DEFAULT_PRECISION: float = 1e-4
+
+_test_option: dict = {'precision': _DEFAULT_PRECISION}
+
+
+def get_precision() -> float:
+    return _test_option['precision']
+
+
+def set_default_precision(value: float):
+    _test_option['precision'] = value
 
 
 def get_extractor(extractor_type: str, parameters: dict):

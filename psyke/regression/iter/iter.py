@@ -148,12 +148,12 @@ class ITER(Extractor):
         return [HyperCube.cube_from_point(ITER.__find_closer_sample(dataset, point)) for point in points]
 
     def __init(self, dataset: pd.DataFrame) -> tuple[Iterable[HyperCube], DomainProperties]:
-        self.__fake_dataset = dataset.iloc[:, :-1]
+        self.__fake_dataset = dataset.copy()
         surrounding = HyperCube.create_surrounding_cube(dataset)
         min_updates = self.__calculate_min_updates(surrounding)
         self.__hypercubes = self.__init_hypercubes(dataset, min_updates, surrounding)
         for hypercube in self.__hypercubes:
-            hypercube.update_mean(dataset.iloc[:, :-1], self.predictor)
+            hypercube.update_mean(dataset, self.predictor)
         return self.__hypercubes, (min_updates, surrounding)
 
     def __init_hypercubes(self, dataset, min_updates, surrounding) -> Iterable[HyperCube]:
