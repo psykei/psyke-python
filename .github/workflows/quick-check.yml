@@ -37,7 +37,7 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: Create missing predictors
-        run: python test/psyke/create_missing_predictors.py
+        run: python create_missing_predictors.py
 
       #- name: Trigger pytest
       #  uses: convictional/trigger-workflow-and-wait@v1.3.0
@@ -51,4 +51,4 @@ jobs:
         run: python -m unittest
 
       - name: Delete predictors
-        run: python test/psyke/delete_predictors.py
+        run: python delete_predictors.py
