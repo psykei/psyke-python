@@ -35,14 +35,28 @@ jobs:
       - name: Restore Python dependencies
         run: pip install -r requirements.txt
 
+      - name: Import submodule pytest
+        run: git submodule add https://github.com/psykei/pytest.git
+
       - name: Create missing predictors
         run: python create_missing_predictors.py
+
+      - name: Submodule update
+        run: |
+          cd psyke-pytest
+          git add resources/*.onnx
+          git add resources/git*.csv
+          git commit -m 'predictors update from workflows'
+          git push
+          cd ../
+          git rm -r -f pytest
+          rm -rf .git/modules/pytest
 
       - name: Trigger pytest
         uses: convictional/trigger-workflow-and-wait@v1.3.0
         with:
           owner: psykei
-          repo: psykei/psyke-pytest
+          repo: psykei/pytest
           github_token: ${{ secrets.TRIGGER_GITHUB_ACTION }}
           propagate_failure: false
           workflow_file_name: update-predictors.yml
