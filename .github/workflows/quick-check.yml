@@ -45,7 +45,7 @@ jobs:
         run: |
           cd pytest/
           git add resources/*.onnx
-          git add resources/git*.csv
+          git add resources/*.csv
           git commit -m 'predictors update from workflows'
           git push
           cd ../
