@@ -23,6 +23,7 @@ jobs:
         uses: actions/checkout@v2
         with:
           fetch-depth: 0 # all history
+          submodules: recursive
 
       - name: Setup Python
         uses: actions/setup-python@v2
@@ -35,24 +36,20 @@ jobs:
       - name: Restore Python dependencies
         run: pip install -r requirements.txt
 
-      - name: Import submodule pytest
-        run: git submodule add https://github.com/psykei/pytest.git
+      # - name: Import submodule pytest
+      #  run: git submodule add https://github.com/psykei/pytest.git
 
       - name: Create missing predictors
         run: python create_missing_predictors.py
 
       - name: Submodule update
         run: |
-          cd pytest/
+          pushd pytest/
           git config user.email "matteo.magnini@studio.unibo.it"
           git config user.name "MatteoMagnini"
           git add resources/*.onnx
           git add resources/*.csv
-          git commit -m 'predictors update from workflows'
-          git push
-          cd ../
-          git rm -r -f pytest
-          rm -rf .git/modules/pytest
+          (git commit -m 'predictors update from workflows' && git push) || echo 'nothing to commit'
 
       - name: Test
         run: python -m unittest
