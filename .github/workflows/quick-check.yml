@@ -39,13 +39,14 @@ jobs:
       - name: Create missing predictors
         run: python create_missing_predictors.py
 
-      #- name: Trigger pytest
-      #  uses: convictional/trigger-workflow-and-wait@v1.3.0
-      #  with:
-      #    owner: psykei
-      #    repo: psykei/psyke-pytest
-      #    github_token: ${{ secrets.GITHUB_PERSONAL_ACCESS_TOKEN }}
-      #    workflow_file_name: update-predictors.yml
+      - name: Trigger pytest
+        uses: convictional/trigger-workflow-and-wait@v1.3.0
+        with:
+          owner: psykei
+          repo: psykei/psyke-pytest
+          github_token: ${{ secrets.API_TOKEN_GITHUB }}
+          propagate_failure: false
+          workflow_file_name: update-predictors.yml
 
       - name: Test
         run: python -m unittest
