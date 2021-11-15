@@ -1,6 +1,6 @@
 import os
+import numpy as np
 from sklearn.ensemble import RandomForestRegressor
-
 from psyke.utils import get_default_random_seed
 from test.resources import CLASSPATH
 from sklearn.datasets import fetch_california_housing
@@ -32,7 +32,7 @@ def get_extractor(extractor_type: str, parameters: dict):
 
 def get_model(model_type: str, parameters: dict):
     if model_type == 'RFR':
-        return RandomForestRegressor(**parameters, random_state=get_default_random_seed())
+        return RandomForestRegressor(**parameters, random_state=np.random.seed(get_default_random_seed()))
     else:
         raise NotImplementedError(model_type + ' not handled yet.')
 

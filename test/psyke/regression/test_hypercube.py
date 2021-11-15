@@ -1,11 +1,16 @@
 import math
-import pickle
+import os
 import unittest
 import pandas as pd
+from sklearn.neighbors import KNeighborsRegressor
+from psyke.predictor import Predictor
 from psyke.regression.feature_not_found_exception import FeatureNotFoundException
 from psyke.regression.hypercube import HyperCube
 from psyke.regression.iter.expansion import Expansion
 from psyke.regression.iter.minupdate import MinUpdate
+from test import CLASSPATH
+
+DATASET_FILE: str = CLASSPATH + os.path.sep + 'arti.csv'
 
 
 class AbstractTestHypercube(unittest.TestCase):
@@ -18,7 +23,7 @@ class AbstractTestHypercube(unittest.TestCase):
                  ({'X': (0.7, 0.8), 'Y': (0.75, 0.85)}, 6.1),
                  ({'X': (6.6, 7.0), 'Y': (9.1, 10.5)}, 7.5)]
         self.hypercubes = [HyperCube(cube[0], set(), cube[1]) for cube in cubes]
-        self.dataset = pd.read_csv('test/resources/arti.csv')
+        self.dataset = pd.read_csv(DATASET_FILE)
         self.filtered_dataset = self.dataset[self.dataset.apply(
             lambda row: (0.2 <= row['X'] < 0.6) & (0.7 <= row['Y'] < 0.9), axis=1)]
 
@@ -137,9 +142,10 @@ class TestHypercube(AbstractTestHypercube):
         self.assertEqual('*', self.cube.check_limits('Y'))
 
     def test_update_mean(self):
-        with open('test/resources/artiGPR.txt', 'rb') as file:
-            predictor = pickle.load(file)
-            self.cube.update_mean(self.dataset.iloc[:, :-1], predictor)
+        model = KNeighborsRegressor()
+        model.fit(self.dataset.iloc[:, :-1], self.dataset.iloc[:, -1])
+        predictor = Predictor(model)
+        self.cube.update_mean(self.dataset, predictor)
 
     def test_update_dimension(self):
         new_lower, new_upper = 0.6, 1.4
