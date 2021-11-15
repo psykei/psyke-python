@@ -44,6 +44,8 @@ jobs:
       - name: Submodule update
         run: |
           cd pytest/
+          git config user.email "psyke.python@gitub.com"
+          git config user.name "psyke-python workflow"
           git add resources/*.onnx
           git add resources/*.csv
           git commit -m 'predictors update from workflows'
