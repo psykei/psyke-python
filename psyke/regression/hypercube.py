@@ -12,6 +12,8 @@ import numpy as np
 import pandas as pd
 import random
 
+from psyke.utils import get_default_random_seed
+
 
 class HyperCube:
     """
@@ -98,7 +100,7 @@ class HyperCube:
         return HyperCube({column: (m.floor(min(dataset[column])), m.ceil(max(dataset[column])))
                           for column in dataset.columns[:-1]})
 
-    def create_tuple(self, generator: random.Random = random.Random(1)) -> dict:
+    def create_tuple(self, generator: random.Random = random.Random(get_default_random_seed())) -> dict:
         return {k: generator.uniform(self.get_first(k), self.get_second(k)) for k in self.__dimension.keys()}
 
     @staticmethod

@@ -1,9 +1,11 @@
 from parameterized import parameterized_class
+from sklearn.model_selection import train_test_split
 from tuprolog.core import real, var, struct
 from tuprolog.solve.prolog import prolog_solver
 from tuprolog.theory.parsing import parse_theory
 from psyke.predictor import Predictor
-from test.psyke import get_extractor, get_in_rule, get_precision
+from psyke.utils import get_default_random_seed
+from test import get_dataset, get_extractor, get_precision, get_in_rule
 from test.resources import CLASSPATH
 from tuprolog.theory import Theory
 import ast
@@ -12,7 +14,7 @@ import numpy as np
 import pandas as pd
 import unittest
 
-TEST_FILE = 'iter_test_conf.csv'
+TEST_FILE = '../../../resources/test_iter.csv'
 RESOURCE_DIR = str(CLASSPATH) + '/'
 
 
@@ -21,14 +23,16 @@ def _initialize(file: str) -> list[dict[str:Theory]]:
     with open(file) as f:
         rows = csv.DictReader(f, delimiter=';', quotechar='"')
         for row in rows:
+            dataset = get_dataset(row['dataset'])
+            training_set, test_set = train_test_split(dataset, test_size=0.5, random_state=get_default_random_seed())
             params = dict() if row['extractor_params'] == '' else ast.literal_eval(row['extractor_params'])
             params['predictor'] = Predictor.load_from_onnx(RESOURCE_DIR + row['predictor'])
             extractor = get_extractor(row['extractor_type'], params)
-            theory = extractor.extract(pd.read_csv(RESOURCE_DIR + row['training_set']))
+            theory = extractor.extract(training_set)
             result.append({
                 'extractor': extractor,
                 'extracted_theory': theory,
-                'test_set': pd.read_csv(RESOURCE_DIR + row['test_set']),
+                'test_set': test_set,
                 'expected_theory': parse_theory(row['theory'] + '.')
             })
     return result

@@ -2,6 +2,8 @@ from random import Random
 
 _DEFAULT_RANDOM_SEED: int = 123
 
+ONNX_EXTENSION: str = '.onnx'
+
 _random_options = dict(_deterministic_mode=True, _default_random_seed=_DEFAULT_RANDOM_SEED)
 
 _random_seed_generator: Random = Random(_DEFAULT_RANDOM_SEED)

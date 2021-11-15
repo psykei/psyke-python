@@ -9,6 +9,7 @@ env:
   # jdk-version: openjdk@~1.15.0
   project-name: psyke-python
   workflow: quick-check
+  API_TOKEN_GITHUB: ${{ secrets.API_TOKEN_GITHUB }}
   # gradle-options: "--no-daemon --console=plain --stacktrace"
 jobs:
   run-unit-tests:
@@ -35,5 +36,19 @@ jobs:
       - name: Restore Python dependencies
         run: pip install -r requirements.txt
 
+      - name: Create missing predictors
+        run: python test/psyke/create_missing_predictors
+
+      - name: Trigger pytest
+        uses: convictional/trigger-workflow-and-wait@v1.3.0
+        with:
+          owner: psykei
+          repo: psykei/psyke-pytest
+          github_token: ${{ secrets.GITHUB_PERSONAL_ACCESS_TOKEN }}
+          workflow_file_name: update-predictors.yml
+
       - name: Test
         run: python -m unittest
+
+      - name: Delete predictors
+        run: python test/psyke/delete_predictors

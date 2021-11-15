@@ -4,6 +4,7 @@ from skl2onnx import convert_sklearn
 from typing import Iterable
 import numpy as np
 import onnxruntime as rt
+import os
 import pandas as pd
 
 
@@ -19,6 +20,8 @@ class Predictor:
 
     def save_to_onnx(self, file, initial_types: list[tuple[str, DataType]]):
         if not self._from_file_onnx:
+            if os.path.exists(file):
+                os.remove(file)
             onnx_predictor = convert_sklearn(self._model, initial_types=initial_types)
             with open(file, 'wb') as f:
                 f.write(onnx_predictor.SerializeToString())
