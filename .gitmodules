@@ -1,0 +1,3 @@
+[submodule "test/resources"]
+	path = test/resources
+	url = https://github.com/psykei/psyke-pytest.git
