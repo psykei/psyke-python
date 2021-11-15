@@ -1,3 +1,4 @@
+import os
 from parameterized import parameterized_class
 from sklearn.model_selection import train_test_split
 from tuprolog.core import real, var, struct
@@ -14,8 +15,7 @@ import numpy as np
 import pandas as pd
 import unittest
 
-TEST_FILE = '../../../resources/test_iter.csv'
-RESOURCE_DIR = str(CLASSPATH) + '/'
+TEST_FILE = CLASSPATH + os.path.sep + 'test_iter.csv'
 
 
 def _initialize(file: str) -> list[dict[str:Theory]]:
@@ -26,7 +26,7 @@ def _initialize(file: str) -> list[dict[str:Theory]]:
             dataset = get_dataset(row['dataset'])
             training_set, test_set = train_test_split(dataset, test_size=0.5, random_state=get_default_random_seed())
             params = dict() if row['extractor_params'] == '' else ast.literal_eval(row['extractor_params'])
-            params['predictor'] = Predictor.load_from_onnx(RESOURCE_DIR + row['predictor'])
+            params['predictor'] = Predictor.load_from_onnx(CLASSPATH + os.path.sep + row['predictor'])
             extractor = get_extractor(row['extractor_type'], params)
             theory = extractor.extract(training_set)
             result.append({
@@ -45,7 +45,7 @@ def _data_to_struct(data: pd.Series):
     return struct(head, terms)
 
 
-@parameterized_class(_initialize(RESOURCE_DIR + TEST_FILE))
+@parameterized_class(_initialize(TEST_FILE))
 class TestIter(unittest.TestCase):
 
     def test_extract(self):

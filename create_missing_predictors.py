@@ -57,7 +57,6 @@ for index, row in required_predictors.iterrows():
         dataset = get_dataset(row['dataset'])
         model = get_model(row['model'], ast.literal_eval(row['model_options']))
         training_set, test_set = train_test_split(dataset, test_size=0.5, random_state=get_default_random_seed())
-        np.random.seed(get_default_random_seed())
         model.fit(training_set.iloc[:, :-1], training_set.iloc[:, -1])
         file_name = row['dataset'] + row['model'] + ONNX_EXTENSION
         predictor = Predictor(model)
