@@ -9,6 +9,7 @@ env:
   # jdk-version: openjdk@~1.15.0
   project-name: psyke-python
   workflow: quick-check
+  API_TOKEN_GITHUB: ${{ secrets.API_TOKEN_GITHUB }}
   # gradle-options: "--no-daemon --console=plain --stacktrace"
 jobs:
   run-unit-tests:
@@ -43,7 +44,7 @@ jobs:
         with:
           owner: psykei
           repo: psykei/psyke-pytest
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+          github_token: ${{ secrets.API_TOKEN_GITHUB }}
           propagate_failure: false
           workflow_file_name: update-predictors.yml
 
