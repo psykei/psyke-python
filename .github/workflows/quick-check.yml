@@ -43,7 +43,7 @@ jobs:
 
       - name: Submodule update
         run: |
-          cd psyke-pytest
+          cd pytest/
           git add resources/*.onnx
           git add resources/git*.csv
           git commit -m 'predictors update from workflows'
@@ -51,15 +51,6 @@ jobs:
           cd ../
           git rm -r -f pytest
           rm -rf .git/modules/pytest
-
-      - name: Trigger pytest
-        uses: convictional/trigger-workflow-and-wait@v1.3.0
-        with:
-          owner: psykei
-          repo: psykei/pytest
-          github_token: ${{ secrets.TRIGGER_GITHUB_ACTION }}
-          propagate_failure: false
-          workflow_file_name: update-predictors.yml
 
       - name: Test
         run: python -m unittest
