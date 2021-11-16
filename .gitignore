@@ -152,3 +152,6 @@ dmypy.json
 
 # macOS stuff
 .DS_store
+
+# File ONNX
+*.onnx

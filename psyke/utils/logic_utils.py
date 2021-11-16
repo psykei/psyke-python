@@ -1,6 +1,6 @@
 import pandas as pd
-from tuprolog.core import *
-from psyke.schema.value import *
+from tuprolog.core import Var, Struct, struct, real, atom, var, numeric, logic_list
+from psyke.schema.value import Value, LessThan, GreaterThan, Between
 from psyke.schema.value import Constant
 from psyke.schema.discrete_feature import DiscreteFeature
 
@@ -27,22 +27,23 @@ def create_term(v: Var, constraint: Value, positive: bool = True) -> Struct:
     if isinstance(constraint, GreaterThan):
         return struct(functor, v, real(round(constraint.value, precision)))
     if isinstance(constraint, Between):
-        return struct(functor, v, real(round(constraint.lower, precision)), real(round(constraint.upper, precision)))
+        return struct(functor, v,
+                      logic_list(real(round(constraint.lower, precision)), real(round(constraint.upper, precision))))
     if isinstance(constraint, Constant):
         return struct(functor, v, atom(str(Constant(constraint).value)))
 
 
 def create_variable_list(feature: list[DiscreteFeature], dataset: pd.DataFrame = None) -> dict[str, Var]:
-    values = {name: var(name) for name, _ in feature} if len(feature) > 0 else\
+    values = {name: var(name) for name, _ in feature} if len(feature) > 0 else \
         {name: var(name) for name in dataset.columns[:-1]}
     return values
 
 
-def create_head(functor: str, variables: list[var], output) -> Struct:
+def create_head(functor: str, variables: list[Var], output) -> Struct:
     if isinstance(output, str):
         variables.append(atom(output))
         return struct(functor, variables)
     else:
-        value = round(output, precision) if isinstance(output, float) else output
+        value = round(float(output), precision)
         variables.append(numeric(value))
         return struct(functor, variables)

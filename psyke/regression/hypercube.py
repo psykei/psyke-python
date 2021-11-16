@@ -1,4 +1,7 @@
 from __future__ import annotations
+
+from datetime import datetime
+from typing import Iterable
 from psyke.regression.feature_not_found_exception import FeatureNotFoundException
 from psyke.regression.iter.expansion import Expansion
 from psyke.regression.iter.limit import Limit
@@ -8,6 +11,8 @@ import math as m
 import numpy as np
 import pandas as pd
 import random
+
+from psyke.utils import get_default_random_seed
 
 
 class HyperCube:
@@ -38,9 +43,13 @@ class HyperCube:
             (max(self.get_first(update.name) - update.value, surrounding.get_first(update.name)),
              min(self.get_second(update.name) + update.value, surrounding.get_second(update.name)))
 
+    # TODO: this is slow! Must be optimized as soon as possible.
     def __filter_dataframe(self, dataset: pd.DataFrame) -> pd.DataFrame:
-        return dataset[dataset.apply(
-            lambda row: all([(v[0] <= row[k]) & (row[k] < v[1]) for k, v in self.__dimension.items()]), axis=1)]
+        m = np.array([v[0] for _, v in self.__dimension.items()])
+        M = np.array([v[1] for _, v in self.__dimension.items()])
+        D = dataset.to_numpy(copy=True)
+        indices = np.all((D >= m) & (D < M), axis=1)
+        return dataset[indices]
 
     def __zip_dimensions(self, hypercube: HyperCube) -> list[ZippedDimension]:
         return [ZippedDimension(dimension, self.get(dimension), hypercube.get(dimension))
@@ -66,9 +75,9 @@ class HyperCube:
                     raise Exception('Not allowed direction')
 
     @staticmethod
-    def check_overlap(to_check: list[HyperCube], hypercubes: list[HyperCube]) -> bool:
+    def check_overlap(to_check: Iterable[HyperCube], hypercubes: Iterable[HyperCube]) -> bool:
         checked = []
-        to_check_copy = to_check.copy()
+        to_check_copy = list(to_check).copy()
         while len(to_check_copy) > 0:
             cube = to_check_copy.pop()
             checked += [cube]
@@ -84,14 +93,14 @@ class HyperCube:
         return HyperCube(self.dimensions.copy(), self.__limits.copy(), self.mean)
 
     def count(self, dataset: pd.DataFrame) -> int:
-        return self.__filter_dataframe(dataset).shape[0]
+        return self.__filter_dataframe(dataset.iloc[:, :-1]).shape[0]
 
     @staticmethod
     def create_surrounding_cube(dataset: pd.DataFrame) -> HyperCube:
         return HyperCube({column: (m.floor(min(dataset[column])), m.ceil(max(dataset[column])))
                           for column in dataset.columns[:-1]})
 
-    def create_tuple(self, generator: random.Random = random.Random(1)) -> dict:
+    def create_tuple(self, generator: random.Random = random.Random(get_default_random_seed())) -> dict:
         return {k: generator.uniform(self.get_first(k), self.get_second(k)) for k in self.__dimension.keys()}
 
     @staticmethod
@@ -106,7 +115,7 @@ class HyperCube:
                         & (abs(dimension.this_cube[1] - dimension.other_cube[1]) < self.__epsilon)
                         for dimension in self.__zip_dimensions(hypercubes)])
 
-    def expand(self, expansion: Expansion, hypercubes: list[HyperCube]):
+    def expand(self, expansion: Expansion, hypercubes: Iterable[HyperCube]):
         feature, direction = expansion.feature, expansion.direction
         a, b = self.get(feature)
         self.__dimension[feature] = (expansion.get()[0], b) if direction == '-' else (a, expansion.get()[1])
@@ -152,5 +161,5 @@ class HyperCube:
             self.update_dimension(feature, (lower, upper))
 
     def update_mean(self, dataset: pd.DataFrame, predictor):
-        filtered = self.__filter_dataframe(dataset)
+        filtered = self.__filter_dataframe(dataset.iloc[:, :-1])
         self.__output = np.mean(predictor.predict(filtered))
