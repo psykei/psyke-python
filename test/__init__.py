@@ -2,13 +2,12 @@ import os
 import numpy as np
 from sklearn.ensemble import RandomForestRegressor
 from psyke.utils import get_default_random_seed
-from test.resources import CLASSPATH
 from sklearn.datasets import fetch_california_housing
 from tuprolog.core import rule, struct, logic_list, scope
 from psyke.extractor import Extractor
+from test.resources.predictors import PATH
 
-
-REQUIRED_PREDICTORS: str = CLASSPATH + os.path.sep + 'required_predictors.csv'
+REQUIRED_PREDICTORS: str = PATH / '.required.csv'
 
 _DEFAULT_PRECISION: float = 1e-4
 

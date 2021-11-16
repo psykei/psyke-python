@@ -8,9 +8,7 @@ from psyke.regression.feature_not_found_exception import FeatureNotFoundExceptio
 from psyke.regression.hypercube import HyperCube
 from psyke.regression.iter.expansion import Expansion
 from psyke.regression.iter.minupdate import MinUpdate
-from test import CLASSPATH
-
-DATASET_FILE: str = CLASSPATH + os.path.sep + 'arti.csv'
+from test.resources.datasets import get_dataset_path
 
 
 class AbstractTestHypercube(unittest.TestCase):
@@ -23,7 +21,7 @@ class AbstractTestHypercube(unittest.TestCase):
                  ({'X': (0.7, 0.8), 'Y': (0.75, 0.85)}, 6.1),
                  ({'X': (6.6, 7.0), 'Y': (9.1, 10.5)}, 7.5)]
         self.hypercubes = [HyperCube(cube[0], set(), cube[1]) for cube in cubes]
-        self.dataset = pd.read_csv(DATASET_FILE)
+        self.dataset = pd.read_csv(get_dataset_path('arti'))
         self.filtered_dataset = self.dataset[self.dataset.apply(
             lambda row: (0.2 <= row['X'] < 0.6) & (0.7 <= row['Y'] < 0.9), axis=1)]
 
