@@ -54,6 +54,3 @@ jobs:
 
       - name: Test
         run: python -m unittest
-
-      - name: Delete predictors
-        run: python delete_predictors.py
