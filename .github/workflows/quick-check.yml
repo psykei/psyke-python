@@ -44,7 +44,7 @@ jobs:
 
       - name: Submodule update
         run: |
-          pushd pytest/
+          pushd test/resources
           git config user.email "matteo.magnini@studio.unibo.it"
           git config user.name "MatteoMagnini"
           git add resources/*.onnx
