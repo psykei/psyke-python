@@ -33,8 +33,8 @@ def create_term(v: Var, constraint: Value, positive: bool = True) -> Struct:
         return struct(functor, v, atom(str(Constant(constraint).value)))
 
 
-def create_variable_list(feature: list[DiscreteFeature], dataset: pd.DataFrame = None) -> dict[str, Var]:
-    values = {name: var(name) for name, _ in feature} if len(feature) > 0 else \
+def create_variable_list(features: list[DiscreteFeature], dataset: pd.DataFrame = None) -> dict[str, Var]:
+    values = {feature.name: var(feature.name) for feature in features} if len(features) > 0 else \
         {name: var(name) for name in dataset.columns[:-1]}
     return values
 

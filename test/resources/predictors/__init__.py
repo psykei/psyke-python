@@ -10,3 +10,8 @@ def get_predictor_path(filename: str) -> Path:
 
 def open_predictor(filename: str) -> TextIO:
     return open(get_predictor_path(filename))
+
+
+def create_predictor_name(dataset: str, model_type: str, options: dict) -> str:
+    options = ''.join('_' + k + '-' + str(v) for k, v in options.items())
+    return dataset + model_type + options

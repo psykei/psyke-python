@@ -7,20 +7,28 @@ from psyke.classification.real.rule import Rule
 class IndexedRuleSet(dict[int, list[Rule]]):
 
     def flatten(self) -> list[tuple[int, Rule]]:
-        return [(key, value) for key, values in self for value in values]
+        return [(key, value) for key, values in self.items() for value in values]
 
-    def optimize(self):
-        useless_rules = [IndexedRuleSet.__useless_rules(entry) for _, entry in self.items()]
-        for key, rule in useless_rules:
-            self[key].remove(rule)
+    def optimize(self) -> IndexedRuleSet:
+        useless_rules = [IndexedRuleSet._useless_rules(key, entry) for key, entry in self.items()]
+        useless_rules = [] if len(useless_rules) == 0 else [item for sublist in useless_rules for item in sublist]
+        for rule in useless_rules:
+            self[rule[0]].remove(rule[1])
+        return self
 
     @staticmethod
-    def __useless_rules(key_rules_or_key, rules=None) -> list[(int, Rule)]:
-        if rules is None:
-            return IndexedRuleSet.__useless_rules(key_rules_or_key[0], key_rules_or_key[1])
-        else:
-            return [(key_rules_or_key, rule) for rule in rules
-                    if not any(aux.is_sub_rule_of(rule) for aux in [rules - rule])]
+    def _useless_rules(key, rules: list[Rule]) -> list[(int, Rule)]:
+        result = []
+        for rule in rules:
+            append = True
+            for other_rule in rules:
+                if (rule != other_rule) and not rule.is_sub_rule_of(other_rule):
+                    append = False
+                    break
+            if append:
+                result.append((key, rule))
+        return result
+        # return [(key, rule) for rule in rules if not any(rule.is_sub_rule_of(aux) for aux in rules if aux != rule)]
 
     @staticmethod
     def create_indexed_ruleset(dataset: pd.DataFrame) -> IndexedRuleSet:

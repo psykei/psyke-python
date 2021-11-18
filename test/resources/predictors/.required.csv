@@ -1,2 +1,4 @@
-type;model;model_options;dataset
-ITER;RFR;{};house
+model;model_options;dataset;schema
+RFR;{};house;
+KNNC;{'n_neighbors': 9};iris;iris
+KNNC;{'n_neighbors': 3};iris;iris

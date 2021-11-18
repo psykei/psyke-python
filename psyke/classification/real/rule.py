@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Iterable
+
 from psyke.schema.discrete_feature import DiscreteFeature
 
 
@@ -13,9 +15,10 @@ class Rule:
         return all([predicate in self.true_predicates for predicate in rule.true_predicates]) & \
                all([predicate in self.false_predicates for predicate in rule.false_predicates])
 
-    def reduce(self, features: set[DiscreteFeature]) -> Rule:
-        to_be_removed = ((feature.admissible_values.keys for feature in features if tp in feature.admissible_values)
-                         for tp in self.true_predicates)
+    def reduce(self, features: Iterable[DiscreteFeature]) -> Rule:
+        to_be_removed = [feature.admissible_values.keys() for tp in self.true_predicates
+                         for feature in features if tp in feature.admissible_values]
+        to_be_removed = [item for sublist in to_be_removed for item in sublist]
         return Rule(self.true_predicates, [fp for fp in self.false_predicates if fp not in to_be_removed])
 
     def to_lists(self) -> list[list[str]]:

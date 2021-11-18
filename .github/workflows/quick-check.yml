@@ -36,6 +36,9 @@ jobs:
       - name: Restore Python dependencies
         run: pip install -r requirements.txt
 
+      - name: Change default logging level
+        run: sed -i -e 's/DEBUG/WARN/g' psyke/__init__.py
+
       # - name: Import submodule pytest
       #  run: git submodule add https://github.com/psykei/pytest.git
 

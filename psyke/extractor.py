@@ -2,8 +2,7 @@ from __future__ import annotations
 from psyke.schema.discrete_feature import DiscreteFeature
 from psyke.predictor import Predictor
 from tuprolog.theory import Theory
-from typing import Iterable, Mapping
-
+from typing import Iterable
 from psyke.utils import get_default_random_seed
 
 
@@ -18,9 +17,9 @@ class Extractor(object):
         Each set corresponds to a set of features derived from a single non-discrete feature.
     """
 
-    def __init__(self, predictor: Predictor, discretization: Mapping[DiscreteFeature] = None):
+    def __init__(self, predictor: Predictor, discretization: Iterable[DiscreteFeature] = None):
         self.predictor = predictor
-        self.discretization = discretization
+        self.discretization = [] if discretization is None else list(discretization)
 
     def extract(self, dataset) -> Theory:
         """
@@ -47,7 +46,7 @@ class Extractor(object):
         Creates a new ITER extractor.
         """
         from psyke.regression.iter.iter import ITER
-        return ITER(predictor, min_update, n_points, max_iterations, min_examples, threshold, fill_gaps)
+        return ITER(predictor, min_update, n_points, max_iterations, min_examples, threshold, fill_gaps, seed)
 
     @staticmethod
     def real(predictor, discretization=None) -> Extractor:
@@ -56,4 +55,3 @@ class Extractor(object):
         """
         from psyke.classification.real.real import REAL
         return REAL(predictor, [] if discretization is None else discretization)
-    

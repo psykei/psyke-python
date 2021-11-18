@@ -19,6 +19,7 @@ class Predictor:
         return Predictor(rt.InferenceSession(file), True)
 
     def save_to_onnx(self, file, initial_types: list[tuple[str, DataType]]):
+        file = str(file) + '.onnx'
         if not self._from_file_onnx:
             if os.path.exists(file):
                 os.remove(file)
@@ -38,10 +39,12 @@ class Predictor:
             else:
                 tensor_type = np.str
             pred_onx = self._model.run([label_name], {input_name: array.astype(tensor_type)})[0]
-            return [prediction for plist in pred_onx for prediction in plist]
+            return [prediction for plist in pred_onx for prediction in plist] if isinstance(pred_onx[0], list)\
+                else [prediction for prediction in pred_onx]
         else:
             return self._model.predict(dataset)
 
+    # TODO: to be improved
     @staticmethod
     def get_initial_types(dataset: pd.DataFrame | np.ndarray) -> list[tuple[str, DataType]]:
         array = dataset.to_numpy() if isinstance(dataset, pd.DataFrame) else dataset
@@ -50,10 +53,10 @@ class Predictor:
             name += column + ', '
         name = name[:-2]
         shape = [None, array.shape[1]]
-        if array.dtype == 'int64':
-            types = Int64TensorType(shape)
-        elif array.dtype == 'float64':
+        if array.dtype == 'float64':
             types = FloatTensorType(shape)
+        elif array.dtype == 'int64':
+            types = Int64TensorType(shape)
         else:
             types = StringTensorType(shape)
         return [(name, types)]
