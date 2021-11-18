@@ -9,6 +9,7 @@ env:
   # jdk-version: openjdk@~1.15.0
   project-name: psyke-python
   workflow: quick-check
+  test-submodule: psykei/psyke-pytest
   # gradle-options: "--no-daemon --console=plain --stacktrace"
 jobs:
   run-unit-tests:
@@ -48,8 +49,9 @@ jobs:
       - name: Submodule update
         run: |
           pushd test/resources
-          git config user.email "matteo.magnini@studio.unibo.it"
-          git config user.name "MatteoMagnini"
+          git config user.email "bot@noreply.github.com"
+          git config user.name "CI bot"
+          git remote set-url origin https://x-access-token:${{ secrets.TRIGGER_GITHUB_ACTION }}@github.com/${{ test-submodule }}
           git add predictors/*.onnx
           git add tests/*.csv
           git add datasets/*.csv
