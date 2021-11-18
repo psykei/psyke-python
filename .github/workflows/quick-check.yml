@@ -51,7 +51,7 @@ jobs:
           pushd test/resources
           git config user.email "bot@noreply.github.com"
           git config user.name "CI bot"
-          git remote set-url origin https://x-access-token:${{ secrets.TRIGGER_GITHUB_ACTION }}@github.com/${{ test-submodule }}
+          git remote set-url origin https://x-access-token:${{ secrets.TRIGGER_GITHUB_ACTION }}@github.com/${{ env.test-submodule }}
           git add predictors/*.onnx
           git add tests/*.csv
           git add datasets/*.csv
