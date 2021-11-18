@@ -50,9 +50,9 @@ jobs:
           pushd test/resources
           git config user.email "matteo.magnini@studio.unibo.it"
           git config user.name "MatteoMagnini"
-          git add -f predictors/*.onnx
-          git add -f tests/*.csv
-          git add -f datasets/*.csv
+          git add predictors/*.onnx
+          git add tests/*.csv
+          git add datasets/*.csv
           (git commit -m 'predictors update from workflows' && git push) || echo 'nothing to commit'
 
       - name: Test
