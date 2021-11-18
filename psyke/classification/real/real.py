@@ -4,6 +4,7 @@ from psyke.classification.real.indexed_rule_set import IndexedRuleSet
 from psyke.classification.real.rule import Rule
 from psyke.extractor import Extractor
 from psyke.schema.discrete_feature import DiscreteFeature
+from psyke.utils.dataframe_utils import get_discrete_dataset
 from psyke.utils.hashable import HashableDataFrame
 from psyke.utils.logic_utils import create_variable_list, create_head, create_term
 from tuprolog.core import clause, Var, Clause, Struct
@@ -75,9 +76,11 @@ class REAL(Extractor):
     def __get_or_set(self, dataset: HashableDataFrame) -> IndexedRuleSet:
         return self.__create_ruleset(dataset)
 
-    def __predict(self, sample: pd.Series) -> int:
+    def __predict(self, sample: pd.Series):
+        sample = get_discrete_dataset(sample.to_frame().transpose(), self.discretization).loc[0]
         x = [index for index, rule in self.__ruleset.flatten() if self.__rule_from_example(sample).is_sub_rule_of(rule)]
-        return x[0] if len(x) > 0 else -1
+        reverse_mapping = dict((v, k) for k, v in self.__output_mapping.items())
+        return reverse_mapping[x[0]] if len(x) > 0 else -1
 
     def __remove_antecedents(self, samples: pd.DataFrame, predicate: str,
                              mutable_predicates: list[str]) -> pd.DataFrame:
@@ -113,5 +116,5 @@ class REAL(Extractor):
         self.__ruleset = self.__get_or_set(HashableDataFrame(dataset))
         return self.__create_theory(dataset, self.__ruleset)
 
-    def predict(self, dataset) -> list[int]:
-        return [self.__predict(data) for data in dataset]
+    def predict(self, dataset) -> list:
+        return [self.__predict(data.transpose()) for _, data in dataset.iterrows()]
