@@ -1,5 +1,4 @@
 from __future__ import annotations
-
 from datetime import datetime
 from typing import Iterable
 from psyke.regression.feature_not_found_exception import FeatureNotFoundException
@@ -43,7 +42,6 @@ class HyperCube:
             (max(self.get_first(update.name) - update.value, surrounding.get_first(update.name)),
              min(self.get_second(update.name) + update.value, surrounding.get_second(update.name)))
 
-    # TODO: this is slow! Must be optimized as soon as possible.
     def __filter_dataframe(self, dataset: pd.DataFrame) -> pd.DataFrame:
         m = np.array([v[0] for _, v in self.__dimension.items()])
         M = np.array([v[1] for _, v in self.__dimension.items()])
@@ -162,4 +160,4 @@ class HyperCube:
 
     def update_mean(self, dataset: pd.DataFrame, predictor):
         filtered = self.__filter_dataframe(dataset.iloc[:, :-1])
-        self.__output = np.mean(predictor.predict(filtered))
+        self.__output = np.mean(predictor.predict(filtered.to_numpy()))

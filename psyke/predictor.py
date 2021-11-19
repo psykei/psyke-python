@@ -44,7 +44,7 @@ class Predictor:
         else:
             return self._model.predict(dataset)
 
-    # TODO: to be improved
+    # TODO: to be improved, make it more flexible
     @staticmethod
     def get_initial_types(dataset: pd.DataFrame | np.ndarray) -> list[tuple[str, DataType]]:
         array = dataset.to_numpy() if isinstance(dataset, pd.DataFrame) else dataset
