@@ -1,3 +1,4 @@
+from math import log10
 from typing import Iterable, Union
 import numpy as np
 import pandas as pd
@@ -21,6 +22,10 @@ _test_option: dict = {'precision': _DEFAULT_PRECISION}
 
 def get_precision() -> float:
     return _test_option['precision']
+
+
+def get_int_precision() -> int:
+    return -1 * int(log10(get_precision()))
 
 
 def set_default_precision(value: float):

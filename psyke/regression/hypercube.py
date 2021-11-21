@@ -1,6 +1,7 @@
 from __future__ import annotations
-from datetime import datetime
+import math
 from typing import Iterable
+from psyke import logger
 from psyke.regression.feature_not_found_exception import FeatureNotFoundException
 from psyke.regression.iter.expansion import Expansion
 from psyke.regression.iter.limit import Limit
@@ -10,7 +11,6 @@ import math as m
 import numpy as np
 import pandas as pd
 import random
-
 from psyke.utils import get_default_random_seed
 
 
@@ -26,15 +26,15 @@ class HyperCube:
         self.__epsilon = 1.0 / 1000
 
     @property
-    def dimensions(self):
+    def dimensions(self) -> dict[str, tuple]:
         return self.__dimension
 
     @property
-    def limit_count(self):
+    def limit_count(self) -> int:
         return len(self.__limits)
 
     @property
-    def mean(self):
+    def mean(self) -> float:
         return self.__output
 
     def __expand_one(self, update: MinUpdate, surrounding: HyperCube):
@@ -113,7 +113,7 @@ class HyperCube:
                         & (abs(dimension.this_cube[1] - dimension.other_cube[1]) < self.__epsilon)
                         for dimension in self.__zip_dimensions(hypercubes)])
 
-    def expand(self, expansion: Expansion, hypercubes: Iterable[HyperCube]):
+    def expand(self, expansion: Expansion, hypercubes: Iterable[HyperCube]) -> None:
         feature, direction = expansion.feature, expansion.direction
         a, b = self.get(feature)
         self.__dimension[feature] = (expansion.get()[0], b) if direction == '-' else (a, expansion.get()[1])
@@ -152,12 +152,13 @@ class HyperCube:
                              (dimension.this_cube[0] >= dimension.other_cube[1]))
                         for dimension in self.__zip_dimensions(hypercubes)])
 
-    def update_dimension(self, feature: str, lower, upper=None):
+    def update_dimension(self, feature: str, lower, upper=None) -> None:
         if upper is None:
             self.__dimension[feature] = lower
         else:
             self.update_dimension(feature, (lower, upper))
 
-    def update_mean(self, dataset: pd.DataFrame, predictor):
+    def update_mean(self, dataset: pd.DataFrame, predictor) -> None:
         filtered = self.__filter_dataframe(dataset.iloc[:, :-1])
-        self.__output = np.mean(predictor.predict(filtered.to_numpy()))
+        predictions = predictor.predict(filtered.to_numpy())
+        self.__output = np.mean(predictions)

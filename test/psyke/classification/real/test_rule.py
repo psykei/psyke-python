@@ -1,7 +1,7 @@
 import unittest
 from psyke.classification.real.rule import Rule
 from psyke.utils.dataframe_utils import split_features
-from test import get_schema, get_dataset
+from test import get_dataset
 
 
 class TestRule(unittest.TestCase):
