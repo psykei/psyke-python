@@ -13,7 +13,7 @@ import pandas as pd
 
 class Trepan(Extractor):
 
-    def __init__(self, predictor, discretization: Iterable[DiscreteFeature], min_examples: int = 0, max_depth: int = 0,
+    def __init__(self, predictor, discretization: Iterable[DiscreteFeature], min_examples: int = 0, max_depth: int = 3,
                  split_logic: SplitLogic = SplitLogic.DEFAULT):
         super().__init__(predictor, discretization)
         self.min_examples = min_examples
@@ -27,7 +27,7 @@ class Trepan(Extractor):
         if node.n_classes == 1:
             return None
         splits = Trepan.__create_splits(node, names)
-        return None if len(splits) == 0 else splits[0].children
+        return None if len(splits) == 0 or splits[0].children[0].depth > self.max_depth else splits[0].children
 
     def __compact(self):
         nodes = [self.__root]
@@ -35,12 +35,14 @@ class Trepan(Extractor):
             node = nodes.pop()
             for item in self.__nodes_to_remove(node, nodes):
                 node.children.remove(item)
-                node.children.append(item.children)
+                node.children += item.children
 
     def __create_body(self, variables: dict[str, Var], node: Node) -> Iterable[Struct]:
+        result = []
         for constraint, value in node.constraints:
-            feature: DiscreteFeature = self.discretization.filter(lambda x: constraint in x.admissible_value.keys())[0]
-            yield create_term(variables[feature.name], feature.admissible_values[constraint], value == 1.0)
+            feature: DiscreteFeature = [d for d in self.discretization if constraint in d.admissible_values][0]
+            result.append(create_term(variables[feature.name], feature.admissible_values[constraint], value == 1.0))
+        return result
 
     @staticmethod
     def __create_samples(node: Node, column: str, value: float) -> pd.DataFrame:
@@ -52,8 +54,10 @@ class Trepan(Extractor):
         false_examples = Trepan.__create_samples(node, column, 0.0)
         true_constrains = list(node.constraints) + [(column, 1.0)]
         false_constrains = list(node.constraints) + [(column, 0.0)]
-        true_node = Node(true_examples, node.n_examples, true_constrains) if true_examples is not None else None
-        false_node = Node(false_examples, node.n_examples, false_constrains) if false_examples is not None else None
+        true_node = Node(true_examples, node.n_examples, true_constrains, depth=node.depth + 1)\
+            if true_examples.shape[0] > 0 else None
+        false_node = Node(false_examples, node.n_examples, false_constrains, depth=node.depth + 1)\
+            if false_examples.shape[0] > 0 else None
         return None if true_node is None or false_node is None else Split(node, (true_node, false_node))
 
     @staticmethod
@@ -63,7 +67,7 @@ class Trepan(Extractor):
             if column not in constrains:
                 split = Trepan.__create_split(node, column)
                 if split is not None:
-                    splits.append(split)
+                    splits.add(split)
         return splits
 
     def __create_theory(self, name: str) -> MutableTheory:
@@ -86,7 +90,8 @@ class Trepan(Extractor):
 
     @staticmethod
     def __init_splits(node: Node) -> tuple[SortedList[Split], Iterable[str]]:
-        return SortedList(lambda x, y: int(x.priority - y.priority)), set(constraint[0] for constraint in node.constraints)
+        return SortedList(lambda x, y: int(x.priority - y.priority)),\
+               set(constraint[0] for constraint in node.constraints)
 
     @staticmethod
     def __nodes_to_remove(node: Node, nodes: list[Node]) -> list[Node]:
@@ -119,27 +124,27 @@ class Trepan(Extractor):
     def __remove_nodes(nodes: list[Node]) -> int:
         node = nodes.pop()
         to_remove = [child for child in node.children if len(child.children) == 0 and node.dominant == child.dominant]
-        node.children.remove(to_remove)
+        for child in to_remove:
+            node.children.remove(child)
         for child in node.children:
             if len(child.children) > 0:
                 nodes.append(child)
         return len(to_remove)
 
     def extract(self, dataset: pd.DataFrame) -> Theory:
+        dataset.iloc[:, -1] = self.predictor.predict(dataset.iloc[:, :-1])
         queue = self.__init(dataset)
         while len(queue) > 0:
             node = queue.pop()
             if self.split_logic == SplitLogic.DEFAULT:
-                best: Union[Node, None] = self.__best_split(node, dataset.columns.values)
+                best: Union[tuple[Node, Node], None] = self.__best_split(node, dataset.columns[:-1])
                 if best is None:
                     continue
             else:
                 raise Exception('Illegal split logic')
-            queue.add_all(best.as_sequence())
-            node.children += best.as_sequence()
+            queue.add_all(best)
+            node.children += list(best)
         self.__optimize()
-        if self.max_depth > 0:
-            raise NotImplementedError
         return self.__create_theory(dataset.columns[-1])
 
     def predict(self, dataset: pd.DataFrame) -> Iterable:

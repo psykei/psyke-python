@@ -6,11 +6,12 @@ import pandas as pd
 class Node:
 
     def __init__(self, samples: pd.DataFrame, n_examples: int, constraints: Iterable[tuple[str, float]] = None,
-                 children: list[Node] = None):
+                 children: list[Node] = None, depth: int = 0):
         self.samples = samples
         self.n_examples = n_examples
         self.constraints = [] if constraints is None else constraints
         self.children = [] if children is None else children
+        self.depth = depth
 
     def __str__(self):
         name = ''.join(('' if c[1] > 0 else '!') + c[0] + ', ' for c in self.constraints)
@@ -22,7 +23,7 @@ class Node:
 
     @property
     def fidelity(self) -> float:
-        return 1.0 * self.correct / self.samples.shape[0]
+        return 1.0 * self.correct / (self.samples.shape[0] if self.samples.shape[0] > 0 else 1)
 
     @property
     def reach(self) -> float:
@@ -34,7 +35,7 @@ class Node:
 
     @property
     def dominant(self) -> Any:
-        return self.samples.iloc[:, -1].mode()[0]
+        return self.samples.iloc[:, -1].mode()[0] if self.samples.shape[0] > 0 else ''
 
     @property
     def n_classes(self) -> int:

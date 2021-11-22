@@ -26,3 +26,7 @@ class TestReal(unittest.TestCase):
         expected = [str(query.solved_query.get_arg_at(index)) if query.is_yes else -1 for query in substitutions]
 
         self.assertTrue(predictions == expected)
+
+
+if __name__ == '__main__':
+    unittest.main()

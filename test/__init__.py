@@ -32,6 +32,8 @@ def get_extractor(extractor_type: str, parameters: dict):
         return Extractor.iter(**parameters)
     elif extractor_type.lower() == 'real':
         return Extractor.real(**parameters)
+    elif extractor_type.lower() == 'trepan':
+        return Extractor.trepan(**parameters)
     else:
         raise NotImplementedError(extractor_type + ' not implemented yet.')
 
