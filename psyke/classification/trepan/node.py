@@ -1,7 +1,5 @@
 from __future__ import annotations
-
 from typing import Iterable, Any
-
 import pandas as pd
 
 
@@ -24,24 +22,29 @@ class Node:
 
     @property
     def fidelity(self) -> float:
-        return 1.0 * self.correct / self.samples.nrows()
+        return 1.0 * self.correct / self.samples.shape[0]
 
     @property
     def reach(self) -> float:
-        return 1.0 * self.samples.nrows() / self.n_examples
+        return 1.0 * self.samples.shape[0] / self.n_examples
 
     @property
     def correct(self) -> float:
-        return sum(self.samples.output == self.dominant)
+        return sum(self.samples.iloc[:, -1] == self.dominant)
 
     @property
     def dominant(self) -> Any:
-        return self.samples.iloc[:, -1].mode()
+        return self.samples.iloc[:, -1].mode()[0]
 
     @property
     def n_classes(self) -> int:
-        return len(self.samples.columns) - 1
+        return len(set(self.samples.iloc[:, -1]))
 
-    def to_list(self) -> list[Node]:
-        yield list(child.to_list() for child in self.children)
-        yield self
+    def as_sequence(self) -> list[Node]:
+        return self.__as_sequence([])
+
+    def __as_sequence(self, result: list[Node]) -> list[Node]:
+        for child in self.children:
+            child.__as_sequence(result)
+        result.append(self)
+        return result

@@ -68,7 +68,7 @@ class Trepan(Extractor):
 
     def __create_theory(self, name: str) -> MutableTheory:
         theory = mutable_theory()
-        for node in self.__root.to_list():
+        for node in self.__root.as_sequence():
             variables = create_variable_list(self.discretization)
             theory.assertZ(
                 clause(
@@ -135,8 +135,8 @@ class Trepan(Extractor):
                     continue
             else:
                 raise Exception('Illegal split logic')
-            queue.add_all(best.to_list())
-            node.children += best.to_list()
+            queue.add_all(best.as_sequence())
+            node.children += best.as_sequence()
         self.__optimize()
         if self.max_depth > 0:
             raise NotImplementedError
