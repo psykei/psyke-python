@@ -18,9 +18,6 @@ class TestReal(unittest.TestCase):
         predictions = self.extractor.predict(self.test_set.iloc[:, :-1])
         solver = prolog_solver(static_kb=self.extracted_theory.assertZ(get_in_rule()))
 
-        # Sort columns alphabetically to be compliant to rules (terms are alphabetically ordered).
-        columns = sorted(self.test_set.columns[:-1]) + [self.test_set.columns[-1]]
-        self.test_set = self.test_set.reindex(columns, axis=1)
         substitutions = [solver.solveOnce(data_to_struct(data)) for _, data in self.test_set.iterrows()]
         index = self.test_set.shape[1] - 1
         expected = [str(query.solved_query.get_arg_at(index)) if query.is_yes else -1 for query in substitutions]

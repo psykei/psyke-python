@@ -18,14 +18,21 @@ def initialize(file: str) -> list[dict[str:Theory]]:
         params = dict() if row['extractor_params'] == '' else ast.literal_eval(row['extractor_params'])
         dataset = get_dataset(row['dataset'])
         training_set, test_set = train_test_split(dataset, test_size=0.5, random_state=get_default_random_seed())
+
+        # Test set's columns are sorted to avoid any trickery and grant reproducibility
+        columns = sorted(test_set.columns[:-1]) + [test_set.columns[-1]]
+        test_set = test_set.reindex(columns, axis=1)
+
         if 'schema' in row.keys():
             schema = get_schema(row['schema'])
             params['discretization'] = schema
             training_set = get_discrete_dataset(training_set.iloc[:, :-1], schema)\
                 .join(training_set.iloc[:, -1].reset_index(drop=True))
+
         params['predictor'] = Predictor.load_from_onnx(str(get_predictor_path(row['predictor'])))
         extractor = get_extractor(row['extractor_type'], params)
         theory = extractor.extract(training_set)
+
         yield {
             'extractor': extractor,
             'extracted_theory': theory,

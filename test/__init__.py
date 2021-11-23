@@ -58,6 +58,17 @@ def get_in_rule():
     )
 
 
+def get_not_in_rule():
+    local_scope = scope()
+    return rule(
+        struct('not_in', local_scope.var('X'), logic_list(local_scope.var('H'), local_scope.var('T'))),
+        [
+            struct('<', local_scope.var('T'), local_scope.var('X')),
+            struct('<', local_scope.var('X'), local_scope.var('H'))
+        ]
+    )
+
+
 def get_dataset(name: str):
     if name.lower() == 'house':
         x, y = fetch_california_housing(return_X_y=True, as_frame=True)

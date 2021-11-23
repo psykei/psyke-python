@@ -3,11 +3,12 @@ from psyke.classification.trepan.split import Split
 from psyke.classification.trepan.split_logic import SplitLogic
 from psyke.extractor import Extractor
 from psyke.schema.discrete_feature import DiscreteFeature
+from psyke.utils.dataframe_utils import get_discrete_dataset
 from psyke.utils.logic_utils import create_variable_list, create_head, create_term
 from psyke.utils.sorted_list import SortedList
 from tuprolog.core import clause, Var, Struct
 from tuprolog.theory import Theory, MutableTheory, mutable_theory
-from typing import Iterable, Union
+from typing import Iterable, Union, Any
 import pandas as pd
 
 
@@ -106,13 +107,16 @@ class Trepan(Extractor):
 
     # TODO: check this method!!!
     @staticmethod
-    def __predict(x: pd.Series, node: Node, categories: Iterable) -> int :
+    def __predict(x: pd.Series, node: Node, categories: Iterable) -> Any:
         for child in node.children:
-            for constraint, value in node.constraints:
+            skip = False
+            for constraint, value in child.constraints:
                 if x[constraint] != value:
+                    skip = True
                     continue
-            return Trepan.__predict(x, child, categories)
-        return list(categories).index(node.dominant)
+            if not skip:
+                return Trepan.__predict(x, child, categories)
+        return node.dominant  # Alternatively node.dominant index in categories
 
     def __optimize(self) -> None:
         n, nodes = 0, [self.__root]
@@ -148,4 +152,5 @@ class Trepan(Extractor):
         return self.__create_theory(dataset.columns[-1])
 
     def predict(self, dataset: pd.DataFrame) -> Iterable:
+        dataset = get_discrete_dataset(dataset, self.discretization)
         return [Trepan.__predict(sample, self.__root, dataset.columns[-1]) for _, sample in dataset.iterrows()]
