@@ -1,11 +1,9 @@
 from __future__ import annotations
-
-import psyke
-from psyke.classification.trepan.split_logic import SplitLogic
 from psyke.schema.discrete_feature import DiscreteFeature
+from psyke.utils import get_default_random_seed
 from tuprolog.theory import Theory
 from typing import Iterable
-from psyke.utils import get_default_random_seed
+import psyke
 
 
 class Extractor(object):
@@ -55,7 +53,7 @@ class Extractor(object):
         """
         Creates a new ITER extractor.
         """
-        from psyke.regression.iter.iter import ITER
+        from psyke.regression.iter import ITER
         return ITER(predictor, min_update, n_points, max_iterations, min_examples, threshold, fill_gaps, seed)
 
     @staticmethod
@@ -63,14 +61,16 @@ class Extractor(object):
         """
         Creates a new REAL extractor.
         """
-        from psyke.classification.real.real import REAL
+        from psyke.classification.real import REAL
         return REAL(predictor, [] if discretization is None else discretization)
 
     @staticmethod
     def trepan(predictor, discretization=None, min_examples: int = 0, max_depth: int = 3,
-               split_logic: SplitLogic = SplitLogic.DEFAULT) -> Extractor:
+               split_logic=None) -> Extractor:
         """
-        Creates a new REAL extractor.
+        Creates a new Trepan extractor.
         """
-        from psyke.classification.trepan.trepan import Trepan
+        from psyke.classification.trepan import Trepan, SplitLogic
+        if split_logic is None:
+            split_logic = SplitLogic.DEFAULT
         return Trepan(predictor, [] if discretization is None else discretization, min_examples, max_depth, split_logic)

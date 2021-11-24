@@ -1,4 +1,4 @@
-from psyke.classification.trepan.node import Node
+from psyke.classification.trepan import Node
 from test import get_dataset
 import pandas as pd
 import unittest

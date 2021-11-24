@@ -1,12 +1,7 @@
 from __future__ import annotations
-import math
 from typing import Iterable
-from psyke import logger
 from psyke.regression.feature_not_found_exception import FeatureNotFoundException
-from psyke.regression.iter.expansion import Expansion
-from psyke.regression.iter.limit import Limit
-from psyke.regression.iter.minupdate import MinUpdate
-from psyke.regression.iter.zipped_dimension import ZippedDimension
+from psyke.regression.utils import Expansion, Limit, ZippedDimension, MinUpdate
 import math as m
 import numpy as np
 import pandas as pd
