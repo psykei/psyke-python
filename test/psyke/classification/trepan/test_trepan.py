@@ -7,7 +7,7 @@ import unittest
 
 
 @parameterized_class(initialize('trepan'))
-class TestReal(unittest.TestCase):
+class TestTrepan(unittest.TestCase):
 
     def test_extract(self):
         logger.info(self.expected_theory)
@@ -15,6 +15,7 @@ class TestReal(unittest.TestCase):
         self.assertTrue(self.expected_theory.equals(self.extracted_theory, False))
 
     def test_predict(self):
+
         predictions = self.extractor.predict(self.test_set.iloc[:, :-1])
         solver = prolog_solver(static_kb=self.extracted_theory.assertZ(get_not_in_rule()).assertZ(get_in_rule()))
 

@@ -1,7 +1,8 @@
 from __future__ import annotations
+
+import psyke
 from psyke.classification.trepan.split_logic import SplitLogic
 from psyke.schema.discrete_feature import DiscreteFeature
-from psyke.predictor import Predictor
 from tuprolog.theory import Theory
 from typing import Iterable
 from psyke.utils import get_default_random_seed
@@ -18,7 +19,7 @@ class Extractor(object):
         Each set corresponds to a set of features derived from a single non-discrete feature.
     """
 
-    def __init__(self, predictor: Predictor, discretization: Iterable[DiscreteFeature] = None):
+    def __init__(self, predictor, discretization: Iterable[DiscreteFeature] = None):
         self.predictor = predictor
         self.discretization = [] if discretization is None else list(discretization)
 
@@ -39,6 +40,14 @@ class Extractor(object):
         :return: a list of predictions.
         """
         raise NotImplementedError('predict')
+
+    @staticmethod
+    def cart(predictor: psyke.cart.CartPredictor, discretization=None) -> Extractor:
+        """
+        Creates a new Cart extractor.
+        """
+        from psyke.cart import Cart
+        return Cart(predictor, discretization)
 
     @staticmethod
     def iter(predictor, min_update: float = 0.1, n_points: int = 1, max_iterations: int = 600, min_examples: int = 250,

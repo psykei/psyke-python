@@ -15,12 +15,16 @@ class TestReal(unittest.TestCase):
         self.assertTrue(self.expected_theory.equals(self.extracted_theory, False))
 
     def test_predict(self):
+
         predictions = self.extractor.predict(self.test_set.iloc[:, :-1])
         solver = prolog_solver(static_kb=self.extracted_theory.assertZ(get_in_rule()))
 
         substitutions = [solver.solveOnce(data_to_struct(data)) for _, data in self.test_set.iterrows()]
         index = self.test_set.shape[1] - 1
         expected = [str(query.solved_query.get_arg_at(index)) if query.is_yes else -1 for query in substitutions]
+
+        logger.info(predictions)
+        logger.info(expected)
 
         self.assertTrue(predictions == expected)
 
