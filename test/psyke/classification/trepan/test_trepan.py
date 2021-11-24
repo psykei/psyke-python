@@ -7,7 +7,7 @@ import unittest
 
 
 @parameterized_class(initialize('trepan'))
-class TestReal(unittest.TestCase):
+class TestTrepan(unittest.TestCase):
 
     def test_extract(self):
         logger.info(self.expected_theory)
