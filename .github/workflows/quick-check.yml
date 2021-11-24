@@ -29,20 +29,11 @@ jobs:
         with:
           python-version: 3.9.6
 
-      # - name: Get All Tags
-      #   run: git fetch --tags -f
-
       - name: Restore Python dependencies
         run: pip install -r requirements.txt
 
-      # - name: Change default logging level
-      #  run: sed -i -e 's/DEBUG/WARN/g' psyke/__init__.py
-
-      # - name: Import submodule pytest
-      #  run: git submodule add https://github.com/psykei/pytest.git
-
       - name: Create missing predictors
-        run: python create_missing_predictors.py
+        run: python setup.py create_test_predictors
 
       - name: Submodule update
         run: |
