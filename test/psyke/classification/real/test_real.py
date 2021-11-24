@@ -6,7 +6,7 @@ from test import get_in_rule
 from test.psyke import initialize, data_to_struct
 
 
-@parameterized_class(initialize('real', True))
+@parameterized_class(initialize('real'))
 class TestReal(unittest.TestCase):
 
     def test_extract(self):

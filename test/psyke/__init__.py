@@ -15,16 +15,16 @@ from test.resources.predictors import get_predictor_path
 from test.resources.tests import test_cases
 
 
-def initialize(file: str, sort_test=False) -> list[dict[str:Theory]]:
+def initialize(file: str) -> list[dict[str:Theory]]:
     for row in test_cases(file):
         params = dict() if row['extractor_params'] == '' else ast.literal_eval(row['extractor_params'])
         dataset = get_dataset(row['dataset'])
-        training_set, test_set = train_test_split(dataset, test_size=0.5, random_state=get_default_random_seed())
 
-        # Test set's columns are sorted to be compliant to the extracted rules.
-        if sort_test:
-            columns = sorted(test_set.columns[:-1]) + [test_set.columns[-1]]
-            test_set = test_set.reindex(columns, axis=1)
+        # Dataset's columns are sorted.
+        columns = sorted(dataset.columns[:-1]) + [dataset.columns[-1]]
+        dataset = dataset.reindex(columns, axis=1)
+
+        training_set, test_set = train_test_split(dataset, test_size=0.5, random_state=get_default_random_seed())
 
         if 'schema' in row.keys():
             schema = get_schema(row['schema'])
