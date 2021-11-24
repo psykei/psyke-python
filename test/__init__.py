@@ -1,4 +1,3 @@
-from math import log10
 from typing import Iterable, Union
 import numpy as np
 import pandas as pd
@@ -17,32 +16,16 @@ from test.resources.schemas import SCHEMAS
 
 REQUIRED_PREDICTORS: str = PATH / '.required.csv'
 
-_DEFAULT_PRECISION: float = 1e-4
-
-_test_option: dict = {'precision': _DEFAULT_PRECISION}
-
-
-def get_precision() -> float:
-    return _test_option['precision']
-
-
-def get_int_precision() -> int:
-    return -1 * int(log10(get_precision()))
-
-
-def set_default_precision(value: float):
-    _test_option['precision'] = value
-
 
 def get_extractor(extractor_type: str, parameters: dict):
-    if extractor_type.lower() == 'iter':
+    if extractor_type.lower() == 'cart':
+        return Extractor.cart(**parameters)
+    elif extractor_type.lower() == 'iter':
         return Extractor.iter(**parameters)
     elif extractor_type.lower() == 'real':
         return Extractor.real(**parameters)
     elif extractor_type.lower() == 'trepan':
         return Extractor.trepan(**parameters)
-    elif extractor_type.lower() == 'cart':
-        return Extractor.cart(**parameters)
     else:
         raise NotImplementedError(extractor_type + ' not implemented yet.')
 

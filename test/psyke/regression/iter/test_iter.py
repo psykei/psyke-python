@@ -2,7 +2,8 @@ from math import log10
 
 from parameterized import parameterized_class
 from psyke import logger
-from test import get_precision, get_in_rule
+from test import get_in_rule
+from psyke.utils import get_default_precision
 from test.psyke import initialize, data_to_struct
 from tuprolog.solve.prolog import prolog_solver
 import numpy as np
@@ -19,7 +20,7 @@ class TestIter(unittest.TestCase):
         # self.assertTrue(self.expected_theory.equals(self.extracted_theory, False))
 
     def test_predict(self):
-        precision = - 1 * int(log10(get_precision()))
+        precision = - 1 * int(log10(get_default_precision()))
         predictions = np.array(self.extractor.predict(self.test_set.iloc[:, :-1]))
         solver = prolog_solver(static_kb=self.extracted_theory.assertZ(get_in_rule()))
         substitutions = [solver.solveOnce(data_to_struct(data)) for _, data in self.test_set.iterrows()]
@@ -33,7 +34,7 @@ class TestIter(unittest.TestCase):
         '''
         predictions[np.isnan(predictions)] = expected[np.isnan(predictions)]
         predictions = np.round(predictions, precision)
-        results = abs(predictions - expected) <= get_precision()
+        results = abs(predictions - expected) <= get_default_precision()
         # logger.info(predictions[np.logical_not(results)])
         # logger.info(expected[np.logical_not(results)])
         self.assertTrue(all(results))

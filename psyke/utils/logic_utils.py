@@ -3,7 +3,7 @@ from tuprolog.core import Var, Struct, struct, real, atom, var, numeric, logic_l
 from psyke.schema.value import Value, LessThan, GreaterThan, Between
 from psyke.schema.value import Constant
 from psyke.schema.discrete_feature import DiscreteFeature
-from test import get_int_precision
+from psyke.utils import get_int_precision
 
 PRECISION: int = get_int_precision()
 

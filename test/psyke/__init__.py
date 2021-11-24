@@ -14,13 +14,25 @@ from test import get_dataset, get_extractor, get_schema, get_model
 from test.resources.predictors import get_predictor_path
 from test.resources.tests import test_cases
 
+_DEFAULT_ACCURACY: float = 0.95
+
+_test_options: dict = {'accuracy': _DEFAULT_ACCURACY}
+
+
+def get_default_accuracy() -> float:
+    return _test_options['accuracy']
+
+
+def set_default_accuracy(value: float) -> None:
+    _test_options['accuracy'] = value
+
 
 def initialize(file: str) -> list[dict[str:Theory]]:
     for row in test_cases(file):
         params = dict() if row['extractor_params'] == '' else ast.literal_eval(row['extractor_params'])
         dataset = get_dataset(row['dataset'])
 
-        # Dataset's columns are sorted.
+        # Dataset's columns are sorted due to alphabetically sorted extracted rules.
         columns = sorted(dataset.columns[:-1]) + [dataset.columns[-1]]
         dataset = dataset.reindex(columns, axis=1)
 
@@ -32,7 +44,9 @@ def initialize(file: str) -> list[dict[str:Theory]]:
             training_set = get_discrete_dataset(training_set.iloc[:, :-1], schema)\
                 .join(training_set.iloc[:, -1].reset_index(drop=True))
 
-        # Handle cart's cases
+        # Handle cart's tests.
+        # Cart needs to inspect the tree of the predictor.
+        # Unfortunately onnx does not provide a method to do that.
         if row['predictor'].lower() not in ['dtc', 'dtr']:
             params['predictor'] = Predictor.load_from_onnx(str(get_predictor_path(row['predictor'])))
         else:

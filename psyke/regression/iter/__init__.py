@@ -10,9 +10,8 @@ from psyke.extractor import Extractor
 from psyke.regression.hypercube import HyperCube
 from psyke.regression.utils import Expansion, MinUpdate
 from psyke.schema.value import Between
-from psyke.utils import get_default_random_seed
+from psyke.utils import get_default_random_seed, get_int_precision
 from psyke.utils.logic_utils import create_term, create_variable_list, create_head
-from test import get_int_precision
 
 DomainProperties = (Iterable[MinUpdate], HyperCube)
 
