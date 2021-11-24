@@ -4,7 +4,7 @@ from psyke.schema.value import Value, LessThan, GreaterThan, Between
 from psyke.schema.value import Constant
 from psyke.schema.discrete_feature import DiscreteFeature
 
-precision = 4
+PRECISION = 4
 
 
 def create_functor(constraint: Value, positive: bool) -> str:
@@ -23,19 +23,19 @@ def create_term(v: Var, constraint: Value, positive: bool = True) -> Struct:
         raise Exception('IllegalArgumentException: None variable')
     functor = create_functor(constraint, positive)
     if isinstance(constraint, LessThan):
-        return struct(functor, v, real(round(constraint.value, precision)))
+        return struct(functor, v, real(round(constraint.value, PRECISION)))
     if isinstance(constraint, GreaterThan):
-        return struct(functor, v, real(round(constraint.value, precision)))
+        return struct(functor, v, real(round(constraint.value, PRECISION)))
     if isinstance(constraint, Between):
         return struct(functor, v,
-                      logic_list(real(round(constraint.lower, precision)), real(round(constraint.upper, precision))))
+                      logic_list(real(round(constraint.lower, PRECISION)), real(round(constraint.upper, PRECISION))))
     if isinstance(constraint, Constant):
         return struct(functor, v, atom(str(Constant(constraint).value)))
 
 
 def create_variable_list(features: list[DiscreteFeature], dataset: pd.DataFrame = None) -> dict[str, Var]:
-    values = {feature.name: var(feature.name) for feature in sorted(features, key=lambda x: x.name)}\
-        if len(features) > 0 else {name: var(name) for name in sorted(dataset.columns[:-1])}
+    values = {feature.name: var(feature.name) for feature in features}\
+        if len(features) > 0 else {name: var(name) for name in dataset.columns[:-1]}
     return values
 
 
@@ -44,6 +44,6 @@ def create_head(functor: str, variables: list[Var], output) -> Struct:
         variables.append(atom(output))
         return struct(functor, variables)
     else:
-        value = round(float(output), precision)
+        value = round(float(output), PRECISION)
         variables.append(numeric(value))
         return struct(functor, variables)

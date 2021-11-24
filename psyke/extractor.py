@@ -1,4 +1,6 @@
 from __future__ import annotations
+
+import psyke
 from psyke.classification.trepan.split_logic import SplitLogic
 from psyke.schema.discrete_feature import DiscreteFeature
 from tuprolog.theory import Theory
@@ -38,6 +40,14 @@ class Extractor(object):
         :return: a list of predictions.
         """
         raise NotImplementedError('predict')
+
+    @staticmethod
+    def cart(predictor: psyke.cart.CartPredictor, discretization=None) -> Extractor:
+        """
+        Creates a new Cart extractor.
+        """
+        from psyke.cart import Cart
+        return Cart(predictor, discretization)
 
     @staticmethod
     def iter(predictor, min_update: float = 0.1, n_points: int = 1, max_iterations: int = 600, min_examples: int = 250,

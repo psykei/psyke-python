@@ -1,13 +1,12 @@
-from typing import Iterable
-import pandas as pd
-from tuprolog.core import clause, Var, Struct
-from tuprolog.theory import Theory, mutable_theory
-from psyke.cart.cart_predictor import CartPredictor
-from psyke.cart.cart_utils import LeafConstraints, LeafSequence
+from psyke.cart.cart_predictor import CartPredictor, LeafConstraints, LeafSequence
 from psyke.extractor import Extractor
 from psyke.schema.discrete_feature import DiscreteFeature
 from psyke.schema.value import GreaterThan
 from psyke.utils.logic_utils import create_variable_list, create_head, create_term
+from tuprolog.core import clause, Var, Struct
+from tuprolog.theory import Theory, mutable_theory
+from typing import Iterable
+import pandas as pd
 
 
 class Cart(Extractor):

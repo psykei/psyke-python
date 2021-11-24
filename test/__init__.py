@@ -3,6 +3,8 @@ import numpy as np
 import pandas as pd
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.neighbors import KNeighborsClassifier
+from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
+
 from psyke.schema.discrete_feature import DiscreteFeature
 from psyke.schema.value import Value
 from psyke.utils import get_default_random_seed
@@ -34,6 +36,8 @@ def get_extractor(extractor_type: str, parameters: dict):
         return Extractor.real(**parameters)
     elif extractor_type.lower() == 'trepan':
         return Extractor.trepan(**parameters)
+    elif extractor_type.lower() == 'cart':
+        return Extractor.cart(**parameters)
     else:
         raise NotImplementedError(extractor_type + ' not implemented yet.')
 
@@ -43,6 +47,10 @@ def get_model(model_type: str, parameters: dict):
         return RandomForestRegressor(**parameters, random_state=np.random.seed(get_default_random_seed()))
     elif model_type.lower() == 'knnc':
         return KNeighborsClassifier(**parameters)  # It's deterministic, don't not have a random_state
+    elif model_type.lower() == 'dtc':
+        return DecisionTreeClassifier(random_state=np.random.seed(get_default_random_seed()))
+    elif model_type.lower() == 'dtr':
+        return DecisionTreeRegressor(max_depth=3, random_state=np.random.seed(get_default_random_seed()))
     else:
         raise NotImplementedError(model_type + ' not handled yet.')
 
