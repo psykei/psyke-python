@@ -1,4 +1,4 @@
-name: quick-check
+name: check
 on:
   push:
     branches:
@@ -7,12 +7,17 @@ on:
       - 'feature/**'
 env:
   project-name: psyke-python
-  workflow: quick-check
+  workflow: check
   test-submodule: psykei/psyke-pytest
 jobs:
   run-unit-tests:
     runs-on: ubuntu-latest
     steps:
+      - name: Setup Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.9.6
+
       - name: Show Env
         run: | 
           python --version
@@ -24,10 +29,8 @@ jobs:
           fetch-depth: 0 # all history
           submodules: recursive
 
-      - name: Setup Python
-        uses: actions/setup-python@v2
-        with:
-          python-version: 3.9.6
+      - name: Get All Tags
+        run: git fetch --tags -f
 
       - name: Restore Python dependencies
         run: pip install -r requirements.txt

@@ -1,22 +1,30 @@
 name: deploy
 on:
-  push:
+  workflow_run:
+    workflows:
+      - check
+    types:
+      - completed
     branches:
-      - develop
       - master
+      - develop
 env:
-  project-name: 2PPy
+  project-name: psyke-python
   workflow: deploy
 jobs:
   deploy-on-pypi:
     runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     steps:
+      - name: Setup Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.9.6
+
       - name: Show Env
         run: |
           python --version
           pip --version
-          java --version
-          javac --version
 
       - name: Checkout code
         uses: actions/checkout@v2
@@ -29,9 +37,6 @@ jobs:
 
       - name: Restore Python dependencies
         run: pip install -r requirements.txt
-
-      - name: Test
-        run: python -m unittest
 
       - name: Change default logging level
         run: sed -i -e 's/DEBUG/WARN/g' psyke/__init__.py

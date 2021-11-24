@@ -31,7 +31,10 @@ def get_version_from_git():
             f.write(version)
         return version
     except subprocess.CalledProcessError:
-        return version_file.read_text().strip()
+        if version_file.exists():
+            return version_file.read_text().strip()
+        else:
+            return '0.1.0.archeo'
 
 
 version = get_version_from_git()
