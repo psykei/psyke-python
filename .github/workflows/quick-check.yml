@@ -6,11 +6,9 @@ on:
       - develop
       - 'feature/**'
 env:
-  # jdk-version: openjdk@~1.15.0
   project-name: psyke-python
   workflow: quick-check
   test-submodule: psykei/psyke-pytest
-  # gradle-options: "--no-daemon --console=plain --stacktrace"
 jobs:
   run-unit-tests:
     runs-on: ubuntu-latest

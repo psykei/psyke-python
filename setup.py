@@ -41,19 +41,65 @@ print(f"Detected version {version} from git describe")
 
 
 class GetVersionCommand(distutils.cmd.Command):
-  """A custom command to get the current project version inferred from git describe."""
+    """A custom command to get the current project version inferred from git describe."""
 
-  description = 'gets the project version from git describe'
-  user_options = []
+    description = 'gets the project version from git describe'
+    user_options = []
 
-  def initialize_options(self):
-    pass
+    def initialize_options(self):
+        pass
 
-  def finalize_options(self):
-    pass
+    def finalize_options(self):
+        pass
 
-  def run(self):
-    print(version)
+    def run(self):
+        print(version)
+
+
+class CreateTestPredictors(distutils.cmd.Command):
+    description = 'gets the project version from git describe'
+    user_options = []
+
+    def initialize_options(self):
+        pass
+
+    def finalize_options(self):
+        pass
+
+    def run(self):
+        from psyke.predictor import Predictor
+        from psyke.utils import get_default_random_seed
+        from psyke.utils.dataframe_utils import get_discrete_dataset
+        from sklearn.model_selection import train_test_split
+        from test import REQUIRED_PREDICTORS, get_dataset, get_model, get_schema
+        from test.resources.predictors import get_predictor_path, PATH, create_predictor_name
+        import ast
+        import pandas as pd
+
+        # Read the required predictors to run the tests:
+        #   model | model_options | dataset
+        required_predictors = pd.read_csv(REQUIRED_PREDICTORS, sep=';')
+
+        # Create missing predictors.
+        #     model | model_options | dataset | schema
+        for index, row in required_predictors.iterrows():
+            options = ast.literal_eval(row['model_options'])
+            file_name = create_predictor_name(row['dataset'], row['model'], options)
+            if not get_predictor_path(file_name).is_file():
+                dataset = get_dataset(row['dataset'])
+                schema = get_schema(row['schema'])
+                if schema is not None:
+                    dataset = get_discrete_dataset(dataset.iloc[:, :-1], schema).join(dataset.iloc[:, -1])
+                model = get_model(row['model'], options)
+                training_set, test_set = train_test_split(dataset, test_size=0.5,
+                                                          random_state=get_default_random_seed())
+                model.fit(training_set.iloc[:, :-1], training_set.iloc[:, -1])
+                predictor = Predictor(model)
+                predictor.save_to_onnx(PATH / file_name, Predictor.get_initial_types(training_set.iloc[:, :-1]))
+
+        required_predictors.to_csv(REQUIRED_PREDICTORS, sep=';', index=False)
+
+        print("Done")
 
 
 setup(
@@ -100,5 +146,6 @@ setup(
     },
     cmdclass={
         'get_project_version': GetVersionCommand,
+        'create_test_predictors': CreateTestPredictors,
     },
 )
