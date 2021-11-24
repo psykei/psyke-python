@@ -1,4 +1,5 @@
 from __future__ import annotations
+from psyke.classification.trepan.split_logic import SplitLogic
 from psyke.schema.discrete_feature import DiscreteFeature
 from psyke.predictor import Predictor
 from tuprolog.theory import Theory
@@ -55,3 +56,12 @@ class Extractor(object):
         """
         from psyke.classification.real.real import REAL
         return REAL(predictor, [] if discretization is None else discretization)
+
+    @staticmethod
+    def trepan(predictor, discretization=None, min_examples: int = 0, max_depth: int = 3,
+               split_logic: SplitLogic = SplitLogic.DEFAULT) -> Extractor:
+        """
+        Creates a new REAL extractor.
+        """
+        from psyke.classification.trepan.trepan import Trepan
+        return Trepan(predictor, [] if discretization is None else discretization, min_examples, max_depth, split_logic)

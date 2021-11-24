@@ -37,6 +37,8 @@ def get_extractor(extractor_type: str, parameters: dict):
         return Extractor.iter(**parameters)
     elif extractor_type.lower() == 'real':
         return Extractor.real(**parameters)
+    elif extractor_type.lower() == 'trepan':
+        return Extractor.trepan(**parameters)
     else:
         raise NotImplementedError(extractor_type + ' not implemented yet.')
 
@@ -57,6 +59,17 @@ def get_in_rule():
         [
             struct('=<', local_scope.var('X'), local_scope.var('T')),
             struct('=<', local_scope.var('H'), local_scope.var('X'))
+        ]
+    )
+
+
+def get_not_in_rule():
+    local_scope = scope()
+    return rule(
+        struct('not_in', local_scope.var('X'), logic_list(local_scope.var('H'), local_scope.var('T'))),
+        [
+            struct('<', local_scope.var('T'), local_scope.var('X')),
+            struct('<', local_scope.var('X'), local_scope.var('H'))
         ]
     )
 
