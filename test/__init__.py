@@ -5,12 +5,11 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
 
-from psyke.schema.discrete_feature import DiscreteFeature
-from psyke.schema.value import Value
+from psyke.schema import DiscreteFeature, Value
 from psyke.utils import get_default_random_seed
 from sklearn.datasets import fetch_california_housing, load_iris
 from tuprolog.core import rule, struct, logic_list, scope
-from psyke.extractor import Extractor
+from psyke import Extractor
 from test.resources.predictors import PATH
 from test.resources.schemas import SCHEMAS
 

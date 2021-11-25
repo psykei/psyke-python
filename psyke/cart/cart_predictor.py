@@ -2,7 +2,7 @@ from collections import Iterable
 from typing import Union, Any
 import numpy as np
 from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
-from psyke.schema.value import LessThan, GreaterThan, Value
+from psyke.schema import Value, LessThan, GreaterThan
 
 LeafConstraints = list[tuple[str, Value]]
 LeafSequence = list[tuple[LeafConstraints, Any]]

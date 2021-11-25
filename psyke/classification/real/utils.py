@@ -1,5 +1,5 @@
 from __future__ import annotations
-from psyke.schema.discrete_feature import DiscreteFeature
+from psyke import DiscreteFeature
 from typing import Iterable
 import pandas as pd
 

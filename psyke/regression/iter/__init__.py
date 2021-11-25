@@ -5,11 +5,10 @@ from typing import Iterable, Union
 import pandas as pd
 from tuprolog.core import Var, Struct, clause
 from tuprolog.theory import Theory, mutable_theory
-from psyke import logger
-from psyke.extractor import Extractor
+from psyke import logger, Extractor
 from psyke.regression.hypercube import HyperCube
 from psyke.regression.utils import Expansion, MinUpdate
-from psyke.schema.value import Between
+from psyke.schema import Between
 from psyke.utils import get_default_random_seed, get_int_precision
 from psyke.utils.logic_utils import create_term, create_variable_list, create_head
 

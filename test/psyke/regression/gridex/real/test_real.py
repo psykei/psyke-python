@@ -1,6 +1,6 @@
 import pickle
 import pandas as pd
-from psyke.extractor import Extractor
+from psyke import Extractor
 from test.resources.schemas.iris import iris_features
 
 resource_dir = 'test/resources/'

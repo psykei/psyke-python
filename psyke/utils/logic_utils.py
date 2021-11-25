@@ -1,8 +1,7 @@
 import pandas as pd
 from tuprolog.core import Var, Struct, struct, real, atom, var, numeric, logic_list
-from psyke.schema.value import Value, LessThan, GreaterThan, Between
-from psyke.schema.value import Constant
-from psyke.schema.discrete_feature import DiscreteFeature
+from psyke.schema import Value, LessThan, GreaterThan, Between, Constant
+from psyke import DiscreteFeature
 from psyke.utils import get_int_precision
 
 PRECISION: int = get_int_precision()

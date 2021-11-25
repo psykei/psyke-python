@@ -70,7 +70,7 @@ class CreateTestPredictors(distutils.cmd.Command):
         pass
 
     def run(self):
-        from psyke.predictor import Predictor
+        from test.psyke import Predictor
         from psyke.utils import get_default_random_seed
         from psyke.utils.dataframe_utils import get_discrete_dataset
         from sklearn.model_selection import train_test_split

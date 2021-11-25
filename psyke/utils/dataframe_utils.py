@@ -1,6 +1,6 @@
 from typing import Iterable
 import pandas as pd
-from psyke.schema.discrete_feature import DiscreteFeature
+from psyke import DiscreteFeature
 
 
 def split_features(dataframe: pd.DataFrame) -> Iterable[DiscreteFeature]:

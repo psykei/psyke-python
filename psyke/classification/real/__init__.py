@@ -1,7 +1,7 @@
 from functools import lru_cache
 from psyke.classification.real.utils import Rule, IndexedRuleSet
-from psyke.extractor import Extractor
-from psyke.schema.discrete_feature import DiscreteFeature
+from psyke import Extractor
+from psyke.schema import DiscreteFeature
 from psyke.utils.dataframe_utils import get_discrete_dataset
 from psyke.utils.hashable import HashableDataFrame
 from psyke.utils.logic_utils import create_term, create_head, create_variable_list

@@ -2,7 +2,7 @@ import math
 import unittest
 import pandas as pd
 from sklearn.neighbors import KNeighborsRegressor
-from psyke.predictor import Predictor
+from test.psyke import Predictor
 from psyke.regression.feature_not_found_exception import FeatureNotFoundException
 from psyke.regression.hypercube import HyperCube
 from psyke.regression.utils import Expansion

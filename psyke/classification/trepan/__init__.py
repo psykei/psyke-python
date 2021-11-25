@@ -1,6 +1,5 @@
 from psyke.classification.trepan.utils import Node, Split, SplitLogic
-from psyke.extractor import Extractor
-from psyke.schema.discrete_feature import DiscreteFeature
+from psyke import Extractor, DiscreteFeature
 from psyke.utils.dataframe_utils import get_discrete_dataset
 from psyke.utils.logic_utils import create_term, create_variable_list, create_head
 from psyke.utils.sorted_list import SortedList
@@ -103,7 +102,6 @@ class Trepan(Extractor):
                 nodes.append(child)
         return to_remove
 
-    # TODO: check this method!!!
     @staticmethod
     def __predict(x: pd.Series, node: Node, categories: Iterable) -> Any:
         for child in node.children:
