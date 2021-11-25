@@ -39,14 +39,15 @@ class IndexedRuleSet(dict[int, list[Rule]]):
     @staticmethod
     def _useless_rules(key, rules: list[Rule]) -> list[(int, Rule)]:
         result = []
-        for rule in rules:
-            append = True
-            for other_rule in rules:
-                if (rule != other_rule) and not rule.is_sub_rule_of(other_rule):
-                    append = False
-                    break
-            if append:
-                result.append((key, rule))
+        if len(rules) > 1:
+            for rule in rules:
+                append = True
+                for other_rule in rules:
+                    if (rule != other_rule) and not rule.is_sub_rule_of(other_rule):
+                        append = False
+                        break
+                if append:
+                    result.append((key, rule))
         return result
         # return [(key, rule) for rule in rules if not any(rule.is_sub_rule_of(aux) for aux in rules if aux != rule)]
 

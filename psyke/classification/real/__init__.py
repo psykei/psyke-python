@@ -1,5 +1,4 @@
 from functools import lru_cache
-from psyke import logger
 from psyke.classification.real.utils import Rule, IndexedRuleSet
 from psyke.extractor import Extractor
 from psyke.schema.discrete_feature import DiscreteFeature
@@ -17,7 +16,6 @@ class REAL(Extractor):
     Explanator implementing Rule Extraction As Learning (REAL) algorithm, doi:10.1016/B978-1-55860-335-6.50013-1.
     The algorithm is sensible to features' order in the provided dataset during extraction.
     To make it reproducible the features are internally sorted (alphabetically).
-    The algorithm is also sensible to the data's order, for the same reason the dataset is internally sorted.
     """
 
     def __init__(self, predictor, discretization: Iterable[DiscreteFeature]):
@@ -104,13 +102,9 @@ class REAL(Extractor):
         return samples_all, len(set(self.predictor.predict(samples_all))) == 1
 
     def extract(self, dataset: pd.DataFrame) -> Theory:
-        # Order the dataset by column and by data to preserve reproducibility.
-        x, y = dataset.iloc[:, :-1], dataset.iloc[:, -1]
-        x = x.sort_index(axis=1)
-        dataset = x.join(y)
+        # Order the dataset by column to preserve reproducibility.
         dataset = dataset.sort_values(by=list(dataset.columns.values), ascending=False)
-        logger.info(dataset)
-        # Always perform output mapping in the same way to preserve reproducibility.
+        # Always perform output mapping in the same (sorted) way to preserve reproducibility.
         self.__output_mapping = {value: index for index, value in enumerate(sorted(set(dataset.iloc[:, -1])))}
         self.__ruleset = self.__get_or_set(HashableDataFrame(dataset))
         return self.__create_theory(dataset, self.__ruleset)
