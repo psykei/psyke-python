@@ -21,7 +21,7 @@ class Rule:
         return Rule(self.true_predicates, [fp for fp in self.false_predicates if fp not in to_be_removed])
 
     def to_lists(self) -> list[list[str]]:
-        return [self.true_predicates, self.false_predicates]
+        return [self.true_predicates.copy(), self.false_predicates.copy()]
 
 
 class IndexedRuleSet(dict[int, list[Rule]]):
