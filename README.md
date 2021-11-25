@@ -15,9 +15,9 @@ PSyKE offers different algorithms for symbolic knowledge extraction both for cla
 The extracted knowledge is a prolog theory (i.e. a set of prolog clauses).
 PSyKE relies on [2ppy](https://github.com/tuProlog/2ppy) (tuProlog in Python) for logic support.
 
-Project structure overview:
+Class diagram overview:
 
-![PSyKE class diagram](https://github.com/psykei/psyke-python/blob/master/.img/class_diagram.png)
+![PSyKE class diagram](https://raw.githubusercontent.com/psykei/psyke-python/master/.img/class-diagram.png)
 
 <!--
 To generate the class diagram go to this url
@@ -119,7 +119,7 @@ Contributions to this project are welcome. Just some rules:
 * We use [git flow](https://github.com/nvie/gitflow), so if you write new features, please do so in a separate `feature/` branch
 * We recommend forking the project, developing your stuff, then contributing back vie pull request
 * Commit often
-* Stay in sync with the `develop` branch (pull frequently if the build passes)
+* Stay in sync with the `develop` (or `master`) branch (pull frequently if the build passes)
 * Do not introduce low quality or untested code
 
 #### Issue tracking
