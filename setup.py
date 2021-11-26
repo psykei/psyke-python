@@ -136,8 +136,8 @@ setup(
         'pandas~=1.3.4',
         'scikit-learn~=1.0.1',
         '2ppy>=0.3.2',
-        'skl2onnx~=1.10.0',
-        'onnxruntime~=1.9.0'
+        # 'skl2onnx~=1.10.0',
+        # 'onnxruntime~=1.9.0'
     ],  # Optional
     zip_safe = False,
     platforms = "Independant",
