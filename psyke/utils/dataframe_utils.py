@@ -13,7 +13,7 @@ def split_features(dataframe: pd.DataFrame) -> Iterable[DiscreteFeature]:
     return result
 
 
-def get_discrete_features_equilength(dataframe: pd.DataFrame, b: int, output=True) -> Iterable[DiscreteFeature]:
+def get_discrete_features_equal_frequency(dataframe: pd.DataFrame, b: int, output=True) -> Iterable[DiscreteFeature]:
     features = dataframe.columns[:-1] if output else dataframe.columns
     result = set()
     for feature in features:

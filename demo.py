@@ -1,44 +1,14 @@
-from psyke import Extractor, DiscreteFeature
-from psyke.schema import LessThan, Between, GreaterThan
-from psyke.utils.dataframe_utils import get_discrete_dataset
+from psyke import Extractor
+from psyke.utils.dataframe_utils import get_discrete_dataset, get_discrete_features_equal_frequency
 from sklearn.datasets import load_iris
 from sklearn.model_selection import train_test_split
 from sklearn.neighbors import KNeighborsClassifier
 import pandas as pd
 
 
-iris_features = {
-    DiscreteFeature(
-        "SepalLength",
-        {
-            "SepalLength_0": LessThan(5.39),
-            "SepalLength_1": Between(5.39, 6.26),
-            "SepalLength_2": GreaterThan(6.26)
-        }),
-    DiscreteFeature(
-        "SepalWidth",
-        {
-            "SepalWidth_0": LessThan(2.87),
-            "SepalWidth_1": Between(2.87, 3.2),
-            "SepalWidth_2": GreaterThan(3.2)
-        }),
-    DiscreteFeature(
-        "PetalLength",
-        {
-            "PetalLength_0": LessThan(2.28),
-            "PetalLength_1": Between(2.28, 4.87),
-            "PetalLength_2": GreaterThan(4.87)
-        }),
-    DiscreteFeature(
-        "PetalWidth",
-        {
-            "PetalWidth_0": LessThan(0.65),
-            "PetalWidth_1": Between(0.65, 1.64),
-            "PetalWidth_2": GreaterThan(1.64)
-        })
-}
 x, y = load_iris(return_X_y=True, as_frame=True)
 x.columns = ['SepalLength', 'SepalWidth', 'PetalLength', 'PetalWidth']
+iris_features = get_discrete_features_equal_frequency(x, b=3, output=False)
 x = get_discrete_dataset(x, iris_features)
 y = pd.DataFrame(y).replace({"target": {0: 'setosa', 1: 'virginica', 2: 'versicolor'}})
 dataset = x.join(y)

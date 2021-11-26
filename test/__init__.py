@@ -4,15 +4,13 @@ import pandas as pd
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
-
 from psyke.schema import DiscreteFeature, Value
 from psyke.utils import get_default_random_seed
 from sklearn.datasets import fetch_california_housing, load_iris
 from tuprolog.core import rule, struct, logic_list, scope
 from psyke import Extractor
-from psyke.utils.dataframe_utils import get_discrete_features_equilength
+from psyke.utils.dataframe_utils import get_discrete_features_equal_frequency
 from test.resources.predictors import PATH
-from test.resources.schemas import SCHEMAS
 
 REQUIRED_PREDICTORS: str = PATH / '.required.csv'
 
@@ -86,9 +84,8 @@ def _normalize_data(x: pd.DataFrame) -> pd.DataFrame:
 
 
 def get_schema(dataset: pd.DataFrame, bins: int) -> Union[Iterable[DiscreteFeature], None]:
-    return get_discrete_features_equilength(dataset, bins)
+    return get_discrete_features_equal_frequency(dataset, bins)
     # return SCHEMAS[filename] if filename in SCHEMAS.keys() else None
-
 
 
 def _get_admissible_values(prepositions: Iterable[str]) -> dict[str, Value]:
