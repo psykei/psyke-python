@@ -149,7 +149,7 @@ class ITER(Extractor):
             if self.n_points == 1:
                 points = [(max_output - min_output) / 2]
             else:
-                points = [(min_output + (max_output - min_output) / ((self.n_points - 1) * (index - 1))) for index in
+                points = [(min_output + (max_output - min_output) / ((self.n_points - 1) * index)) for index in
                           range(1, self.n_points)]
         return [HyperCube.cube_from_point(ITER.__find_closer_sample(dataset, point)) for point in points]
 

@@ -10,6 +10,7 @@ from psyke.utils import get_default_random_seed
 from sklearn.datasets import fetch_california_housing, load_iris
 from tuprolog.core import rule, struct, logic_list, scope
 from psyke import Extractor
+from psyke.utils.dataframe_utils import get_discrete_features_equilength
 from test.resources.predictors import PATH
 from test.resources.schemas import SCHEMAS
 
@@ -84,15 +85,10 @@ def _normalize_data(x: pd.DataFrame) -> pd.DataFrame:
     return (x - x.min()) / (x.max() - x.min())
 
 
-def get_schema(filename: str) -> Union[Iterable[DiscreteFeature], None]:
-    return SCHEMAS[filename] if filename in SCHEMAS.keys() else None
+def get_schema(dataset: pd.DataFrame, bins: int) -> Union[Iterable[DiscreteFeature], None]:
+    return get_discrete_features_equilength(dataset, bins)
+    # return SCHEMAS[filename] if filename in SCHEMAS.keys() else None
 
-    # features: list[tuple[str, dict[str, Value]]] = []
-    # with open(filename) as file:
-    #     for row in file:
-    #         prepositions = row.split(';')
-    #         features.append((prepositions[0],_get_admissible_values(prepositions[1:])))
-    # return [DiscreteFeature(feature, value) for feature, value in features]
 
 
 def _get_admissible_values(prepositions: Iterable[str]) -> dict[str, Value]:

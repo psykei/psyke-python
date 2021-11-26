@@ -43,7 +43,7 @@ def initialize(file: str) -> list[dict[str:Theory]]:
         training_set, test_set = train_test_split(dataset, test_size=0.5, random_state=get_default_random_seed())
 
         if 'schema' in row.keys():
-            schema = get_schema(row['schema'])
+            schema = get_schema(dataset, 3)
             params['discretization'] = schema
             training_set = get_discrete_dataset(training_set.iloc[:, :-1], schema)\
                 .join(training_set.iloc[:, -1].reset_index(drop=True))

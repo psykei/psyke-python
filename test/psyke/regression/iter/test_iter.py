@@ -1,9 +1,7 @@
-from math import log10
-
-from parameterized import parameterized_class
 from psyke import logger
+from parameterized import parameterized_class
+from psyke.utils import get_default_precision, get_int_precision
 from test import get_in_rule
-from psyke.utils import get_default_precision
 from test.psyke import initialize, data_to_struct
 from tuprolog.solve.prolog import prolog_solver
 import numpy as np
@@ -16,11 +14,11 @@ class TestIter(unittest.TestCase):
     def test_extract(self):
         logger.info(self.expected_theory)
         logger.info(self.extracted_theory)
-        # TODO: sometimes fails due to hidden stochastic behavior to be found.
-        # self.assertTrue(self.expected_theory.equals(self.extracted_theory, False))
+        # TODO: keep un eye on it.
+        self.assertTrue(self.expected_theory.equals(self.extracted_theory, False))
 
     def test_predict(self):
-        precision = - 1 * int(log10(get_default_precision()))
+        precision = get_int_precision()
         predictions = np.array(self.extractor.predict(self.test_set.iloc[:, :-1]))
         solver = prolog_solver(static_kb=self.extracted_theory.assertZ(get_in_rule()))
         substitutions = [solver.solveOnce(data_to_struct(data)) for _, data in self.test_set.iterrows()]
