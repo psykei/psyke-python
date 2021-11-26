@@ -10,7 +10,7 @@ import pandas as pd
 
 x, y = load_iris(return_X_y=True, as_frame=True)
 x.columns = ['SepalLength', 'SepalWidth', 'PetalLength', 'PetalWidth']
-iris_features = get_discrete_features_equal_frequency(x, b=3, output=False)
+iris_features = get_discrete_features_equal_frequency(x, bins=3, output=False)
 x = get_discrete_dataset(x, iris_features)
 y = pd.DataFrame(y).replace({"target": {0: 'setosa', 1: 'virginica', 2: 'versicolor'}})
 dataset = x.join(y)

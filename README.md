@@ -113,19 +113,19 @@ We output the extracted theory for both extractors.
 
 REAL extracted rules:
 ```text
-iris(PetalLength_0, PetalWidth_0, SepalLength_0, SepalWidth_0, setosa) :- '=<'(PetalWidth_0, 0.65).
-iris(PetalLength_1, PetalWidth_1, SepalLength_1, SepalWidth_1, versicolor) :- ('>'(PetalLength_1, 4.87), '>'(SepalLength_1, 6.26)).
-iris(PetalLength_2, PetalWidth_2, SepalLength_2, SepalWidth_2, versicolor) :- '>'(PetalWidth_2, 1.64).
-iris(PetalLength_3, PetalWidth_3, SepalLength_3, SepalWidth_3, virginica) :- '=<'(SepalWidth_3, 2.87).
-iris(PetalLength_4, PetalWidth_4, SepalLength_4, SepalWidth_4, virginica) :- in(SepalLength_4, [5.39, 6.26]).
-iris(PetalLength_5, PetalWidth_5, SepalLength_5, SepalWidth_5, virginica) :- in(PetalWidth_5, [0.65, 1.64]).
+iris(PetalLength, PetalWidth, SepalLength, SepalWidth, setosa) :- PetalWidth =< 1.0.
+iris(PetalLength1, PetalWidth1, SepalLength1, SepalWidth1, versicolor) :- PetalLength1 > 4.9, SepalWidth1 in [2.9, 3.2].
+iris(PetalLength2, PetalWidth2, SepalLength2, SepalWidth2, versicolor) :- PetalWidth2 > 1.6.
+iris(PetalLength3, PetalWidth3, SepalLength3, SepalWidth3, virginica) :- SepalWidth3 =< 2.9.
+iris(PetalLength4, PetalWidth4, SepalLength4, SepalWidth4, virginica) :- SepalLength4 in [5.4, 6.3].
+iris(PetalLength5, PetalWidth5, SepalLength5, SepalWidth5, virginica) :- PetalWidth5 in [1.0, 1.6].
 ```
 
 Trepan extracted rules:
 ```text
-iris(PetalLength_6, PetalWidth_6, SepalLength_6, SepalWidth_6, virginica) :- ('>'(PetalLength_6, 2.28), in(PetalLength_6, [2.28, 4.87])).
-iris(PetalLength_7, PetalWidth_7, SepalLength_7, SepalWidth_7, versicolor) :- '>'(PetalLength_7, 2.28).
-iris(PetalLength_8, PetalWidth_8, SepalLength_8, SepalWidth_8, setosa) :- true.
+iris(PetalLength6, PetalWidth6, SepalLength6, SepalWidth6, virginica) :- PetalLength6 > 3.0, PetalLength6 in [3.0, 4.9].
+iris(PetalLength7, PetalWidth7, SepalLength7, SepalWidth7, versicolor) :- PetalLength7 > 3.0.
+iris(PetalLength8, PetalWidth8, SepalLength8, SepalWidth8, setosa) :- true.
 ```
 
 

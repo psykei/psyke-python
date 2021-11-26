@@ -13,18 +13,18 @@ def split_features(dataframe: pd.DataFrame) -> Iterable[DiscreteFeature]:
     return result
 
 
-def get_discrete_features_equal_frequency(dataframe: pd.DataFrame, b: int, output=True) -> Iterable[DiscreteFeature]:
+def get_discrete_features_equal_frequency(dataframe: pd.DataFrame, bins: int, output=True) -> Iterable[DiscreteFeature]:
     features = dataframe.columns[:-1] if output else dataframe.columns
     result = set()
     for feature in features:
         values = sorted(dataframe[feature])
-        intervals = [values[i] for i in range(int(len(values)/b), len(values), int(len(values)/b))]
+        intervals = [values[i] for i in range(int(len(values) / bins), len(values), int(len(values) / bins))]
         starting_interval: list[Value] = [LessThan(intervals[0])]
         ending_interval: list[Value] = [GreaterThan(intervals[-1])]
         middle_intervals: list[Value] = [Between(intervals[i], intervals[i + 1]) for i in range(0, len(intervals) - 1)]
         new_intervals = starting_interval + middle_intervals + ending_interval
-        new_feature_names = [feature + '_' + str(i) for i in range(0, b)]
-        new_features = {new_feature_names[i]: new_intervals[i] for i in range(0, b)}
+        new_feature_names = [feature + '_' + str(i) for i in range(0, bins)]
+        new_features = {new_feature_names[i]: new_intervals[i] for i in range(0, bins)}
         result.add(DiscreteFeature(feature, new_features))
     return result
 
