@@ -6,32 +6,62 @@ Some quick links:
 * [PyPi Repository](https://pypi.org/project/psyke/)
 * [Issues](https://github.com/psykei/psyke-python/issues)
 
+### Reference paper
+
+> Federico Sabbatini, Giovanni Ciatto, Roberta Calegari, Andrea Omicini. "[On the Design of PSyKE: A Platform for Symbolic Knowledge Extraction](http://ceur-ws.org/Vol-2963/paper14.pdf)", in: WOA 2021 – 22nd Workshop “From Objects to Agents”, Aachen, Sun SITE Central Europe, RWTH Aachen University, 2021, 2963, pp. 29 - 48.
+
+Bibtex: 
+```bibtex
+@inproceedings{psyke-woa2021,
+	articleno = 3,
+	author = {Sabbatini, Federico and Ciatto, Giovanni and Calegari, Roberta and Omicini, Andrea},
+	booktitle = {WOA 2021 -- 22nd Workshop ``From Objects to Agents''},
+	editor = {Calegari, Roberta and Ciatto, Giovanni and Denti, Enrico and Omicini, Andrea and Sartor, Giovanni},
+	issn = {1613-0073},
+	keywords = {explainable AI, knowledge extraction, interpretable prediction, PSyKE},
+	location = {Bologna, Italy},
+	month = oct,
+	note = {22nd Workshop ``From Objects to Agents'' (WOA 2021), Bologna, Italy, 1--3~} # sep # {~2021. Proceedings},
+	numpages = 20,
+	pages = {29--48},
+	publisher = {Sun SITE Central Europe, RWTH Aachen University},
+	series = {CEUR Workshop Proceedings},
+	subseries = {AI*IA Series},
+	title = {On the Design of {PSyKE}: A Platform for Symbolic Knowledge Extraction},
+	url = {http://ceur-ws.org/Vol-2963/paper14.pdf},
+	volume = 2963,
+	year = 2021
+}
+```
+
 ## Intro
 
 [PSyKE](https://apice.unibo.it/xwiki/bin/view/PSyKE/) (Platform for Symbolic Knowledge Extraction)
-is intended to be a library that provides support to symbolic knowledge extraction from black-box predictors.
+is intended as a library for extracting symbolic knowledge (in the form of logic rules) out of sub-symbolic predictors.
 
-PSyKE offers different algorithms for symbolic knowledge extraction both for classification and regression problems.
-The extracted knowledge is a prolog theory (i.e. a set of prolog clauses).
-PSyKE relies on [2ppy](https://github.com/tuProlog/2ppy) (tuProlog in Python) for logic support.
+More precisely, PSyKE offers a general purpose API for knowledge extraction, and a number of different algorithms implementing it,
+supporting both classification and regression problems.
+The extracted knowledge consists of a Prolog theory (i.e. a list of Horn clauses).
 
-Class diagram overview:
+PSyKE relies on [2ppy](https://github.com/tuProlog/2ppy) (tuProlog in Python) for logic support, which is in turn based on the [2p-Kt](https://github.com/tuProlog/2p-kt) logic ecosystem.
 
-![PSyKE class diagram](https://raw.githubusercontent.com/psykei/psyke-python/master/.img/class-diagram.png)
+### Class diagram overview:
+
+![PSyKE class diagram](http://www.plantuml.com/plantuml/svg/PLBBRkem4DtdAqQixeLcqsN40aHfLQch2dM341gS0IpoY3oJYfJctnl7RkgcKZRdCUFZ4ozOq4YTPr65we8dWlkgQcuHmEPCfMbW6iDaEe5LXZLJr4QHof3PgxVMGoTtS5XJSNCXkwVxlhdUguzQeUYoi28u3bxNovS0RWnLM7H46mNZXaw6c4UZpq8cW4z6ftGTZoeq4WwjB6x7BbPdoZ7qFMXMXeGU2QKsv2I06HmTiIymfmHOpA1WccjcVSXe_uvPJPn0gfLiEyyTl5bcrtk7qzTNCQYaDBxhyQ6_BFFFEExJ_sLzXoFMLpdcVMrZrhVNvS83zygFmrv-1fMXL5lOezH5rH_z7qqWqonRbn-72-nwAxaz_r8KP9B_YNz3uTP0jFcmAt6xB9gT3UJSC8_Z87G2PIrLBL0UemKLQPrdNm00)
 
 <!--
-To generate the class diagram go to this url
-//www.plantuml.com/plantuml/png/PLBBRkem4DtdAqQixeLcqsN40aHfLQch2dM341gS0IpoY3oJYfJctnl7QUgwKZRdCUFZ4ozOq4YTPr65we8dWlkgQcuHmEPCfMbW6iDaEe5LLjPCKHj5AaFcGRsr0tHo1ySr5JSNidkwxvlhlVge5Oek2ok2u-1rlNpnuCPGXKL7j94tRkXaY3aOVHOo7dmoEgLhEAhGY3-qihWDNQpEbAFlUz2i30az4afjo4a0CpWwObzWJWcmc571DDVC-f3H_XspcZY1L2lPTfuxUBFChlUEfw-lOb19QOQkmqD_MUQVSTod_yEw3aDsh3BaNMqXExJNvS83zygFmrv-1fMXL5lOezH5rH_z7qqWqonRbn_72-nwAxaz_r8KP9B_oV26lAs-QFDXL-9sMJGx6yYvOHx7NkW4obggMg0yHWigqZhFlW00
+To generate/edit the class diagram browse the URL above, after replacing `svg` with `uml`
 -->
 
+PSyKE is designed around the notion of _extractor_.
+More precisely, an `Extractor` is any object capable of extracting a logic `Theory` out of a  trained sub-symbolic regressor or classifier.
+Accordingly, any `Extractor` is composed of 
+_(i)_ a trained predictor (i.e., black-box used as an oracle) and 
+_(ii)_ a set of discrete feature descriptors (as some algorithms require a discrete dataset), and it provides two methods:
+* `extract`: given a dataset it returns a logic theory;
+* `predict`: predicts a value using the extracted rules instead of the original predictor.
 
-An Extractor is composed of a trained predictor (black-box used as an oracle) and a set of discrete features
-(some algorithms require a discrete dataset).
-It provides two methods:
-* extract: given a dataset it returns a theory;
-* predict: return the predicted value applying the theory to the given data.
-
-Currently, the supported extractors are:
+Currently, the supported extraction algorithms are:
 * [CART](https://doi.org/10.1201/9781315139470),
 straightforward extracts rules from both classification and regression decision trees;
 * Classification:
@@ -51,7 +81,7 @@ straightforward extracts rules from both classification and regression decision 
 
 ### End users
 
-PSyKE is a library that can be installed as python package by running:
+PSyKE is deployed as a library on Pypi, and it can therefore be installed as Python package by running:
 ```bash
 pip install psyke
 ```
@@ -61,14 +91,19 @@ pip install psyke
 * pandas 1.3.4+
 * scikit-learn 1.0.1+
 * 2ppy 0.3.2+
+
+##### Test requirements
 * skl2onnx 1.10.0+
 * onnxruntime 1.9.0+
 * parameterized 0.8.1+
 
-Once installed one can create an extractor from a predictor
+Once installed, one can create an extractor from a predictor 
 (e.g. Neural Networks, Support Vector Machines, K-Nearest Neighbor, Random Forests, etc.)
 and from the dataset used to train the predictor.
-**Note:** the predictor must have a method called `predict` to be properly used as oracle.
+
+> **Note:** the predictor must expose a method named `predict` to be properly used as oracle.
+
+#### End users
 
 A brief example is presented in `demo.py` script.
 Using sklearn iris dataset we train a K-Nearest Neighbor to predict the correct iris class.
