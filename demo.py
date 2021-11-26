@@ -1,5 +1,7 @@
+from psyke.utils.dataframe_utils import get_discrete_features_equal_frequency
 from psyke import Extractor
-from psyke.utils.dataframe_utils import get_discrete_dataset, get_discrete_features_equal_frequency
+from psyke.utils.dataframe_utils import get_discrete_dataset
+from psyke.utils.logic_utils import pretty_theory
 from sklearn.datasets import load_iris
 from sklearn.model_selection import train_test_split
 from sklearn.neighbors import KNeighborsClassifier
@@ -20,8 +22,8 @@ predictor.fit(train.iloc[:, :-1], train.iloc[:, -1])
 
 real = Extractor.real(predictor, iris_features)
 theory_from_real = real.extract(train)
-print('REAL extracted rules:\n' + str(theory_from_real))
+print('REAL extracted rules:\n' + pretty_theory(theory_from_real))
 
 trepan = Extractor.trepan(predictor, iris_features)
 theory_from_trepan = trepan.extract(train)
-print('\nTrepan extracted rules:\n' + str(theory_from_trepan))
+print('\nTrepan extracted rules:\n' + pretty_theory(theory_from_trepan))

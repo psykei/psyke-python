@@ -1,10 +1,21 @@
 import pandas as pd
 from tuprolog.core import Var, Struct, struct, real, atom, var, numeric, logic_list
+from tuprolog.core.operators import DEFAULT_OPERATORS, operator, operator_set, XFX
+from tuprolog.core.formatters import TermFormatter
+from tuprolog.theory import Theory
 from psyke.schema import Value, LessThan, GreaterThan, Between, Constant
 from psyke import DiscreteFeature
 from psyke.utils import get_int_precision
 
 PRECISION: int = get_int_precision()
+
+OP_IN = operator('in', XFX, 700)
+
+OP_NOT = operator('not_in', XFX, 700)
+
+RULES_OPERATORS = DEFAULT_OPERATORS + operator_set(OP_IN, OP_NOT)
+
+RULES_FORMATTER = TermFormatter.prettyExpressions(True, RULES_OPERATORS)
 
 
 def create_functor(constraint: Value, positive: bool) -> str:
@@ -47,3 +58,11 @@ def create_head(functor: str, variables: list[Var], output) -> Struct:
         value = round(float(output), PRECISION)
         variables.append(numeric(value))
         return struct(functor, variables)
+
+
+def pretty_theory(theory: Theory) -> str:
+    if len(str(theory)) == 0:
+        return ""
+    else:
+        clause = [str(RULES_FORMATTER.format(clause)) for clause in theory]
+        return ".\n".join(clause) + "."
