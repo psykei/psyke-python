@@ -10,7 +10,7 @@ on:
       - develop
 env:
   PROJECT_NAME: psyke-python
-  WORKFLOW: Depoly
+  WORKFLOW: depoly
 jobs:
   deploy:
     runs-on: ubuntu-latest

@@ -1,0 +1,40 @@
+name: dockerify
+on:
+  workflow_run:
+    workflows:
+      - deploy
+    types:
+      - completed
+    branches:
+      - master
+      - develop
+env:
+  PROJECT_NAME: psyke-python
+  WORKFLOW: dockerify
+jobs:
+  dockerify:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    name: Dockerify with Jupyter support
+    steps:
+      - name: Docker Login
+        run: docker login -u ${{ secrets.DOCKERHUB_USERANAME }} -p ${{ secrets.DOCKERHUB_PASSWORD }}
+
+      - name: Checkout code
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0 # all history
+          submodules: recursive
+
+      - name: Get All Tags
+        run: git fetch --tags -f
+
+      - name: Get Version
+        id: get-version
+        run: echo ::set-output name=version::$(python setup.py get_project_version | tail -n 1)
+
+      - name: Create Docker Image
+        run: docker build . -t pikalab/psyke:${{ steps.get-version.outputs.version }}
+
+      - name: Push Image on Docker Hub
+        run: docker push

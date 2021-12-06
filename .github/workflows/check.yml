@@ -7,7 +7,7 @@ on:
       - 'feature/**'
 env:
   PROJECT_NAME: psyke-python
-  WORKFLOW: Check
+  WORKFLOW: check
   TEST_SUBMODULE: psykei/psyke-pytest
 jobs:
   create-test-predictors-if-needed:
