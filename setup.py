@@ -130,7 +130,7 @@ setup(
     # package_dir={'': 'src'},  # Optional
     packages=find_packages(),  # Required
     include_package_data=True,
-    python_requires='>=3.9, <4',
+    python_requires='>=3.9.0, <3.10',
     install_requires=[
         'numpy~=1.21.3',
         'pandas~=1.3.4',
