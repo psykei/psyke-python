@@ -12,10 +12,10 @@ env:
   PROJECT_NAME: psyke-python
   WORKFLOW: Depoly
 jobs:
-  deploy-on-pypi:
+  deploy:
     runs-on: ubuntu-latest
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
-    name: Deploy on PyPI
+    name: Deploy on PyPI and create release
     steps:
       - name: Get Python Version
         id: get-python-version
