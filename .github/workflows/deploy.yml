@@ -17,15 +17,6 @@ jobs:
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
     name: Deploy on PyPI and create release
     steps:
-      - name: Get Python Version
-        id: get-python-version
-        run: echo ::set-output name=version::$(cat .python-version)
-
-      - name: Setup Python
-        uses: actions/setup-python@v2
-        with:
-          python-version: ${{ steps.get-python-version.outputs.version }}
-
       - name: Checkout code
         uses: actions/checkout@v2
         with:
@@ -34,6 +25,15 @@ jobs:
 
       - name: Get All Tags
         run: git fetch --tags -f
+
+      - name: Get Python Version
+        id: get-python-version
+        run: echo ::set-output name=version::$(cat .python-version)
+
+      - name: Setup Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ steps.get-python-version.outputs.version }}
 
       - name: Restore Python dependencies
         run: pip install -r requirements.txt
