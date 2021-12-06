@@ -6,27 +6,27 @@ on:
       - develop
       - 'feature/**'
 env:
-  project-name: psyke-python
-  workflow: check
-  test-submodule: psykei/psyke-pytest
+  PROJECT_NAME: psyke-python
+  WORKFLOW: Check
+  TEST_SUBMODULE: psykei/psyke-pytest
 jobs:
-  run-unit-tests:
+  create-test-predictors-if-needed:
     runs-on: ubuntu-latest
+    name: Create test predictors if needed
     steps:
+      - name: Get Python Version
+        id: get-python-version
+        run: echo ::set-output name=version::$(cat .python-version)
+
       - name: Setup Python
         uses: actions/setup-python@v2
         with:
-          python-version: 3.9.6
-
-      - name: Show Env
-        run: | 
-          python --version
-          pip --version
+          python-version: ${{ steps.get-python-version.outputs.version }}
 
       - name: Checkout code
         uses: actions/checkout@v2
         with:
-          fetch-depth: 0 # all history
+          fetch-depth: 0
           submodules: recursive
 
       - name: Get All Tags
@@ -43,9 +43,36 @@ jobs:
           pushd test/resources
           git config user.email "bot@noreply.github.com"
           git config user.name "CI bot"
-          git remote set-url origin https://x-access-token:${{ secrets.TRIGGER_GITHUB_ACTION }}@github.com/${{ env.test-submodule }}
-          (git add predictors/*.onnx && git add tests/*.csv && git add datasets/*.csv) || echo 'nothing to add'
-          (git commit -m 'predictors update from workflows' && git push) || echo 'nothing to commit'
+          git remote set-url origin https://x-access-token:${{ secrets.TRIGGER_GITHUB_ACTION }}@github.com/${{ env.TEST_SUBMODULE }}
+          (git add predictors/*.onnx tests/*.csv datasets/*.csv) || echo 'nothing to add'
+          (git commit -m 'predictors update from workflows') || echo 'nothing to commit'
+          (git push) || echo 'nothing to push'
+
+  run-unit-tests:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [ '3.11', '3.10', '3.9', '3.8', '3.7' ]
+    name: ${{ env.WORKFLOW }} `${{ env.PROJECT_NAME }}` on Python ${{ matrix.python-version }}
+    needs:
+      - create-test-predictors-if-needed
+    steps:
+      - name: Setup Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Checkout code
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+          submodules: recursive
+
+      - name: Get All Tags
+        run: git fetch --tags -f
+
+      - name: Restore Python dependencies
+        run: pip install -r requirements.txt
 
       - name: Test
         run: python -m unittest

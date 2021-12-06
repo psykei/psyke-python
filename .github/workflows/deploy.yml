@@ -9,22 +9,22 @@ on:
       - master
       - develop
 env:
-  project-name: psyke-python
-  workflow: deploy
+  PROJECT_NAME: psyke-python
+  WORKFLOW: Depoly
 jobs:
   deploy-on-pypi:
     runs-on: ubuntu-latest
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    name: Deploy on PyPI
     steps:
+      - name: Get Python Version
+        id: get-python-version
+        run: echo ::set-output name=version::$(cat .python-version)
+
       - name: Setup Python
         uses: actions/setup-python@v2
         with:
-          python-version: 3.9.6
-
-      - name: Show Env
-        run: |
-          python --version
-          pip --version
+          python-version: ${{ steps.get-python-version.outputs.version }}
 
       - name: Checkout code
         uses: actions/checkout@v2
