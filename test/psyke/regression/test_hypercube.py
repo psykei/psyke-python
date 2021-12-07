@@ -3,8 +3,7 @@ import unittest
 import pandas as pd
 from sklearn.neighbors import KNeighborsRegressor
 from test.psyke import Predictor
-from psyke.regression.feature_not_found_exception import FeatureNotFoundException
-from psyke.regression.hypercube import HyperCube
+from psyke.regression import FeatureNotFoundException, HyperCube
 from psyke.regression.utils import Expansion
 from psyke.regression.iter import MinUpdate
 from test.resources.datasets import get_dataset_path

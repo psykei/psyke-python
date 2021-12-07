@@ -6,7 +6,7 @@ import pandas as pd
 from tuprolog.core import Var, Struct, clause
 from tuprolog.theory import Theory, mutable_theory
 from psyke import logger, Extractor
-from psyke.regression.hypercube import HyperCube
+from psyke.regression import HyperCube
 from psyke.regression.utils import Expansion, MinUpdate
 from psyke.schema import Between
 from psyke.utils import get_default_random_seed, get_int_precision
