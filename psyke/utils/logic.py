@@ -1,5 +1,5 @@
 import pandas as pd
-from tuprolog.core import Var, Struct, struct, real, atom, var, numeric, logic_list
+from tuprolog.core import Var, Struct, struct, real, atom, var, numeric, logic_list, Clause
 from tuprolog.core.operators import DEFAULT_OPERATORS, operator, operator_set, XFX
 from tuprolog.core.formatters import TermFormatter
 from tuprolog.theory import Theory
@@ -14,8 +14,6 @@ OP_IN = operator('in', XFX, 700)
 OP_NOT = operator('not_in', XFX, 700)
 
 RULES_OPERATORS = DEFAULT_OPERATORS + operator_set(OP_IN, OP_NOT)
-
-RULES_FORMATTER = TermFormatter.prettyExpressions(True, RULES_OPERATORS)
 
 
 def create_functor(constraint: Value, positive: bool) -> str:
@@ -60,9 +58,21 @@ def create_head(functor: str, variables: list[Var], output) -> Struct:
         return struct(functor, variables)
 
 
+def pretty_clause(clause: Clause) -> str:
+    formatter = TermFormatter.prettyExpressions(True, RULES_OPERATORS)
+    if clause.is_fact:
+        return str(formatter.format(clause.head))
+    elif clause.is_directive:
+        return ":- " + formatter.format(clause.body)
+    else:
+        head = str(formatter.format(clause.head))
+        body = str(formatter.format(clause.body))
+        return f"{head} :-\n    {body}"
+
+
 def pretty_theory(theory: Theory) -> str:
     if len(str(theory)) == 0:
         return ""
     else:
-        clause = [str(RULES_FORMATTER.format(clause)) for clause in theory]
+        clause = [pretty_clause(clause) for clause in theory]
         return ".\n".join(clause) + "."
