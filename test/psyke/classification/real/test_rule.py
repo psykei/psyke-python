@@ -1,6 +1,6 @@
 import unittest
 from psyke.classification.real.utils import Rule
-from psyke.utils.dataframe_utils import split_features
+from psyke.utils.dataframe import split_features
 from test import get_dataset
 
 

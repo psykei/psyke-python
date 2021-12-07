@@ -1,8 +1,8 @@
 from psyke.classification.trepan.utils import Node, Split, SplitLogic
 from psyke import Extractor, DiscreteFeature
-from psyke.utils.dataframe_utils import get_discrete_dataset
-from psyke.utils.logic_utils import create_term, create_variable_list, create_head
-from psyke.utils.sorted_list import SortedList
+from psyke.utils.dataframe import get_discrete_dataset
+from psyke.utils.logic import create_term, create_variable_list, create_head
+from psyke.utils.sorted import SortedList
 from tuprolog.core import Var, Struct, clause
 from tuprolog.theory import MutableTheory, mutable_theory, Theory
 from typing import Iterable, Union, Any

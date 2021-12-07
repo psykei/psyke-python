@@ -1,7 +1,7 @@
 from psyke.cart.predictor import CartPredictor, LeafConstraints, LeafSequence
 from psyke import Extractor, DiscreteFeature
 from psyke.schema import GreaterThan
-from psyke.utils.logic_utils import create_variable_list, create_head, create_term
+from psyke.utils.logic import create_variable_list, create_head, create_term
 from tuprolog.core import clause, Var, Struct
 from tuprolog.theory import Theory, mutable_theory
 from typing import Iterable

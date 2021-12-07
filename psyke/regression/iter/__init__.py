@@ -10,7 +10,7 @@ from psyke.regression import HyperCube
 from psyke.regression.utils import Expansion, MinUpdate
 from psyke.schema import Between
 from psyke.utils import get_default_random_seed, get_int_precision
-from psyke.utils.logic_utils import create_term, create_variable_list, create_head
+from psyke.utils.logic import create_term, create_variable_list, create_head
 
 DomainProperties = (Iterable[MinUpdate], HyperCube)
 

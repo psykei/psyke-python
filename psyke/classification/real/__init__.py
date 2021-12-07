@@ -2,9 +2,8 @@ from functools import lru_cache
 from psyke.classification.real.utils import Rule, IndexedRuleSet
 from psyke import Extractor
 from psyke.schema import DiscreteFeature
-from psyke.utils.dataframe_utils import get_discrete_dataset
-from psyke.utils.hashable import HashableDataFrame
-from psyke.utils.logic_utils import create_term, create_head, create_variable_list
+from psyke.utils.dataframe import get_discrete_dataset, HashableDataFrame
+from psyke.utils.logic import create_term, create_head, create_variable_list
 from tuprolog.core import Var, Struct, Clause, clause
 from tuprolog.theory import MutableTheory, mutable_theory, Theory
 from typing import Iterable

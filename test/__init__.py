@@ -9,7 +9,7 @@ from psyke.utils import get_default_random_seed
 from sklearn.datasets import fetch_california_housing, load_iris
 from tuprolog.core import rule, struct, logic_list, scope
 from psyke import Extractor
-from psyke.utils.dataframe_utils import get_discrete_features_equal_frequency
+from psyke.utils.dataframe import get_discrete_features_equal_frequency
 from test.resources.predictors import PATH
 
 REQUIRED_PREDICTORS: str = PATH / '.required.csv'
