@@ -1,5 +1,6 @@
 from parameterized import parameterized_class
 from psyke import logger
+from psyke.utils.logic import pretty_theory
 from test import get_in_rule, get_not_in_rule
 from test.psyke import initialize, data_to_struct
 from tuprolog.solve.prolog import prolog_solver
@@ -10,8 +11,8 @@ import unittest
 class TestTrepan(unittest.TestCase):
 
     def test_extract(self):
-        logger.info(self.expected_theory)
-        logger.info(self.extracted_theory)
+        logger.info(pretty_theory(self.expected_theory))
+        logger.info(pretty_theory(self.extracted_theory))
         self.assertTrue(self.expected_theory.equals(self.extracted_theory, False))
 
     def test_predict(self):

@@ -18,7 +18,7 @@ def split_features(dataframe: pd.DataFrame) -> Iterable[DiscreteFeature]:
 
 def get_discrete_features_equal_frequency(
         dataframe: pd.DataFrame,
-        bins: int=None,
+        bins: int = None,
         output=True,
         bin_names: List[str] = []
 ) -> Iterable[DiscreteFeature]:

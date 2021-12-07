@@ -83,7 +83,7 @@ def _normalize_data(x: pd.DataFrame) -> pd.DataFrame:
     return (x - x.min()) / (x.max() - x.min())
 
 
-def get_schema(dataset: pd.DataFrame, bins: int) -> Union[Iterable[DiscreteFeature], None]:
+def get_schema(dataset: pd.DataFrame, bins: int = None) -> Union[Iterable[DiscreteFeature], None]:
     return get_discrete_features_equal_frequency(dataset, bins)
     # return SCHEMAS[filename] if filename in SCHEMAS.keys() else None
 

@@ -84,14 +84,14 @@ class CreateTestPredictors(distutils.cmd.Command):
         required_predictors = pd.read_csv(REQUIRED_PREDICTORS, sep=';')
 
         # Create missing predictors.
-        #     model | model_options | dataset | schema
+        #     model | model_options | dataset
         for index, row in required_predictors.iterrows():
             options = ast.literal_eval(row['model_options'])
             file_name = create_predictor_name(row['dataset'], row['model'], options)
             if not get_predictor_path(file_name).is_file():
                 dataset = get_dataset(row['dataset'])
-                schema = get_schema(row['schema'])
-                if schema is not None:
+                if row['bins'] > 0:
+                    schema = get_schema(dataset, int(row['bins']))
                     dataset = get_discrete_dataset(dataset.iloc[:, :-1], schema).join(dataset.iloc[:, -1])
                 model = get_model(row['model'], options)
                 training_set, test_set = train_test_split(dataset, test_size=0.5,
