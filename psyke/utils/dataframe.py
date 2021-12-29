@@ -41,11 +41,11 @@ def get_discrete_features_equal_frequency(
     for feature in features:
         values = sorted(dataframe[feature])
         intervals = [values[i] for i in range(int(len(values) / bins), len(values), int(len(values) / bins))]
-        starting_interval: List[Value] = [LessThan(intervals[0])]
-        ending_interval: List[Value] = [GreaterThan(intervals[-1])]
-        middle_intervals: List[Value] = [Between(intervals[i], intervals[i + 1]) for i in range(0, len(intervals) - 1)]
+        starting_interval: list[Value] = [LessThan(intervals[0])]
+        ending_interval: list[Value] = [GreaterThan(intervals[-1])]
+        middle_intervals: list[Value] = [Between(intervals[i], intervals[i + 1]) for i in range(0, len(intervals) - 1)]
         new_intervals = starting_interval + middle_intervals + ending_interval
-        new_feature_names = [feature + '_' + str(bin_names[i]) for i in range(0, bins)]
+        new_feature_names = [feature + '_' + str(i) for i in range(0, bins)]
         new_features = {new_feature_names[i]: new_intervals[i] for i in range(0, bins)}
         result.add(DiscreteFeature(feature, new_features))
     return result

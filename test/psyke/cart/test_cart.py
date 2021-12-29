@@ -43,11 +43,8 @@ class TestCart(unittest.TestCase):
             if value == '-1':
                 expected[index] = predictions[index]
 
-        if isinstance((predictions == expected), bool):
-            accuracy = sum([v == expected[i] for i, v in enumerate(predictions)]) / len(predictions)
-            self.assertTrue(accuracy > get_default_accuracy())
-        else:
-            self.assertTrue(all(predictions == expected))
+        accuracy = sum([v == expected[i] for i, v in enumerate(predictions)]) / len(predictions)
+        self.assertTrue(accuracy > get_default_accuracy())
 
 
 if __name__ == '__main__':

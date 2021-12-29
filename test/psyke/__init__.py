@@ -44,7 +44,7 @@ def initialize(file: str) -> list[dict[str:Theory]]:
 
         schema = None
         if 'bins' in row.keys() and int(row['bins']) > 0:
-            schema = get_schema(dataset, int(row['bins']))
+            schema = get_schema(training_set, int(row['bins']))
             params['discretization'] = schema
             training_set = get_discrete_dataset(training_set.iloc[:, :-1], schema)\
                 .join(training_set.iloc[:, -1].reset_index(drop=True))

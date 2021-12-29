@@ -47,7 +47,7 @@ class LessThan(Interval):
         self.value = value
 
     def is_in(self, other_value: float) -> bool:
-        return other_value < self.value
+        return other_value <= self.value
 
     def __str__(self):
         return f"]-∞, {self.value}["
@@ -78,7 +78,7 @@ class Between(Interval):
         super().__init__(lowerbound, upperbound)
 
     def is_in(self, other_value: float) -> bool:
-        return self.lower <= other_value <= self.upper
+        return self.lower < other_value <= self.upper
 
     def __repr__(self):
         return f"Between({self.lower}, {self.upper})"

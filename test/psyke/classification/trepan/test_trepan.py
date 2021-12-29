@@ -11,8 +11,8 @@ import unittest
 class TestTrepan(unittest.TestCase):
 
     def test_extract(self):
-        logger.info(pretty_theory(self.expected_theory))
-        logger.info(pretty_theory(self.extracted_theory))
+        logger.info(pretty_theory(self.expected_theory) + '\n')
+        logger.info(pretty_theory(self.extracted_theory) + '\n')
         self.assertTrue(self.expected_theory.equals(self.extracted_theory, False))
 
     def test_predict(self):
