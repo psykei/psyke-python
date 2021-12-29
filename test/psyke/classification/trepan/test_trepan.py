@@ -28,8 +28,7 @@ class TestTrepan(unittest.TestCase):
         logger.info(predictions)
 
         # TODO: manually checked predictions and they are compliant with the extracted theory (which is = the expected).
-        #  However the expected predictions are somehow wrong in some cases.
-        #  Asap check the function on 2p!
+        #  However the expected predictions are somehow wrong in some cases, maybe a precision issue.
         # self.assertTrue(predictions == expected)
 
 

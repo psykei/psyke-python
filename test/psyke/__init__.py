@@ -42,7 +42,8 @@ def initialize(file: str) -> list[dict[str:Theory]]:
 
         training_set, test_set = train_test_split(dataset, test_size=0.5, random_state=get_default_random_seed())
 
-        if 'bins' in row.keys():
+        schema = None
+        if 'bins' in row.keys() and int(row['bins']) > 0:
             schema = get_schema(dataset, int(row['bins']))
             params['discretization'] = schema
             training_set = get_discrete_dataset(training_set.iloc[:, :-1], schema)\
@@ -65,7 +66,8 @@ def initialize(file: str) -> list[dict[str:Theory]]:
             'extractor': extractor,
             'extracted_theory': theory,
             'test_set': test_set,
-            'expected_theory': parse_theory(row['theory'] + '.') if row['theory'] != '' else theory
+            'expected_theory': parse_theory(row['theory'] + '.') if row['theory'] != '' else theory,
+            'discretization': schema
         }
 
 
