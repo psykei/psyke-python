@@ -104,7 +104,7 @@ class Predictor:
             label_name = self._model.get_outputs()[0].name
             if array.dtype == 'float64':
                 tensor_type = np.float32
-            elif array.dtype == 'int64':
+            elif array.dtype == 'int64' or array.dtype == 'int32':
                 tensor_type = np.int64
             else:
                 tensor_type = np.str
