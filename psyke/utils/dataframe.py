@@ -1,3 +1,4 @@
+import math
 from hashlib import sha256
 from typing import Iterable, List
 import pandas as pd
@@ -40,7 +41,7 @@ def get_discrete_features_equal_frequency(
         raise ValueError("Negative amount of bins makes no sense")
     for feature in features:
         values = sorted(dataframe[feature])
-        intervals = [values[i] for i in range(int(len(values) / bins), len(values), int(len(values) / bins))]
+        intervals = [values[i * math.ceil(len(values) / bins)] for i in range(1, bins)]
         starting_interval: list[Value] = [LessThan(intervals[0])]
         ending_interval: list[Value] = [GreaterThan(intervals[-1])]
         middle_intervals: list[Value] = [Between(intervals[i], intervals[i + 1]) for i in range(0, len(intervals) - 1)]
