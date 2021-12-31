@@ -5,7 +5,7 @@ from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
 from psyke.schema import Value, LessThan, GreaterThan
 
 LeafConstraints = list[tuple[str, Value]]
-LeafSequence = list[tuple[LeafConstraints, Any]]
+LeafSequence = Iterable[tuple[LeafConstraints, Any]]
 
 
 class CartPredictor:
@@ -41,9 +41,9 @@ class CartPredictor:
             father: (int, bool) = (father_left + father_right)[0]
             return self.__path(father[0], [father] + path)
 
-    def as_sequence(self) -> LeafSequence:
+    def __iter__(self) -> LeafSequence:
         leaves = self.__get_leaves()
-        return [(self.__get_constraints(self.__path(i)), self.__get_prediction(i)) for i in leaves]
+        return ((self.__get_constraints(self.__path(i)), self.__get_prediction(i)) for i in leaves)
 
     def predict(self, data) -> Iterable:
         return self._predictor.predict(data)

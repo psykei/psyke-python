@@ -70,7 +70,7 @@ class Trepan(Extractor):
 
     def __create_theory(self, name: str) -> MutableTheory:
         theory = mutable_theory()
-        for node in self.__root.as_sequence():
+        for node in self.__root:
             variables = create_variable_list(self.discretization)
             theory.assertZ(
                 clause(
