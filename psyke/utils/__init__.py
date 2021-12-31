@@ -14,6 +14,32 @@ _DEFAULT_PRECISION: float = 1e-4
 _precision_options: dict = {'precision': _DEFAULT_PRECISION}
 
 
+class TypeNotAllowedException(Exception):
+
+    def __init__(self, type_name: str):
+        super().__init__('Type "' + type_name + '" not allowed for discretization.')
+
+
+class Range:
+    def __init__(self, mean: float, std: float):
+        self.mean = mean
+        self.std = std
+        self.lower = mean
+        self.upper = mean
+
+    def left_infinite(self):
+        self.lower = float('-inf')
+
+    def right_infinite(self):
+        self.upper = float('inf')
+
+    def expand_left(self):
+        self.lower -= self.std
+
+    def expand_right(self):
+        self.upper += self.std
+
+
 def is_deterministic_mode():
     return _random_options['_deterministic_mode']
 

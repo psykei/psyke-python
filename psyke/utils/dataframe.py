@@ -1,11 +1,15 @@
+from __future__ import annotations
+
 import math
 from hashlib import sha256
 from typing import Iterable, List
 import pandas as pd
 from pandas.core.util.hashing import hash_pandas_object
+from pandas.api.types import is_string_dtype, is_numeric_dtype, is_integer_dtype
 
 from psyke import DiscreteFeature
-from psyke.schema import LessThan, GreaterThan, Between, Value
+from psyke.schema import LessThan, GreaterThan, Between, Value, Constant
+from psyke.utils import TypeNotAllowedException, Range
 
 
 def split_features(dataframe: pd.DataFrame) -> Iterable[DiscreteFeature]:
@@ -17,10 +21,62 @@ def split_features(dataframe: pd.DataFrame) -> Iterable[DiscreteFeature]:
     return result
 
 
+def get_discrete_features_supervised(dataframe: pd.DataFrame) -> Iterable[DiscreteFeature]:
+    result = set()
+    for feature in dataframe.columns[:-1]:
+        result.add(DiscreteFeature(feature, create_set(feature, dataframe)))
+    return result
+
+
+def create_set(feature: str, dataframe: pd.DataFrame) -> dict[str, Value]:
+    if is_string_dtype(dataframe[feature]) or is_integer_dtype(dataframe[feature]):
+        values = dataframe[feature].unique()
+    elif is_numeric_dtype(dataframe[feature]):
+        values = create_ranges(feature, dataframe)
+    else:
+        raise TypeNotAllowedException(dataframe[feature].dtype)
+    return {"{}_{}".format(feature, i): create_original_value(v) for (i, v) in enumerate(values)}
+
+
+def create_original_value(value: Range | str | int) -> Value:
+    if isinstance(value, Range):
+        if value.lower == float('-inf'):
+            return LessThan(value.upper)
+        if value.upper == float('inf'):
+            return GreaterThan(value.lower)
+        return Between(value.lower, value.upper)
+    return Constant(value)
+
+
+def create_ranges(feature: str, dataframe: pd.DataFrame) -> Iterable[Range]:
+    ranges = init_ranges(feature, dataframe)
+    expand_ranges(ranges)
+    ranges[0].left_infinite()
+    ranges[-1].right_infinite()
+    return ranges
+
+
+def expand_ranges(ranges: Iterable[Range]):
+    for r1, r2 in zip(ranges[0:-1], ranges[1:]):
+        while r1.upper < r2.lower:
+            r1.expand_right()
+            r2.expand_left()
+        mean = ((r1.upper - r1.std + r2.lower + r2.std) / 2)
+        r1.upper = mean
+        r2.lower = mean
+
+
+def init_ranges(feature: str, dataframe: pd.DataFrame) -> Iterable[Range]:
+    desc = [dataframe[dataframe.iloc[:, -1] == v].describe()[feature] for v in dataframe.iloc[:, -1].unique()]
+    desc = [(d['mean'], d['std']) for d in desc]
+    desc.sort()
+    return [Range(d[0], d[1]) for d in desc]
+
+
 def get_discrete_features_equal_frequency(
         dataframe: pd.DataFrame,
         bins: int = None,
-        output=True,
+        output: bool = True,
         bin_names: List[str] = []
 ) -> Iterable[DiscreteFeature]:
     features = dataframe.columns[:-1] if output else dataframe.columns
