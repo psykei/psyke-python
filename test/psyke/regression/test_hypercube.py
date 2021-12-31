@@ -87,6 +87,7 @@ class TestHypercube(AbstractTestHypercube):
         self.assertEqual(self.hypercubes[1], self.cube.overlap(self.hypercubes))
         self.assertFalse(self.cube.overlap(self.hypercubes[0]))
         self.assertTrue(self.cube.overlap(self.hypercubes[1]))
+        self.assertTrue(self.hypercubes[1].overlap(self.cube))
 
     def test_has_volume(self):
         self.assertTrue(self.cube.has_volume())
