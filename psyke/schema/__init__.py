@@ -34,10 +34,10 @@ class Interval(Value):
         self.upper = upper
 
     def __str__(self):
-        return f"[{self.lower}, {self.upper}]"
+        return f"[{self.lower:.2f}, {self.upper:.2f}]"
 
     def __repr__(self):
-        return f"Interval({self.lower}, {self.upper})"
+        return f"Interval({self.lower:.2f}, {self.upper:.2f})"
 
 
 class LessThan(Interval):
@@ -50,10 +50,10 @@ class LessThan(Interval):
         return other_value <= self.value
 
     def __str__(self):
-        return f"]-∞, {self.value}["
+        return f"]-∞, {self.value:.2f}["
 
     def __repr__(self):
-        return f"LessThan({self.value})"
+        return f"LessThan({self.value:.2f})"
 
 
 class GreaterThan(Interval):
@@ -66,10 +66,10 @@ class GreaterThan(Interval):
         return other_value > self.value
 
     def __str__(self):
-        return f"]{self.value}, ∞["
+        return f"]{self.value:.2f}, ∞["
 
     def __repr__(self):
-        return f"GreaterThan({self.value})"
+        return f"GreaterThan({self.value:.2f})"
 
 
 class Between(Interval):
@@ -81,7 +81,7 @@ class Between(Interval):
         return self.lower < other_value <= self.upper
 
     def __repr__(self):
-        return f"Between({self.lower}, {self.upper})"
+        return f"Between({self.lower:.2f}, {self.upper:.2f})"
 
 
 class Constant(Value):

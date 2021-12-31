@@ -46,9 +46,12 @@ jobs:
           (git push) || echo 'nothing to push'
 
   run-unit-tests:
-    runs-on: ubuntu-latest
     strategy:
       matrix:
+        os:
+          - ubuntu-latest
+          - windows-latest
+          - macos-latest
         python-version:
           - '3.9.0'
           - '3.9.1'
@@ -58,7 +61,8 @@ jobs:
           - '3.9.5'
           - '3.9.6'
           - '3.9.7'
-    name: Run tests on Python ${{ matrix.python-version }}
+    runs-on: ${{ matrix.os }}
+    name: Run tests on Python ${{ matrix.python-version }}, on ${{ matrix.os }}
     needs:
       - create-test-predictors-if-needed
     steps:
