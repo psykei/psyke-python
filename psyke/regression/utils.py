@@ -12,6 +12,9 @@ class Expansion:
     def get(self) -> tuple:
         return self.cube.get(self.feature)
 
+    def boundaries(self, a: float, b: float) -> (float, float):
+        return (self.get()[0], b) if self.direction == '-' else (a, self.get()[1])
+
 
 class Limit:
 
@@ -28,7 +31,7 @@ class Limit:
 
 class MinUpdate:
 
-    def __init__(self, name, value):
+    def __init__(self, name: str, value: float):
         self.name = name
         self.value = value
 
