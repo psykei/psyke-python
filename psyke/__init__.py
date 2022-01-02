@@ -52,7 +52,7 @@ class Extractor(object):
 
     @staticmethod
     def iter(predictor, min_update: float = 0.1, n_points: int = 1, max_iterations: int = 600, min_examples: int = 250,
-             threshold: float = 0.1, fill_gaps: bool = False, seed: int = get_default_random_seed()) -> Extractor:
+             threshold: float = 0.1, fill_gaps: bool = True, seed: int = get_default_random_seed()) -> Extractor:
         """
         Creates a new ITER extractor.
         """

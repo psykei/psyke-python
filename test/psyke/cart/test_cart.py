@@ -44,6 +44,8 @@ class TestCart(unittest.TestCase):
                 expected[index] = predictions[index]
 
         accuracy = sum([v == expected[i] for i, v in enumerate(predictions)]) / len(predictions)
+        if not accuracy > get_default_accuracy():
+            print(accuracy, get_default_accuracy())
         self.assertTrue(accuracy > get_default_accuracy())
 
 

@@ -87,6 +87,7 @@ class TestHypercube(AbstractTestHypercube):
         self.assertEqual(self.hypercubes[1], self.cube.overlap(self.hypercubes))
         self.assertFalse(self.cube.overlap(self.hypercubes[0]))
         self.assertTrue(self.cube.overlap(self.hypercubes[1]))
+        self.assertTrue(self.hypercubes[1].overlap(self.cube))
 
     def test_has_volume(self):
         self.assertTrue(self.cube.has_volume())
@@ -157,7 +158,8 @@ class TestHypercube(AbstractTestHypercube):
     def test_create_surrounding_cube(self):
         surrounding = HyperCube.create_surrounding_cube(self.dataset)
         for feature in self.dataset.columns[:-1]:
-            self.assertEqual((math.floor(min(self.dataset[feature])), math.ceil(max(self.dataset[feature]))),
+            self.assertEqual((min(self.dataset[feature]) - HyperCube.EPSILON ** 2,
+                              max(self.dataset[feature]) + HyperCube.EPSILON ** 2),
                              surrounding.dimensions[feature])
 
     def test_cube_from_point(self):

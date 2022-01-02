@@ -44,7 +44,6 @@ jobs:
           (git add predictors/*.onnx tests/*.csv datasets/*.csv) || echo 'nothing to add'
           (git commit -m 'predictors update from workflows') || echo 'nothing to commit'
           (git push) || echo 'nothing to push'
-
   run-unit-tests:
     strategy:
       matrix:
