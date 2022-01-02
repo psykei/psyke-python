@@ -1,3 +1,5 @@
+from tuprolog.core import Var, Real, BigDecimal
+
 from psyke import logger
 from parameterized import parameterized_class
 from psyke.utils import get_default_precision, get_int_precision
@@ -12,10 +14,35 @@ import unittest
 class TestIter(unittest.TestCase):
 
     def test_extract(self):
+        def to_float(n: BigDecimal) -> float:
+            return float(n.value.__repr__())
+
+        def are_equal(expected, actual):
+            if expected.is_functor_well_formed:
+                self.assertTrue(actual.is_functor_well_formed)
+                self.assertEqual(expected.functor, actual.functor)
+                self.assertTrue(expected.args[0].equals(actual.args[0], False))
+                self.assertTrue(abs(to_float(expected.args[1][0]) - to_float(actual.args[1][0])) < 0.01)
+                self.assertTrue(abs(to_float(expected.args[1][1].head) - to_float(actual.args[1][1].head)) < 0.01)
+            elif expected.is_recursive:
+                self.assertTrue(actual.is_recursive)
+                self.assertEqual(expected.arity, actual.arity)
+                for i in range(expected.arity):
+                    are_equal(expected.args[i], actual.args[i])
+
         logger.info(self.expected_theory)
         logger.info(self.extracted_theory)
         # TODO: keep un eye on it.
-        self.assertTrue(self.expected_theory.equals(self.extracted_theory, False))
+        for exp, ext in zip(self.expected_theory, self.extracted_theory):
+            for v1, v2 in zip (exp.head.args, ext.head.args):
+                if isinstance(v1, Var):
+                    self.assertTrue(isinstance(v2, Var))
+                    self.assertTrue(v1.equals(v2, False))
+                elif isinstance(v1, Real):
+                    self.assertTrue(isinstance(v2, Real))
+                    self.assertTrue(abs(to_float(v1) - to_float(v2)) < 0.01)
+            for t1, t2 in zip(exp.body, ext.body):
+                are_equal(t1, t2)
 
     def test_predict(self):
         precision = get_int_precision()

@@ -158,7 +158,8 @@ class TestHypercube(AbstractTestHypercube):
     def test_create_surrounding_cube(self):
         surrounding = HyperCube.create_surrounding_cube(self.dataset)
         for feature in self.dataset.columns[:-1]:
-            self.assertEqual((math.floor(min(self.dataset[feature])), math.ceil(max(self.dataset[feature]))),
+            self.assertEqual((min(self.dataset[feature]) - HyperCube.EPSILON ** 2,
+                              max(self.dataset[feature]) + HyperCube.EPSILON ** 2),
                              surrounding.dimensions[feature])
 
     def test_cube_from_point(self):

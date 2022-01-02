@@ -1,12 +1,8 @@
 from __future__ import annotations
-
-import math as m
 import random
 from typing import Iterable
-
 import numpy as np
 import pandas as pd
-
 from psyke import get_default_random_seed
 from psyke.regression.utils import Limit, MinUpdate, ZippedDimension, Expansion
 
@@ -22,11 +18,12 @@ class HyperCube:
     A N-dimensional cube holding a numeric value.
     """
 
+    EPSILON = 1.0 / 1000
+
     def __init__(self, dimension: dict[str, tuple] = None, limits: set[Limit] = None, output: float = 0.0):
         self.__dimension = dimension if dimension is not None else {}
         self.__limits = limits if limits is not None else set()
         self.__output = output
-        self.__epsilon = 1.0 / 1000
 
     @property
     def dimensions(self) -> dict[str, tuple]:
@@ -40,10 +37,10 @@ class HyperCube:
     def mean(self) -> float:
         return self.__output
 
-    def __expand_one(self, update: MinUpdate, surrounding: HyperCube):
+    def __expand_one(self, update: MinUpdate, surrounding: HyperCube, ratio: float = 1.0):
         self.__dimension[update.name] = \
-            (max(self.get_first(update.name) - update.value, surrounding.get_first(update.name)),
-             min(self.get_second(update.name) + update.value, surrounding.get_second(update.name)))
+            (max(self.get_first(update.name) - update.value / ratio, surrounding.get_first(update.name)),
+             min(self.get_second(update.name) + update.value / ratio, surrounding.get_second(update.name)))
 
     def __filter_dataframe(self, dataset: pd.DataFrame) -> pd.DataFrame:
         v = np.array([v for _, v in self.__dimension.items()])
@@ -94,8 +91,10 @@ class HyperCube:
 
     @staticmethod
     def create_surrounding_cube(dataset: pd.DataFrame) -> HyperCube:
-        return HyperCube({column: (m.floor(min(dataset[column])), m.ceil(max(dataset[column])))
-                          for column in dataset.columns[:-1]})
+        return HyperCube({
+            column: (min(dataset[column]) - HyperCube.EPSILON ** 2, max(dataset[column]) + HyperCube.EPSILON ** 2)
+            for column in dataset.columns[:-1]
+        })
 
     def create_tuple(self, generator: random.Random = random.Random(get_default_random_seed())) -> dict:
         return {k: generator.uniform(self.get_first(k), self.get_second(k)) for k in self.__dimension.keys()}
@@ -108,8 +107,8 @@ class HyperCube:
         if isinstance(hypercubes, Iterable):
             return any([self.equal(cube) for cube in hypercubes])
         else:
-            return all([(abs(dimension.this_cube[0] - dimension.other_cube[0]) < self.__epsilon)
-                        & (abs(dimension.this_cube[1] - dimension.other_cube[1]) < self.__epsilon)
+            return all([(abs(dimension.this_cube[0] - dimension.other_cube[0]) < HyperCube.EPSILON)
+                        & (abs(dimension.this_cube[1] - dimension.other_cube[1]) < HyperCube.EPSILON)
                         for dimension in self.__zip_dimensions(hypercubes)])
 
     def expand(self, expansion: Expansion, hypercubes: Iterable[HyperCube]) -> None:
@@ -123,9 +122,9 @@ class HyperCube:
         if isinstance(self.overlap(hypercubes), HyperCube):
             raise Exception('Overlapping not handled')
 
-    def expand_all(self, updates: list[MinUpdate], surrounding: HyperCube):
+    def expand_all(self, updates: Iterable[MinUpdate], surrounding: HyperCube, ratio: float = 1.0):
         for update in updates:
-            self.__expand_one(update, surrounding)
+            self.__expand_one(update, surrounding, ratio)
 
     def get(self, feature: str) -> tuple:
         if feature in self.__dimension.keys():
@@ -140,7 +139,7 @@ class HyperCube:
         return self.get(feature)[1]
 
     def has_volume(self) -> bool:
-        return all([dimension[1] - dimension[0] > self.__epsilon for dimension in self.__dimension.values()])
+        return all([dimension[1] - dimension[0] > HyperCube.EPSILON for dimension in self.__dimension.values()])
 
     def overlap(self, hypercubes: Iterable[HyperCube] | HyperCube) -> HyperCube | bool | None:
         if isinstance(hypercubes, Iterable):
