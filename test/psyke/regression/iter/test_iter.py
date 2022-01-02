@@ -43,6 +43,8 @@ class TestIter(unittest.TestCase):
                     self.assertTrue(abs(to_float(v1) - to_float(v2)) < 0.01)
             for t1, t2 in zip(exp.body, ext.body):
                 are_equal(t1, t2)
+        print(self.expected_theory)
+        print(self.extracted_theory)
 
     def test_predict(self):
         precision = get_int_precision()
