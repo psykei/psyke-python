@@ -43,8 +43,6 @@ class TestIter(unittest.TestCase):
                     self.assertTrue(abs(to_float(v1) - to_float(v2)) < 0.01)
             for t1, t2 in zip(exp.body, ext.body):
                 are_equal(t1, t2)
-        print(self.expected_theory)
-        print(self.extracted_theory)
 
     def test_predict(self):
         precision = get_int_precision()
@@ -61,7 +59,7 @@ class TestIter(unittest.TestCase):
         '''
         predictions[np.isnan(predictions)] = expected[np.isnan(predictions)]
         predictions = np.round(predictions, precision)
-        results = abs(predictions - expected) <= get_default_precision()
+        results = abs(predictions - expected) <= 0.01
         # logger.info(predictions[np.logical_not(results)])
         # logger.info(expected[np.logical_not(results)])
         self.assertTrue(all(results))
