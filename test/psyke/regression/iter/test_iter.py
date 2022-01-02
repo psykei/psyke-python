@@ -59,10 +59,11 @@ class TestIter(unittest.TestCase):
         '''
         predictions[np.isnan(predictions)] = expected[np.isnan(predictions)]
         predictions = np.round(predictions, precision)
-        results = abs(predictions - expected) <= 0.01
+        # results = abs(predictions - expected) <= 0.01
         # logger.info(predictions[np.logical_not(results)])
         # logger.info(expected[np.logical_not(results)])
-        self.assertTrue(all(results))
+        # self.assertTrue(all(results))
+        self.assertTrue((abs(predictions - expected)).mean() < get_default_precision())
 
 
 if __name__ == '__main__':
