@@ -37,7 +37,7 @@ class TestCart(unittest.TestCase):
         if isinstance(predictions[0], str):
             expected = [str(x) for x in expected]
         else:
-            expected = [x.decimal_value.toDouble() for x in expected]
+            expected = [float(x.value) for x in expected]
 
         for index, value in enumerate(expected):
             if value == '-1':

@@ -1,5 +1,6 @@
-from tuprolog.core import Var, Real, BigDecimal
+from decimal import Decimal
 
+from tuprolog.core import Var, Real
 from psyke import logger
 from parameterized import parameterized_class
 from psyke.utils import get_default_precision, get_int_precision
@@ -14,16 +15,16 @@ import unittest
 class TestIter(unittest.TestCase):
 
     def test_extract(self):
-        def to_float(n: BigDecimal) -> float:
-            return float(n.value.__repr__())
+        def are_similar(a: Real, b: Real) -> bool:
+            return abs(a.value - b.value) < 0.01
 
         def are_equal(expected, actual):
             if expected.is_functor_well_formed:
                 self.assertTrue(actual.is_functor_well_formed)
                 self.assertEqual(expected.functor, actual.functor)
                 self.assertTrue(expected.args[0].equals(actual.args[0], False))
-                self.assertTrue(abs(to_float(expected.args[1][0]) - to_float(actual.args[1][0])) < 0.01)
-                self.assertTrue(abs(to_float(expected.args[1][1].head) - to_float(actual.args[1][1].head)) < 0.01)
+                self.assertTrue(are_similar(expected.args[1][0], actual.args[1][0]))
+                self.assertTrue(are_similar(expected.args[1][1].head, actual.args[1][1].head))
             elif expected.is_recursive:
                 self.assertTrue(actual.is_recursive)
                 self.assertEqual(expected.arity, actual.arity)
@@ -40,7 +41,7 @@ class TestIter(unittest.TestCase):
                     self.assertTrue(v1.equals(v2, False))
                 elif isinstance(v1, Real):
                     self.assertTrue(isinstance(v2, Real))
-                    self.assertTrue(abs(to_float(v1) - to_float(v2)) < 0.01)
+                    self.assertTrue(are_similar(v1, v2))
             for t1, t2 in zip(exp.body, ext.body):
                 are_equal(t1, t2)
 
@@ -50,7 +51,7 @@ class TestIter(unittest.TestCase):
         solver = prolog_solver(static_kb=self.extracted_theory.assertZ(get_in_rule()))
         substitutions = [solver.solveOnce(data_to_struct(data)) for _, data in self.test_set.iterrows()]
         index = self.test_set.shape[1] - 1
-        expected = np.array([query.solved_query.get_arg_at(index).decimal_value.toDouble()
+        expected = np.array([float(query.solved_query.get_arg_at(index).value)
                              if query.is_yes else 0 for query in substitutions])
         '''
         ITER is not exhaustive so all entry's predictions that are not inside an hypercube are nan.
