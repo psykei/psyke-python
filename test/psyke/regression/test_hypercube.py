@@ -1,4 +1,3 @@
-import math
 import unittest
 import pandas as pd
 from sklearn.neighbors import KNeighborsRegressor
@@ -109,11 +108,11 @@ class TestHypercube(AbstractTestHypercube):
         self.assertEqual(self.dataset.shape[0], HyperCube.create_surrounding_cube(self.dataset).count(self.dataset))
         self.assertEqual(self.filtered_dataset.shape[0], self.cube.count(self.dataset))
 
-    def test_create_tuple(self):
-        point = self.cube.create_tuple()
+    def test_create_samples(self):
+        points = self.cube.create_samples(25)
         for k, v in self.cube.dimensions.items():
-            self.assertTrue(v[0] <= point[k])
-            self.assertTrue(point[k] < v[1])
+            self.assertTrue(all((points.loc[:, k] >= v[0]).values))
+            self.assertTrue(all((points.loc[:, k] < v[1]).values))
 
     def test_add_limit(self):
         self.assertEqual(0, self.cube.limit_count)

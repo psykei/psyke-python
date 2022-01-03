@@ -1,16 +1,64 @@
 from __future__ import annotations
-import random
+
+import math
+from random import Random
 from typing import Iterable
 import numpy as np
 import pandas as pd
-from psyke import get_default_random_seed
+from tuprolog.core import Var, Struct, clause
+from tuprolog.theory import Theory, mutable_theory
+
+from psyke import get_default_random_seed, Extractor, logger
 from psyke.regression.utils import Limit, MinUpdate, ZippedDimension, Expansion
+from psyke.schema import Between
+from psyke.utils import get_int_precision
+from psyke.utils.logic import create_term, create_variable_list, create_head
 
 
 class FeatureNotFoundException(Exception):
 
     def __init__(self, feature: str):
         super().__init__('Feature "' + feature + '" not found.')
+
+
+class HyperCubeExtractor(Extractor):
+
+    def __init__(self, predictor):
+        super().__init__(predictor)
+        self._hypercubes = {}
+
+    def extract(self, dataset: pd.DataFrame) -> Theory:
+        raise NotImplementedError('extract')
+
+    def predict(self, dataset: pd.DataFrame) -> Iterable:
+        return [self.__predict(dict(row.to_dict())) for _, row in dataset.iterrows()]
+
+    def __predict(self, data: dict[str, float]) -> float:
+        data = {k: round(v, get_int_precision() + 1) for k, v in data.items()}
+        for cube in self._hypercubes:
+            if cube.contains(data):
+                return cube.mean
+        return math.nan
+
+    @staticmethod
+    def __create_body(variables: dict[str, Var], dimensions: dict[str, (float, float)]) -> Iterable[Struct]:
+        return [create_term(variables[name], Between(values[0], values[1])) for name, values in dimensions.items()]
+
+    def _create_theory(self, dataframe: pd.DataFrame) -> Theory:
+        new_theory = mutable_theory()
+        for cube in self._hypercubes:
+            logger.info(cube.mean)
+            logger.info(cube.dimensions)
+            variables = create_variable_list([], dataframe)
+            head = create_head(dataframe.columns[-1], list(variables.values()), cube.mean)
+            body = HyperCubeExtractor.__create_body(variables, cube.dimensions)
+            new_theory.assertZ(
+                clause(
+                    head,
+                    body
+                )
+            )
+        return new_theory
 
 
 class HyperCube:
@@ -68,6 +116,9 @@ class HyperCube:
             return '*'
         raise Exception('Too many limits for this feature')
 
+    def create_samples(self, n: int = 1, generator: Random = Random(get_default_random_seed())) -> pd.DataFrame:
+        return pd.DataFrame([self.__create_tuple(generator) for _ in range(n)])
+
     @staticmethod
     def check_overlap(to_check: Iterable[HyperCube], hypercubes: Iterable[HyperCube]) -> bool:
         checked = []
@@ -96,7 +147,7 @@ class HyperCube:
             for column in dataset.columns[:-1]
         })
 
-    def create_tuple(self, generator: random.Random = random.Random(get_default_random_seed())) -> dict:
+    def __create_tuple(self, generator: Random) -> dict:
         return {k: generator.uniform(self.get_first(k), self.get_second(k)) for k in self.__dimension.keys()}
 
     @staticmethod

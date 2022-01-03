@@ -1,23 +1,17 @@
 from __future__ import annotations
-import math
-import random
+from random import Random
 from typing import Iterable
-
 import numpy as np
 import pandas as pd
-from tuprolog.core import Var, Struct, clause
-from tuprolog.theory import Theory, mutable_theory
-from psyke import logger, Extractor
-from psyke.regression import HyperCube
+from tuprolog.theory import Theory
+from psyke.regression import HyperCube, HyperCubeExtractor
 from psyke.regression.utils import Expansion, MinUpdate
-from psyke.schema import Between
-from psyke.utils import get_default_random_seed, get_int_precision
-from psyke.utils.logic import create_term, create_variable_list, create_head
+from psyke.utils import get_default_random_seed
 
 DomainProperties = (Iterable[MinUpdate], HyperCube)
 
 
-class ITER(Extractor):
+class ITER(HyperCubeExtractor):
     """
     Explanator implementing ITER algorithm, doi:10.1007/11823728_26.
     """
@@ -34,7 +28,7 @@ class ITER(Extractor):
         self.threshold = threshold
         self.fill_gaps = fill_gaps
         self.__hypercubes = []
-        self.__generator = random.Random(seed)
+        self.__generator = Random(seed)
 
     def __best_cube(self, dataframe: pd.DataFrame, cube: HyperCube, cubes: Iterable[Expansion]) -> Expansion | None:
         expansions = []
@@ -42,7 +36,7 @@ class ITER(Extractor):
             count = limit.cube.count(dataframe)
             # if count == 0:
             #    continue
-            dataframe = dataframe.append(self.__create_fake_samples(limit.cube, count))
+            dataframe = dataframe.append(limit.cube.create_samples(self.min_examples - count, self.__generator))
             limit.cube.update_mean(dataframe, self.predictor)
             expansions.append(Expansion(
                 limit.cube, limit.feature, limit.direction, abs(cube.mean - limit.cube.mean)
@@ -54,13 +48,6 @@ class ITER(Extractor):
     def __calculate_min_updates(self, surrounding: HyperCube) -> Iterable[MinUpdate]:
         return [MinUpdate(name, (interval[1] - interval[0]) * self.min_update) for (name, interval) in
                 surrounding.dimensions.items()]
-
-    @staticmethod
-    def __create_body(variables: dict[str, Var], dimensions: dict[str, (float, float)]) -> Iterable[Struct]:
-        return [create_term(variables[name], Between(values[0], values[1])) for name, values in dimensions.items()]
-
-    def __create_fake_samples(self, cube: HyperCube, n: int) -> pd.DataFrame:
-        return pd.DataFrame([cube.create_tuple(self.__generator) for _ in range(n, self.min_examples)])
 
     @staticmethod
     def __create_range(cube: HyperCube, domain: DomainProperties, feature: str, direction: str) \
@@ -95,22 +82,6 @@ class ITER(Extractor):
             for x in {'-', '+'} - {limit}:
                 tmp_cubes += ITER.__create_temp_cube(cube, domain, hypercubes, feature, x)
         return tmp_cubes
-
-    def __create_theory(self, dataframe: pd.DataFrame) -> Theory:
-        new_theory = mutable_theory()
-        for cube in self.__hypercubes:
-            logger.info(cube.mean)
-            logger.info(cube.dimensions)
-            variables = create_variable_list([], dataframe)
-            head = create_head(dataframe.columns[-1], list(variables.values()), cube.mean)
-            body = ITER.__create_body(variables, cube.dimensions)
-            new_theory.assertZ(
-                clause(
-                    head,
-                    body
-                )
-            )
-        return new_theory
 
     def __cubes_to_update(self, dataframe: pd.DataFrame, to_expand: Iterable[HyperCube],
                           hypercubes: Iterable[HyperCube], domain: DomainProperties) \
@@ -176,13 +147,6 @@ class ITER(Extractor):
             to_expand = [cube for cube in hypercubes if cube.limit_count < (len(dataframe.columns) - 1) * 2]
         return iterations
 
-    def __predict(self, data: dict[str, float]) -> float:
-        data = {k: round(v, get_int_precision() + 1) for k, v in data.items()}
-        for cube in self.__hypercubes:
-            if cube.contains(data):
-                return cube.mean
-        return math.nan
-
     @staticmethod
     def __resolve_overlap(cube: HyperCube, overlapping_cube: HyperCube, hypercubes: Iterable[HyperCube], feature: str,
                           direction: str) -> HyperCube:
@@ -192,13 +156,12 @@ class ITER(Extractor):
         return cube.overlap(hypercubes)
 
     def extract(self, dataframe: pd.DataFrame) -> Theory:
-        hypercubes, domain = self.__init(dataframe)
-        self.__hypercubes = hypercubes
+        self._hypercubes, domain = self.__init(dataframe)
         temp_train = dataframe.copy()
         fake = dataframe.copy()
         iterations = 0
         while temp_train.shape[0] > 0:
-            iterations += self.__iterate(fake, hypercubes, domain, self.max_iterations - iterations)
+            iterations += self.__iterate(fake, self._hypercubes, domain, self.max_iterations - iterations)
             if (iterations >= self.max_iterations) or (not self.fill_gaps):
                 break
             temp_train = temp_train.iloc[np.isnan(self.predict(temp_train.iloc[:, :-1]))]
@@ -211,11 +174,8 @@ class ITER(Extractor):
                             break
                     new_cube = HyperCube.cube_from_point(point)
                     new_cube.expand_all(domain[0], domain[1], ratio)
-                    overlap = new_cube.overlap(hypercubes)
+                    overlap = new_cube.overlap(self._hypercubes)
                     ratio *= 2
                 if new_cube.has_volume():
-                    hypercubes += [new_cube]
-        return self.__create_theory(dataframe)
-
-    def predict(self, dataframe: pd.DataFrame) -> Iterable:
-        return [self.__predict(dict(row.to_dict())) for _, row in dataframe.iterrows()]
+                    self._hypercubes += [new_cube]
+        return self._create_theory(dataframe)
