@@ -37,13 +37,15 @@ class TestCart(unittest.TestCase):
         if isinstance(predictions[0], str):
             expected = [str(x) for x in expected]
         else:
-            expected = [x.decimal_value.toDouble() for x in expected]
+            expected = [float(x.value) for x in expected]
 
         for index, value in enumerate(expected):
             if value == '-1':
                 expected[index] = predictions[index]
 
         accuracy = sum([v == expected[i] for i, v in enumerate(predictions)]) / len(predictions)
+        if not accuracy > get_default_accuracy():
+            print(accuracy, get_default_accuracy())
         self.assertTrue(accuracy > get_default_accuracy())
 
 

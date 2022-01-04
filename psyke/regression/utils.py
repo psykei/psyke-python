@@ -15,6 +15,9 @@ class Expansion:
     def __getitem__(self, index: int) -> float:
         return self.cube[self.feature][index]
 
+    def boundaries(self, a: float, b: float) -> (float, float):
+        return (self[0], b) if self.direction == '-' else (a, self[1])
+
 
 class Limit:
 
@@ -31,7 +34,7 @@ class Limit:
 
 class MinUpdate:
 
-    def __init__(self, name, value):
+    def __init__(self, name: str, value: float):
         self.name = name
         self.value = value
 

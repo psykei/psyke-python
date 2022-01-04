@@ -1,5 +1,4 @@
 from __future__ import annotations
-import math as m
 import random
 from typing import Iterable
 import numpy as np
@@ -15,16 +14,17 @@ class FeatureNotFoundException(Exception):
 
 
 class HyperCube:
+    
+    # TODO: this should be configurable by the designer
+    EPSILON = 1.0 / 1000  # Precision used when comparing two hypercubes
+    
     """
     A N-dimensional cube holding a numeric value.
     """
-
     def __init__(self, dimensions: Dimensions = None, limits: set[Limit] = None, output: float = 0.0):
         self.__dimensions = dimensions if dimensions is not None else {}
         self.__limits = limits if limits is not None else set()
         self.__output = output
-        # TODO: this should be configurable by the designer
-        self.__epsilon = 1.0 / 1000  # Precision used when comparing two hypercubes
 
     def __contains__(self, point: dict[str, float]) -> bool:
         """
@@ -35,9 +35,9 @@ class HyperCube:
         """
         return all([(self.get_first(k) <= v < self.get_second(k)) for k, v in point.items()])
 
-    def __eq__(self, other) -> bool:
-        return all([(abs(dimension.this_dimension[0] - dimension.other_dimension[0]) < self.__epsilon)
-                    & (abs(dimension.this_dimension[1] - dimension.other_dimension[1]) < self.__epsilon)
+    def __eq__(self, other: HyperCube) -> bool:
+        return all([(abs(dimension.this_dimension[0] - dimension.other_dimension[0]) < HyperCube.EPSILON)
+                    & (abs(dimension.this_dimension[1] - dimension.other_dimension[1]) < HyperCube.EPSILON)
                     for dimension in self.__zip_dimensions(other)])
 
     def __getitem__(self, feature: str) -> Dimension:
@@ -62,23 +62,22 @@ class HyperCube:
     def mean(self) -> float:
         return self.__output
 
-    def __expand_one(self, update: MinUpdate, surrounding: HyperCube):
+    def __expand_one(self, update: MinUpdate, surrounding: HyperCube, ratio: float = 1.0):
         self.__dimensions[update.name] = \
-            (max(self.get_first(update.name) - update.value, surrounding.get_first(update.name)),
-             min(self.get_second(update.name) + update.value, surrounding.get_second(update.name)))
+            (max(self.get_first(update.name) - update.value / ratio, surrounding.get_first(update.name)),
+             min(self.get_second(update.name) + update.value / ratio, surrounding.get_second(update.name)))
 
     def __filter_dataframe(self, dataset: pd.DataFrame) -> pd.DataFrame:
-        m = np.array([v[0] for _, v in self.__dimensions.items()])
-        M = np.array([v[1] for _, v in self.__dimensions.items()])
-        D = dataset.to_numpy(copy=True)
-        indices = np.all((D >= m) & (D < M), axis=1)
+        v = np.array([v for _, v in self.__dimensions.items()])
+        ds = dataset.to_numpy(copy=True)
+        indices = np.all((ds >= v[:, 0]) & (ds < v[:, 1]), axis=1)
         return dataset[indices]
 
     def __zip_dimensions(self, hypercube: HyperCube) -> list[ZippedDimension]:
         return [ZippedDimension(dimension, self[dimension], hypercube[dimension])
                 for dimension in self.__dimensions.keys()]
 
-    def add_limit(self, limit_or_feature, direction: str = None):
+    def add_limit(self, limit_or_feature: Limit | str, direction: str = None):
         if isinstance(limit_or_feature, Limit):
             self.__limits.add(limit_or_feature)
         else:
@@ -88,14 +87,11 @@ class HyperCube:
         filtered = [limit for limit in self.__limits if limit.feature == feature]
         if len(filtered) == 0:
             return None
-        else:
-            if len(filtered) == 1:
-                return filtered[0].direction
-            else:
-                if len(filtered) == 2:
-                    return '*'
-                else:
-                    raise Exception('Not allowed direction')
+        if len(filtered) == 1:
+            return filtered[0].direction
+        if len(filtered) == 2:
+            return '*'
+        raise Exception('Too many limits for this feature')
 
     @staticmethod
     def check_overlap(to_check: Iterable[HyperCube], hypercubes: Iterable[HyperCube]) -> bool:
@@ -117,8 +113,10 @@ class HyperCube:
 
     @staticmethod
     def create_surrounding_cube(dataset: pd.DataFrame) -> HyperCube:
-        return HyperCube({column: (m.floor(min(dataset[column])), m.ceil(max(dataset[column])))
-                          for column in dataset.columns[:-1]})
+        return HyperCube({
+            column: (min(dataset[column]) - HyperCube.EPSILON ** 2, max(dataset[column]) + HyperCube.EPSILON ** 2)
+            for column in dataset.columns[:-1]
+        })
 
     def create_tuple(self, generator: random.Random = random.Random(get_default_random_seed())) -> dict:
         return {k: generator.uniform(self.get_first(k), self.get_second(k)) for k in self.__dimensions.keys()}
@@ -128,17 +126,19 @@ class HyperCube:
         return HyperCube({k: (v, v) for k, v in list(point.items())[:-1]}, output=list(point.values())[-1])
 
     def expand(self, expansion: Expansion, hypercubes: Iterable[HyperCube]) -> None:
-        feature, direction = expansion.feature, expansion.direction
+        feature = expansion.feature
         a, b = self[feature]
-        self.__dimensions[feature] = (expansion[0], b) if direction == '-' else (a, expansion[1])
+        self.__dimensions[feature] = expansion.boundaries(a, b)
         other_cube = self.overlap(hypercubes)
         if isinstance(other_cube, HyperCube):
             self.__dimensions[feature] = (other_cube.get_second(feature), b) \
-                if direction == '-' else (a, other_cube.get_first(feature))
+                if expansion.direction == '-' else (a, other_cube.get_first(feature))
+        if isinstance(self.overlap(hypercubes), HyperCube):
+            raise Exception('Overlapping not handled')
 
-    def expand_all(self, updates: list[MinUpdate], surrounding: HyperCube):
+    def expand_all(self, updates: Iterable[MinUpdate], surrounding: HyperCube, ratio: float = 1.0):
         for update in updates:
-            self.__expand_one(update, surrounding)
+            self.__expand_one(update, surrounding, ratio)
 
     def get_first(self, feature: str) -> float:
         return self[feature][0]
@@ -147,23 +147,22 @@ class HyperCube:
         return self[feature][1]
 
     def has_volume(self) -> bool:
-        return all([dimension[1] - dimension[0] > self.__epsilon for dimension in self.__dimensions.values()])
+        return all([dimension[1] - dimension[0] > HyperCube.EPSILON for dimension in self.__dimensions.values()])
 
-    # TODO: refactor in multiple methods, now it is quite ugly and not readable
-    def overlap(self, other) -> HyperCube | bool | None:
-        if hasattr(other, '__iter__'):
-            for hypercube in other:
+    def overlap(self, hypercubes: Iterable[HyperCube] | HyperCube) -> HyperCube | bool | None:
+        if isinstance(hypercubes, Iterable):
+            for hypercube in hypercubes:
                 if (self != hypercube) & self.overlap(hypercube):
                     return hypercube
             return None
-        elif self is other:
+        elif self is hypercubes:
             return False
         else:
             return all([not ((dimension.other_dimension[0] >= dimension.this_dimension[1]) |
                              (dimension.this_dimension[0] >= dimension.other_dimension[1]))
-                        for dimension in self.__zip_dimensions(other)])
+                        for dimension in self.__zip_dimensions(hypercubes)])
 
-    def update_dimension(self, feature: str, lower, upper=None) -> None:
+    def update_dimension(self, feature: str, lower: float | tuple[float, float], upper: float | None = None) -> None:
         if upper is None:
             self.__dimensions[feature] = lower
         else:

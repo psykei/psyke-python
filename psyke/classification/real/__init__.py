@@ -24,7 +24,7 @@ class REAL(Extractor):
 
     def __covers(self, sample: pd.Series, rules: list[Rule]) -> bool:
         new_rule = self.__rule_from_example(sample)
-        return any([new_rule.__contains__(rule) for rule in rules])
+        return any([new_rule in rule for rule in rules])
 
     def __create_body(self, variables: dict[str, Var], rule: Rule) -> list[Struct]:
         result = []
@@ -74,7 +74,7 @@ class REAL(Extractor):
 
     def __predict(self, sample: pd.Series):
         sample = get_discrete_dataset(sample.to_frame().transpose(), self.discretization).loc[0]
-        x = [index for index, rule in self.__ruleset.flatten() if self.__rule_from_example(sample).__contains__(rule)]
+        x = [index for index, rule in self.__ruleset.flatten() if self.__rule_from_example(sample) in rule]
         reverse_mapping = dict((v, k) for k, v in self.__output_mapping.items())
         return reverse_mapping[x[0]] if len(x) > 0 else -1
 
