@@ -1,4 +1,5 @@
 from __future__ import annotations
+from itertools import chain
 from typing import Iterable, Any
 import pandas as pd
 
@@ -41,18 +42,15 @@ class Node:
     def n_classes(self) -> int:
         return len(set(self.samples.iloc[:, -1]))
 
-    def as_sequence(self) -> list[Node]:
-        return self.__as_sequence([])
-
-    def __as_sequence(self, result: list[Node]) -> list[Node]:
-        for child in self.children:
-            child.__as_sequence(result)
-        result.append(self)
-        return result
+    def __iter__(self) -> Iterable[Node]:
+        for child in chain(*map(iter, self.children)):
+            yield child
+        yield self
 
 
 class Split:
 
+    # TODO: should be configurable by user
     PRIORITY_BONUS: int = 100
     PRIORITY_PENALTY: int = 200
 

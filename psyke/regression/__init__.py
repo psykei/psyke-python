@@ -4,7 +4,7 @@ from typing import Iterable
 import numpy as np
 import pandas as pd
 from psyke import get_default_random_seed
-from psyke.regression.utils import Limit, MinUpdate, ZippedDimension, Expansion
+from psyke.regression.utils import Limit, MinUpdate, ZippedDimension, Expansion, Dimensions, Dimension
 
 
 class FeatureNotFoundException(Exception):
@@ -14,20 +14,45 @@ class FeatureNotFoundException(Exception):
 
 
 class HyperCube:
+    
+    # TODO: this should be configurable by the designer
+    EPSILON = 1.0 / 1000  # Precision used when comparing two hypercubes
+    
     """
     A N-dimensional cube holding a numeric value.
     """
-
-    EPSILON = 1.0 / 1000
-
-    def __init__(self, dimension: dict[str, tuple] = None, limits: set[Limit] = None, output: float = 0.0):
-        self.__dimension = dimension if dimension is not None else {}
+    def __init__(self, dimensions: Dimensions = None, limits: set[Limit] = None, output: float = 0.0):
+        self.__dimensions = dimensions if dimensions is not None else {}
         self.__limits = limits if limits is not None else set()
         self.__output = output
 
+    def __contains__(self, point: dict[str, float]) -> bool:
+        """
+        Note that a point (dict[str, float]) is inside an hypercube if ALL its dimensions' values satisfy:
+            min_dim <= value < max_dim
+        :param point: a N-dimensional point
+        :return: true if the point is inside the hypercube, false otherwise
+        """
+        return all([(self.get_first(k) <= v < self.get_second(k)) for k, v in point.items()])
+
+    def __eq__(self, other: HyperCube) -> bool:
+        return all([(abs(dimension.this_dimension[0] - dimension.other_dimension[0]) < HyperCube.EPSILON)
+                    & (abs(dimension.this_dimension[1] - dimension.other_dimension[1]) < HyperCube.EPSILON)
+                    for dimension in self.__zip_dimensions(other)])
+
+    def __getitem__(self, feature: str) -> Dimension:
+        if feature in self.__dimensions.keys():
+            return self.__dimensions[feature]
+        else:
+            raise FeatureNotFoundException(feature)
+
+    def __hash__(self) -> int:
+        result = [hash(name + str(dimension[0]) + str(dimension[1])) for name, dimension in self.dimensions.items()]
+        return sum(result)
+
     @property
-    def dimensions(self) -> dict[str, tuple]:
-        return self.__dimension
+    def dimensions(self) -> Dimensions:
+        return self.__dimensions
 
     @property
     def limit_count(self) -> int:
@@ -38,19 +63,19 @@ class HyperCube:
         return self.__output
 
     def __expand_one(self, update: MinUpdate, surrounding: HyperCube, ratio: float = 1.0):
-        self.__dimension[update.name] = \
+        self.__dimensions[update.name] = \
             (max(self.get_first(update.name) - update.value / ratio, surrounding.get_first(update.name)),
              min(self.get_second(update.name) + update.value / ratio, surrounding.get_second(update.name)))
 
     def __filter_dataframe(self, dataset: pd.DataFrame) -> pd.DataFrame:
-        v = np.array([v for _, v in self.__dimension.items()])
+        v = np.array([v for _, v in self.__dimensions.items()])
         ds = dataset.to_numpy(copy=True)
         indices = np.all((ds >= v[:, 0]) & (ds < v[:, 1]), axis=1)
         return dataset[indices]
 
     def __zip_dimensions(self, hypercube: HyperCube) -> list[ZippedDimension]:
-        return [ZippedDimension(dimension, self.get(dimension), hypercube.get(dimension))
-                for dimension in self.__dimension.keys()]
+        return [ZippedDimension(dimension, self[dimension], hypercube[dimension])
+                for dimension in self.__dimensions.keys()]
 
     def add_limit(self, limit_or_feature: Limit | str, direction: str = None):
         if isinstance(limit_or_feature, Limit):
@@ -74,14 +99,11 @@ class HyperCube:
         to_check_copy = list(to_check).copy()
         while len(to_check_copy) > 0:
             cube = to_check_copy.pop()
-            checked += [cube]
             for hypercube in hypercubes:
-                if (hypercube not in checked) & cube.overlap(hypercube):
+                if hypercube not in checked and cube.overlap(hypercube):
                     return True
+            checked += [cube]
         return False
-
-    def contains(self, t: dict[str, float]) -> bool:
-        return all([(self.get_first(k) <= v < self.get_second(k)) for k, v in t.items()])
 
     def copy(self) -> HyperCube:
         return HyperCube(self.dimensions.copy(), self.__limits.copy(), self.mean)
@@ -97,27 +119,19 @@ class HyperCube:
         })
 
     def create_tuple(self, generator: random.Random = random.Random(get_default_random_seed())) -> dict:
-        return {k: generator.uniform(self.get_first(k), self.get_second(k)) for k in self.__dimension.keys()}
+        return {k: generator.uniform(self.get_first(k), self.get_second(k)) for k in self.__dimensions.keys()}
 
     @staticmethod
     def cube_from_point(point: dict) -> HyperCube:
         return HyperCube({k: (v, v) for k, v in list(point.items())[:-1]}, output=list(point.values())[-1])
 
-    def equal(self, hypercubes: Iterable[HyperCube] | HyperCube) -> bool:
-        if isinstance(hypercubes, Iterable):
-            return any([self.equal(cube) for cube in hypercubes])
-        else:
-            return all([(abs(dimension.this_cube[0] - dimension.other_cube[0]) < HyperCube.EPSILON)
-                        & (abs(dimension.this_cube[1] - dimension.other_cube[1]) < HyperCube.EPSILON)
-                        for dimension in self.__zip_dimensions(hypercubes)])
-
     def expand(self, expansion: Expansion, hypercubes: Iterable[HyperCube]) -> None:
         feature = expansion.feature
-        a, b = self.get(feature)
-        self.__dimension[feature] = expansion.boundaries(a, b)
+        a, b = self[feature]
+        self.__dimensions[feature] = expansion.boundaries(a, b)
         other_cube = self.overlap(hypercubes)
         if isinstance(other_cube, HyperCube):
-            self.__dimension[feature] = (other_cube.get_second(feature), b) \
+            self.__dimensions[feature] = (other_cube.get_second(feature), b) \
                 if expansion.direction == '-' else (a, other_cube.get_first(feature))
         if isinstance(self.overlap(hypercubes), HyperCube):
             raise Exception('Overlapping not handled')
@@ -126,20 +140,14 @@ class HyperCube:
         for update in updates:
             self.__expand_one(update, surrounding, ratio)
 
-    def get(self, feature: str) -> tuple:
-        if feature in self.__dimension.keys():
-            return self.__dimension[feature]
-        else:
-            raise FeatureNotFoundException(feature)
-
     def get_first(self, feature: str) -> float:
-        return self.get(feature)[0]
+        return self[feature][0]
 
     def get_second(self, feature: str) -> float:
-        return self.get(feature)[1]
+        return self[feature][1]
 
     def has_volume(self) -> bool:
-        return all([dimension[1] - dimension[0] > HyperCube.EPSILON for dimension in self.__dimension.values()])
+        return all([dimension[1] - dimension[0] > HyperCube.EPSILON for dimension in self.__dimensions.values()])
 
     def overlap(self, hypercubes: Iterable[HyperCube] | HyperCube) -> HyperCube | bool | None:
         if isinstance(hypercubes, Iterable):
@@ -147,14 +155,16 @@ class HyperCube:
                 if (self != hypercube) & self.overlap(hypercube):
                     return hypercube
             return None
+        elif self is hypercubes:
+            return False
         else:
-            return all([not ((dimension.other_cube[0] >= dimension.this_cube[1]) |
-                             (dimension.this_cube[0] >= dimension.other_cube[1]))
+            return all([not ((dimension.other_dimension[0] >= dimension.this_dimension[1]) |
+                             (dimension.this_dimension[0] >= dimension.other_dimension[1]))
                         for dimension in self.__zip_dimensions(hypercubes)])
 
-    def update_dimension(self, feature: str, lower: float | (float, float), upper: float | None = None) -> None:
+    def update_dimension(self, feature: str, lower: float | tuple[float, float], upper: float | None = None) -> None:
         if upper is None:
-            self.__dimension[feature] = lower
+            self.__dimensions[feature] = lower
         else:
             self.update_dimension(feature, (lower, upper))
 

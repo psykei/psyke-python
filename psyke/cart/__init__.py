@@ -24,9 +24,9 @@ class Cart(Extractor):
                                        isinstance(value, GreaterThan)))
         return results
 
-    def __create_theory(self, leaves: LeafSequence, data: pd.DataFrame) -> Theory:
+    def __create_theory(self, data: pd.DataFrame) -> Theory:
         new_theory = mutable_theory()
-        for name, value in leaves:
+        for name, value in self.predictor:
             variables = create_variable_list(self.discretization, data)
             new_theory.assertZ(
                 clause(
@@ -37,7 +37,7 @@ class Cart(Extractor):
         return new_theory
 
     def extract(self, data: pd.DataFrame) -> Theory:
-        return self.__create_theory(self.predictor.as_sequence(), data)
+        return self.__create_theory(data)
 
     def predict(self, data) -> Iterable:
         return self.predictor.predict(data)

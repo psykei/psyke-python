@@ -1,5 +1,8 @@
 import math
 
+Dimension = tuple[float, float]
+Dimensions = dict[str, Dimension]
+
 
 class Expansion:
 
@@ -9,11 +12,11 @@ class Expansion:
         self.direction = direction
         self.distance = distance
 
-    def get(self) -> tuple:
-        return self.cube.get(self.feature)
+    def __getitem__(self, index: int) -> float:
+        return self.cube[self.feature][index]
 
     def boundaries(self, a: float, b: float) -> (float, float):
-        return (self.get()[0], b) if self.direction == '-' else (a, self.get()[1])
+        return (self[0], b) if self.direction == '-' else (a, self[1])
 
 
 class Limit:
@@ -23,7 +26,7 @@ class Limit:
         self.direction = direction
 
     def __eq__(self, other):
-        return (self.feature == other.feature) & (self.direction == other.direction)
+        return (self.feature == other.feature) and (self.direction == other.direction)
 
     def __hash__(self):
         return hash(self.feature + self.direction)
@@ -38,8 +41,8 @@ class MinUpdate:
 
 class ZippedDimension:
 
-    def __init__(self, dimension: str, this_cube: (float, float), other_cube: (float, float)):
-        self.dimension = dimension
-        self.this_cube = this_cube
-        self.other_cube = other_cube
+    def __init__(self, name: str, this_dimension: Dimension, other_dimension: Dimension):
+        self.name = name
+        self.this_dimension = this_dimension
+        self.other_dimension = other_dimension
         
