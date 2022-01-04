@@ -10,9 +10,15 @@ class Rule:
         self.true_predicates = true_predicates
         self.false_predicates = false_predicates
 
-    def is_sub_rule_of(self, rule: Rule) -> bool:
-        return all([predicate in self.true_predicates for predicate in rule.true_predicates]) & \
-               all([predicate in self.false_predicates for predicate in rule.false_predicates])
+    def __contains__(self, other: Rule) -> bool:
+        return all([predicate in other.true_predicates for predicate in self.true_predicates]) and\
+               all([predicate in other.false_predicates for predicate in self.false_predicates])
+
+    def __eq__(self, other: Rule) -> bool:
+        return self.true_predicates == other.true_predicates and self.false_predicates == other.false_predicates
+
+    def __hash__(self) -> int:
+        return hash(self.true_predicates) + hash(self.false_predicates)
 
     def reduce(self, features: Iterable[DiscreteFeature]) -> Rule:
         to_be_removed = [item for tp in self.true_predicates
@@ -39,7 +45,7 @@ class IndexedRuleSet(dict[int, list[Rule]]):
     def _useless_rules(key, rules: list[Rule]) -> list[(int, Rule)]:
         return [
             (key, rule) for rule in rules
-            if any(rule.is_sub_rule_of(other_rule) for other_rule in rules if other_rule != rule)
+            if any(rule in other_rule for other_rule in rules if other_rule != rule)
         ]
 
     @staticmethod
