@@ -42,10 +42,10 @@ class TestHypercube(AbstractTestHypercube):
         self.assertEqual(self.mean, self.cube.mean)
 
     def test_get(self):
-        self.assertEqual((0.2, 0.6), self.cube.get('X'))
-        self.assertEqual((0.7, 0.9), self.cube.get('Y'))
+        self.assertEqual((0.2, 0.6), self.cube['X'])
+        self.assertEqual((0.7, 0.9), self.cube['Y'])
         with self.assertRaises(FeatureNotFoundException):
-            self.cube.get('Z')
+            dummy = self.cube['Z']
 
     def test_get_first(self):
         self.assertEqual(0.2, self.cube.get_first('X'))
@@ -68,7 +68,7 @@ class TestHypercube(AbstractTestHypercube):
         arguments = TestHypercube.expansion_provider()
         for arg in arguments:
             arg[0].expand(arg[1], self.hypercubes)
-            self.assertEqual(arg[2], arg[0].get(arg[1].feature))
+            self.assertEqual(arg[2], arg[0][arg[1].feature])
 
     def test_expand_all(self):
         updates = [MinUpdate('X', 0.2), MinUpdate('Y', 0.15)]
