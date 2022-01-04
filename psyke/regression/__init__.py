@@ -1,12 +1,9 @@
 from __future__ import annotations
-
 import math as m
 import random
 from typing import Iterable
-
 import numpy as np
 import pandas as pd
-
 from psyke import get_default_random_seed
 from psyke.regression.utils import Limit, MinUpdate, ZippedDimension, Expansion
 
@@ -81,13 +78,13 @@ class HyperCube:
         to_check_copy = list(to_check).copy()
         while len(to_check_copy) > 0:
             cube = to_check_copy.pop()
-            checked += [cube]
             for hypercube in hypercubes:
-                if (hypercube not in checked) & cube.overlap(hypercube):
+                if hypercube not in checked and cube.overlap(hypercube):
                     return True
+            checked += [cube]
         return False
 
-    def contains(self, t: dict[str, float]) -> bool:
+    def __contains__(self, t: dict[str, float]) -> bool:
         return all([(self.get_first(k) <= v < self.get_second(k)) for k, v in t.items()])
 
     def copy(self) -> HyperCube:
@@ -108,13 +105,10 @@ class HyperCube:
     def cube_from_point(point: dict) -> HyperCube:
         return HyperCube({k: (v, v) for k, v in list(point.items())[:-1]}, output=list(point.values())[-1])
 
-    def equal(self, hypercubes) -> bool:
-        if isinstance(hypercubes, list):
-            return any([self.equal(cube) for cube in hypercubes])
-        else:
-            return all([(abs(dimension.this_cube[0] - dimension.other_cube[0]) < self.__epsilon)
-                        & (abs(dimension.this_cube[1] - dimension.other_cube[1]) < self.__epsilon)
-                        for dimension in self.__zip_dimensions(hypercubes)])
+    def __eq__(self, other) -> bool:
+        return all([(abs(dimension.this_cube[0] - dimension.other_cube[0]) < self.__epsilon)
+                    & (abs(dimension.this_cube[1] - dimension.other_cube[1]) < self.__epsilon)
+                    for dimension in self.__zip_dimensions(other)])
 
     def expand(self, expansion: Expansion, hypercubes: Iterable[HyperCube]) -> None:
         feature, direction = expansion.feature, expansion.direction
@@ -144,16 +138,19 @@ class HyperCube:
     def has_volume(self) -> bool:
         return all([dimension[1] - dimension[0] > self.__epsilon for dimension in self.__dimension.values()])
 
-    def overlap(self, hypercubes) -> HyperCube | bool | None:
-        if hasattr(hypercubes, '__iter__'):
-            for hypercube in hypercubes:
+    # TODO: refactor in multiple methods, now it is quite ugly and not readable
+    def overlap(self, other) -> HyperCube | bool | None:
+        if hasattr(other, '__iter__'):
+            for hypercube in other:
                 if (self != hypercube) & self.overlap(hypercube):
                     return hypercube
             return None
+        elif self is other:
+            return False
         else:
             return all([not ((dimension.other_cube[0] >= dimension.this_cube[1]) |
                              (dimension.this_cube[0] >= dimension.other_cube[1]))
-                        for dimension in self.__zip_dimensions(hypercubes)])
+                        for dimension in self.__zip_dimensions(other)])
 
     def update_dimension(self, feature: str, lower, upper=None) -> None:
         if upper is None:

@@ -69,7 +69,7 @@ class ITER(Extractor):
 
     @staticmethod
     def __create_range(cube: HyperCube, domain: DomainProperties, feature: str, direction: str)\
-            -> (HyperCube, (float, float)):
+            -> tuple[HyperCube, tuple[float, float]]:
         min_updates, surrounding = domain
         a, b = cube.get(feature)
         size = [min_update for min_update in min_updates if min_update.name == feature][0].value
@@ -84,7 +84,7 @@ class ITER(Extractor):
         overlap = temp_cube.overlap(hypercubes)
         if overlap is not None:
             overlap = ITER.__resolve_overlap(temp_cube, overlap, hypercubes, feature, direction)
-        if (temp_cube.has_volume() & (overlap is None)) & (not temp_cube.equal(hypercubes)):
+        if (temp_cube.has_volume() & (overlap is None)) & (all(temp_cube != cube for cube in hypercubes)):
             yield Expansion(temp_cube, feature, direction)
         else:
             cube.add_limit(feature, direction)
@@ -192,7 +192,7 @@ class ITER(Extractor):
     def __predict(self, data: dict[str, float]) -> float:
         data = {k: round(v, get_int_precision() + 1) for k, v in data.items()}
         for cube in self.__hypercubes:
-            if cube.contains(data):
+            if cube.__contains__(data):
                 return cube.mean
         return math.nan
 
