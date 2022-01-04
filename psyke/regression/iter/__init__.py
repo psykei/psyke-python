@@ -37,9 +37,9 @@ class ITER(HyperCubeExtractor):
             # if count == 0:
             #    continue
             dataframe = dataframe.append(limit.cube.create_samples(self.min_examples - count, self.__generator))
-            limit.cube.update_mean(dataframe, self.predictor)
+            limit.cube.update(dataframe, self.predictor)
             expansions.append(Expansion(
-                limit.cube, limit.feature, limit.direction, abs(cube.mean - limit.cube.mean)
+                limit.cube, limit.feature, limit.direction, abs(cube.output - limit.cube.output)
             ))
         if len(expansions) > 0:
             return sorted(expansions, key=lambda e: e.distance)[0]
@@ -117,7 +117,7 @@ class ITER(HyperCubeExtractor):
         min_updates = self.__calculate_min_updates(surrounding)
         self._hypercubes = self.__init_hypercubes(dataframe, min_updates, surrounding)
         for hypercube in self._hypercubes:
-            hypercube.update_mean(dataframe, self.predictor)
+            hypercube.update(dataframe, self.predictor)
         return self._hypercubes, (min_updates, surrounding)
 
     def __init_hypercubes(

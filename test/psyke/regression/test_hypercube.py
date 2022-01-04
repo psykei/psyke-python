@@ -38,7 +38,7 @@ class TestHypercube(AbstractTestHypercube):
         self.assertEqual(2, self.cube.limit_count)
 
     def test_get_mean(self):
-        self.assertEqual(self.mean, self.cube.mean)
+        self.assertEqual(self.mean, self.cube.output)
 
     def test_get(self):
         self.assertEqual((0.2, 0.6), self.cube.get('X'))
@@ -61,7 +61,7 @@ class TestHypercube(AbstractTestHypercube):
     def test_copy(self):
         copy = self.cube.copy()
         self.assertEqual(self.cube.dimensions, copy.dimensions)
-        self.assertEqual(self.cube.mean, copy.mean)
+        self.assertEqual(self.cube.output, copy.output)
 
     def test_expand(self):
         arguments = TestHypercube.expansion_provider()
@@ -141,7 +141,7 @@ class TestHypercube(AbstractTestHypercube):
         model = KNeighborsRegressor()
         model.fit(self.dataset.iloc[:, :-1], self.dataset.iloc[:, -1])
         predictor = Predictor(model)
-        self.cube.update_mean(self.dataset, predictor)
+        self.cube.update(self.dataset, predictor)
 
     def test_update_dimension(self):
         new_lower, new_upper = 0.6, 1.4
@@ -165,7 +165,7 @@ class TestHypercube(AbstractTestHypercube):
         lower, upper, mean = 0.5, 0.8, 0.6
         cube = HyperCube.cube_from_point({'X': lower, 'Y': upper, 'z': mean})
         self.assertEqual({'X': (lower, lower), 'Y': (upper, upper)}, cube.dimensions)
-        self.assertEqual(mean, cube.mean)
+        self.assertEqual(mean, cube.output)
 
     def test_check_overlap(self):
         self.assertTrue(HyperCube.check_overlap([self.hypercubes[0]], [self.hypercubes[0].copy()]))

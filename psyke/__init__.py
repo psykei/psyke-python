@@ -64,10 +64,19 @@ class Extractor(object):
     def gridex(predictor, grid, min_examples: int = 250, threshold: float = 0.1,
                seed: int = get_default_random_seed()) -> Extractor:
         """
-        Creates a new ITER extractor.
+        Creates a new GridEx extractor.
         """
         from psyke.regression.gridex import GridEx
         return GridEx(predictor, grid, min_examples, threshold, seed)
+
+    @staticmethod
+    def gridrex(predictor, grid, min_examples: int = 250, threshold: float = 0.1,
+                seed: int = get_default_random_seed()) -> Extractor:
+        """
+        Creates a new GridREx extractor.
+        """
+        from psyke.regression.gridrex import GridREx
+        return GridREx(predictor, grid, min_examples, threshold, seed)
 
     @staticmethod
     def real(predictor, discretization=None) -> Extractor:

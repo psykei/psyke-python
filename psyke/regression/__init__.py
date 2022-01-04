@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 import math
-from typing import Iterable
+from typing import Iterable, Any
 import numpy as np
 import pandas as pd
 from sklearn.feature_selection import SelectKBest, f_regression
-from tuprolog.core import Var, Struct, clause
+from sklearn.linear_model import LinearRegression
+from tuprolog.core import Var, Struct, clause, var
 from tuprolog.theory import Theory, mutable_theory
 from psyke import Extractor, logger, regression
 from psyke.regression.strategy import FixedStrategy, Strategy
@@ -32,23 +33,32 @@ class HyperCubeExtractor(Extractor):
         data = {k: round(v, get_int_precision() + 1) for k, v in data.items()}
         for cube in self._hypercubes:
             if cube.contains(data):
-                return cube.mean
+                return self._get_cube_output(cube, data)
         return math.nan
 
-    def _default_cube(self):
+    def _default_cube(self) -> HyperCube:
         return HyperCube()
+
+    def _get_cube_output(self, cube: HyperCube, data: dict[str, float]) -> float:
+        return cube.output
 
     @staticmethod
     def __create_body(variables: dict[str, Var], dimensions: dict[str, (float, float)]) -> Iterable[Struct]:
         return [create_term(variables[name], Between(values[0], values[1])) for name, values in dimensions.items()]
 
+    @staticmethod
+    def __create_head(dataframe: pd.DataFrame, variables: dict[str, Any], output: float | LinearRegression) -> Struct:
+        return create_head(dataframe.columns[-1], list(variables.values()), output) \
+            if not isinstance(output, LinearRegression) else \
+            create_head(dataframe.columns[-1], list(variables.values()), var(dataframe.columns[-1].capitalize()))
+
     def _create_theory(self, dataframe: pd.DataFrame) -> Theory:
         new_theory = mutable_theory()
         for cube in self._hypercubes:
-            logger.info(cube.mean)
+            logger.info(cube.output)
             logger.info(cube.dimensions)
             variables = create_variable_list([], dataframe)
-            head = create_head(dataframe.columns[-1], list(variables.values()), cube.mean)
+            head = HyperCubeExtractor.__create_head(dataframe, variables, cube.output)
             body = HyperCubeExtractor.__create_body(variables, cube.dimensions)
             new_theory.assertZ(
                 clause(

@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from typing import Iterable
 import pandas as pd
+from sklearn.linear_model import LinearRegression
+
 from psyke.regression import Limit, MinUpdate, ZippedDimension, Expansion
 from random import Random
 import numpy as np
@@ -21,42 +23,45 @@ class HyperCube:
 
     EPSILON = 1.0 / 1000
 
-    def __init__(self, dimension: dict[str, tuple] = None, limits: set[Limit] = None, output: float = 0.0):
-        self.__dimension = dimension if dimension is not None else {}
+    def __init__(self, dimension: dict[str, tuple] = None, limits: set[Limit] = None,
+                 output: float | LinearRegression = 0.0):
+        self._dimension = dimension if dimension is not None else {}
         self.__limits = limits if limits is not None else set()
-        self.__output = output
-        self.__std = 0.0
+        self._output = output
+        self._diversity = 0.0
 
     @property
     def dimensions(self) -> dict[str, tuple]:
-        return self.__dimension
+        return self._dimension
 
     @property
     def limit_count(self) -> int:
         return len(self.__limits)
 
     @property
-    def mean(self) -> float:
-        return self.__output
+    def output(self) -> float | LinearRegression:
+        return self._output
 
     @property
-    def std(self) -> float:
-        return self.__std
+    def diversity(self) -> float:
+        return self._diversity
 
     def __expand_one(self, update: MinUpdate, surrounding: HyperCube, ratio: float = 1.0):
         self.update_dimension(update.name,
-            (max(self.get_first(update.name) - update.value / ratio, surrounding.get_first(update.name)),
-             min(self.get_second(update.name) + update.value / ratio, surrounding.get_second(update.name))))
+                              (max(self.get_first(update.name) - update.value / ratio,
+                                   surrounding.get_first(update.name)),
+                               min(self.get_second(update.name) + update.value / ratio,
+                                   surrounding.get_second(update.name))))
 
-    def __filter_dataframe(self, dataset: pd.DataFrame) -> pd.DataFrame:
-        v = np.array([v for _, v in self.__dimension.items()])
+    def _filter_dataframe(self, dataset: pd.DataFrame) -> pd.DataFrame:
+        v = np.array([v for _, v in self._dimension.items()])
         ds = dataset.to_numpy(copy=True)
         indices = np.all((ds >= v[:, 0]) & (ds < v[:, 1]), axis=1)
         return dataset[indices]
 
     def __zip_dimensions(self, hypercube: HyperCube) -> list[ZippedDimension]:
         return [ZippedDimension(dimension, self.get(dimension), hypercube.get(dimension))
-                for dimension in self.__dimension.keys()]
+                for dimension in self._dimension.keys()]
 
     def add_limit(self, limit_or_feature: Limit | str, direction: str = None):
         if isinstance(limit_or_feature, Limit):
@@ -93,10 +98,10 @@ class HyperCube:
         return all([(self.get_first(k) <= v < self.get_second(k)) for k, v in t.items()])
 
     def copy(self) -> HyperCube:
-        return HyperCube(self.dimensions.copy(), self.__limits.copy(), self.mean)
+        return HyperCube(self.dimensions.copy(), self.__limits.copy(), self.output)
 
     def count(self, dataset: pd.DataFrame) -> int:
-        return self.__filter_dataframe(dataset.iloc[:, :-1]).shape[0]
+        return self._filter_dataframe(dataset.iloc[:, :-1]).shape[0]
 
     @staticmethod
     def create_surrounding_cube(dataset: pd.DataFrame) -> HyperCube:
@@ -106,7 +111,7 @@ class HyperCube:
         })
 
     def __create_tuple(self, generator: Random) -> dict:
-        return {k: generator.uniform(self.get_first(k), self.get_second(k)) for k in self.__dimension.keys()}
+        return {k: generator.uniform(self.get_first(k), self.get_second(k)) for k in self._dimension.keys()}
 
     @staticmethod
     def cube_from_point(point: dict) -> HyperCube:
@@ -126,8 +131,8 @@ class HyperCube:
         self.update_dimension(feature, expansion.boundaries(a, b))
         other_cube = self.overlap(hypercubes)
         if isinstance(other_cube, HyperCube):
-            self.update_dimension(feature, (other_cube.get_second(feature), b) \
-                if expansion.direction == '-' else (a, other_cube.get_first(feature)))
+            self.update_dimension(feature, (other_cube.get_second(feature), b)
+                                  if expansion.direction == '-' else (a, other_cube.get_first(feature)))
         if isinstance(self.overlap(hypercubes), HyperCube):
             raise Exception('Overlapping not handled')
 
@@ -136,8 +141,8 @@ class HyperCube:
             self.__expand_one(update, surrounding, ratio)
 
     def get(self, feature: str) -> tuple:
-        if feature in self.__dimension.keys():
-            return self.__dimension[feature]
+        if feature in self._dimension.keys():
+            return self._dimension[feature]
         else:
             raise FeatureNotFoundException(feature)
 
@@ -148,11 +153,11 @@ class HyperCube:
         return self.get(feature)[1]
 
     def has_volume(self) -> bool:
-        return all([dimension[1] - dimension[0] > HyperCube.EPSILON for dimension in self.__dimension.values()])
+        return all([dimension[1] - dimension[0] > HyperCube.EPSILON for dimension in self._dimension.values()])
 
     def is_adjacent(self, cube: HyperCube) -> str | None:
         adjacent = None
-        for (feature, [a1, b1]) in self.__dimension.items():
+        for (feature, [a1, b1]) in self._dimension.items():
             if self.get(feature) == cube.get(feature):
                 continue
             [a2, b2] = cube.get(feature)
@@ -181,15 +186,27 @@ class HyperCube:
 
     def update_dimension(self, feature: str, lower: float | (float, float), upper: float | None = None) -> None:
         if upper is None:
-            self.__dimension[feature] = lower
+            self._dimension[feature] = lower
         else:
             self.update_dimension(feature, (lower, upper))
 
-    def update_mean(self, dataset: pd.DataFrame, predictor) -> None:
-        filtered = self.__filter_dataframe(dataset.iloc[:, :-1])
+    def update(self, dataset: pd.DataFrame, predictor) -> None:
+        filtered = self._filter_dataframe(dataset.iloc[:, :-1])
         predictions = predictor.predict(filtered.to_numpy())
-        self.__output = np.mean(predictions)
-        self.__std = np.std(predictions)
+        self._output = np.mean(predictions)
+        self._diversity = np.std(predictions)
 
     def init_std(self, std: float):
-        self.__std = std
+        self._diversity = std
+
+
+class RegressionCube(HyperCube):
+    def __init__(self):
+        super().__init__(output=LinearRegression())
+
+    def update(self, dataset: pd.DataFrame, predictor):
+        filtered = self._filter_dataframe(dataset.iloc[:, :-1])
+        if len(filtered > 0):
+            predictions = predictor.predict(filtered.values)
+            self._output.fit(filtered, predictions)
+            self._diversity = (abs(self._output.predict(filtered) - predictions)).mean()

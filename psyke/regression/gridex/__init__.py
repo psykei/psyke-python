@@ -41,7 +41,7 @@ class GridEx(HyperCubeExtractor):
                 if cube.count(dataframe) == 0:
                     continue
 
-                if cube.std < self.threshold:
+                if cube.diversity < self.threshold:
                     self._hypercubes += [cube]
                     continue
 
@@ -61,8 +61,8 @@ class GridEx(HyperCubeExtractor):
                     n = cube.count(dataframe)
                     if n > 0:
                         fake = fake.append(cube.create_samples(self.min_examples - n, self.__generator))
-                        cube.update_mean(fake, self.predictor)
-                        if cube.std > self.threshold:
+                        cube.update(fake, self.predictor)
+                        if cube.diversity > self.threshold:
                             self._hypercubes += [cube]
                         else:
                             to_split += [cube]
@@ -92,9 +92,9 @@ class GridEx(HyperCubeExtractor):
                          merge_cache: dict[(HyperCube, HyperCube), HyperCube | None]) -> bool:
         if (cube in not_in_cache) or (other_cube in not_in_cache):
             merged_cube = cube.merge_along_dimension(other_cube, feature)
-            merged_cube.update_mean(dataframe, self.predictor)
+            merged_cube.update(dataframe, self.predictor)
             merge_cache[(cube, other_cube)] = merged_cube
-        return merge_cache[(cube, other_cube)].std < self.threshold
+        return merge_cache[(cube, other_cube)].diversity < self.threshold
 
     def _merge(self, to_split: Iterable[HyperCube], dataframe: pd.DataFrame):
         not_in_cache = [cube for cube in to_split]
@@ -106,7 +106,7 @@ class GridEx(HyperCubeExtractor):
                         self.__evaluate_merge(not_in_cache, dataframe, feature, cube, other_cube, merge_cache)]
             if len(to_merge) == 0:
                 break
-            sorted(to_merge, key=lambda c: c[1].std)
+            sorted(to_merge, key=lambda c: c[1].diversity)
             best = to_merge[0]
             to_split = [cube for cube in to_split if cube not in best[0]] + [best[1]]
             not_in_cache = [best[1]]

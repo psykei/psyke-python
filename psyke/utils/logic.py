@@ -39,7 +39,7 @@ def create_term(v: Var, constraint: Value, positive: bool = True) -> Struct:
         return struct(functor, v,
                       logic_list(real(round(constraint.lower, PRECISION)), real(round(constraint.upper, PRECISION))))
     if isinstance(constraint, Constant):
-        return struct(functor, v, atom(str(Constant(constraint).value)))
+        return struct(functor, v, atom(str(constraint.value)))
 
 
 def create_variable_list(features: list[DiscreteFeature], dataset: pd.DataFrame = None) -> dict[str, Var]:
@@ -49,13 +49,13 @@ def create_variable_list(features: list[DiscreteFeature], dataset: pd.DataFrame 
 
 
 def create_head(functor: str, variables: list[Var], output) -> Struct:
-    if isinstance(output, str):
+    if isinstance(output, Var):
+        variables.append(output)
+    elif isinstance(output, str):
         variables.append(atom(output))
-        return struct(functor, variables)
     else:
-        value = round(float(output), PRECISION)
-        variables.append(numeric(value))
-        return struct(functor, variables)
+        variables.append(numeric(round(float(output), PRECISION)))
+    return struct(functor, variables)
 
 
 def pretty_clause(clause: Clause) -> str:
