@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 from psyke.schema import DiscreteFeature
 from psyke.utils import get_default_random_seed
 from tuprolog.theory import Theory
@@ -58,6 +59,15 @@ class Extractor(object):
         """
         from psyke.regression.iter import ITER
         return ITER(predictor, min_update, n_points, max_iterations, min_examples, threshold, fill_gaps, seed)
+
+    @staticmethod
+    def gridex(predictor, grid, min_examples: int = 250, threshold: float = 0.1,
+               seed: int = get_default_random_seed()) -> Extractor:
+        """
+        Creates a new ITER extractor.
+        """
+        from psyke.regression.gridex import GridEx
+        return GridEx(predictor, grid, min_examples, threshold, seed)
 
     @staticmethod
     def real(predictor, discretization=None) -> Extractor:

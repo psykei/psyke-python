@@ -1,5 +1,3 @@
-from decimal import Decimal
-
 from tuprolog.core import Var, Real
 from psyke import logger
 from parameterized import parameterized_class

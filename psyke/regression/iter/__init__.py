@@ -4,7 +4,8 @@ from typing import Iterable
 import numpy as np
 import pandas as pd
 from tuprolog.theory import Theory
-from psyke.regression import HyperCube, HyperCubeExtractor
+from psyke.regression.hypercube import HyperCube
+from psyke.regression import HyperCubeExtractor
 from psyke.regression.utils import Expansion, MinUpdate
 from psyke.utils import get_default_random_seed
 
@@ -27,7 +28,6 @@ class ITER(HyperCubeExtractor):
         self.min_examples = min_examples
         self.threshold = threshold
         self.fill_gaps = fill_gaps
-        self.__hypercubes = []
         self.__generator = Random(seed)
 
     def __best_cube(self, dataframe: pd.DataFrame, cube: HyperCube, cubes: Iterable[Expansion]) -> Expansion | None:
@@ -115,10 +115,10 @@ class ITER(HyperCubeExtractor):
         self.__fake_dataframe = dataframe.copy()
         surrounding = HyperCube.create_surrounding_cube(dataframe)
         min_updates = self.__calculate_min_updates(surrounding)
-        self.__hypercubes = self.__init_hypercubes(dataframe, min_updates, surrounding)
-        for hypercube in self.__hypercubes:
+        self._hypercubes = self.__init_hypercubes(dataframe, min_updates, surrounding)
+        for hypercube in self._hypercubes:
             hypercube.update_mean(dataframe, self.predictor)
-        return self.__hypercubes, (min_updates, surrounding)
+        return self._hypercubes, (min_updates, surrounding)
 
     def __init_hypercubes(
             self,
