@@ -48,7 +48,7 @@ class TestNode(unittest.TestCase):
         self.assertEqual(3, self.virginica_50.n_classes)
         self.assertEqual(1, Node(self.dataset.iloc[15:40, :], self.n_examples).n_classes)
 
-    def test_as_sequence(self):
+    def test_iterator(self):
         node = Node(self.dataset, self.n_examples)
         child_1 = Node(self.dataset.iloc[:50, :], self.n_examples)
         child_2 = Node(self.dataset.iloc[50:150, :], self.n_examples)
@@ -58,8 +58,8 @@ class TestNode(unittest.TestCase):
         grandchild_2_2 = Node(self.dataset.iloc[80:120, :], self.n_examples)
         child_1.children = [grandchild_1_1]
         child_2.children = [grandchild_2_1, grandchild_2_2]
-        self.assertEqual(node.as_sequence(), child_1.as_sequence() + child_2.as_sequence() + [node])
-        self.assertEqual([grandchild_1_1, child_1, grandchild_2_1, grandchild_2_2, child_2, node], node.as_sequence())
+        self.assertEqual(list(node), list(child_1) + list(child_2) + [node])
+        self.assertEqual([grandchild_1_1, child_1, grandchild_2_1, grandchild_2_2, child_2, node], list(node))
 
     def test_to_string(self):
         node = Node(self.dataset, self.n_examples, (('V1', 0.0), ('V2', 1.0)))

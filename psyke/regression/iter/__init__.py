@@ -50,10 +50,10 @@ class ITER(HyperCubeExtractor):
                 surrounding.dimensions.items()]
 
     @staticmethod
-    def __create_range(cube: HyperCube, domain: DomainProperties, feature: str, direction: str) \
-            -> (HyperCube, (float, float)):
+    def __create_range(cube: HyperCube, domain: DomainProperties, feature: str, direction: str)\
+            -> tuple[HyperCube, tuple[float, float]]:
         min_updates, surrounding = domain
-        a, b = cube.get(feature)
+        a, b = cube[feature]
         size = [min_update for min_update in min_updates if min_update.name == feature][0].value
         return (cube.copy(), (max(a - size, surrounding.get_first(feature)), a) if direction == '-' else
         (b, min(b + size, surrounding.get_second(feature))))
@@ -66,7 +66,7 @@ class ITER(HyperCubeExtractor):
         overlap = temp_cube.overlap(hypercubes)
         while (overlap is not None) & (temp_cube.has_volume()):
             overlap = ITER.__resolve_overlap(temp_cube, overlap, hypercubes, feature, direction)
-        if (temp_cube.has_volume() & (overlap is None)) & (not temp_cube.equal(hypercubes)):
+        if (temp_cube.has_volume() & (overlap is None)) & (all(temp_cube != cube for cube in hypercubes)):
             yield Expansion(temp_cube, feature, direction)
         else:
             cube.add_limit(feature, direction)
@@ -150,7 +150,7 @@ class ITER(HyperCubeExtractor):
     @staticmethod
     def __resolve_overlap(cube: HyperCube, overlapping_cube: HyperCube, hypercubes: Iterable[HyperCube], feature: str,
                           direction: str) -> HyperCube:
-        a, b = cube.get(feature)
+        a, b = cube[feature]
         cube.update_dimension(feature, max(overlapping_cube.get_second(feature), a) if direction == '-' else a,
                               min(overlapping_cube.get_first(feature), b) if direction == '+' else b)
         return cube.overlap(hypercubes)

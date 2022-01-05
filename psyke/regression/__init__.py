@@ -1,5 +1,4 @@
 from __future__ import annotations
-
 import math
 from typing import Iterable
 import numpy as np
@@ -32,7 +31,7 @@ class HyperCubeExtractor(Extractor):
     def __predict(self, data: dict[str, float]) -> float:
         data = {k: round(v, get_int_precision() + 1) for k, v in data.items()}
         for cube in self._hypercubes:
-            if cube.contains(data):
+            if cube.__contains__(data):
                 return self._get_cube_output(cube, data)
         return math.nan
 
