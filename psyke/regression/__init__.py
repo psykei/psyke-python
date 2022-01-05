@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 import math
-from typing import Iterable, Any
+from typing import Iterable
 import numpy as np
 import pandas as pd
 from sklearn.feature_selection import SelectKBest, f_regression
 from sklearn.linear_model import LinearRegression
-from tuprolog.core import Var, Struct, clause, var, struct
+from tuprolog.core import Var, Struct, clause
 from tuprolog.theory import Theory, mutable_theory
 from psyke import Extractor, logger
 from psyke.regression.strategy import FixedStrategy, Strategy
