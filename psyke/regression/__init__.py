@@ -1,174 +1,110 @@
 from __future__ import annotations
-import random
+import math
 from typing import Iterable
 import numpy as np
 import pandas as pd
-from psyke import get_default_random_seed
-from psyke.regression.utils import Limit, MinUpdate, ZippedDimension, Expansion, Dimensions, Dimension
+from sklearn.feature_selection import SelectKBest, f_regression
+from sklearn.linear_model import LinearRegression
+from tuprolog.core import Var, Struct, clause
+from tuprolog.theory import Theory, mutable_theory
+from psyke import Extractor, logger
+from psyke.regression.strategy import FixedStrategy, Strategy
+from psyke.regression.utils import Limit, MinUpdate, ZippedDimension, Expansion
+from psyke.schema import Between
+from psyke.utils import get_int_precision
+from psyke.utils.logic import create_term, create_variable_list, create_head, to_var
+from psyke.regression.hypercube import HyperCube
 
 
-class FeatureNotFoundException(Exception):
+class HyperCubeExtractor(Extractor):
 
-    def __init__(self, feature: str):
-        super().__init__('Feature "' + feature + '" not found.')
+    def __init__(self, predictor):
+        super().__init__(predictor)
+        self._hypercubes = []
 
+    def extract(self, dataset: pd.DataFrame) -> Theory:
+        raise NotImplementedError('extract')
 
-class HyperCube:
-    
-    # TODO: this should be configurable by the designer
-    EPSILON = 1.0 / 1000  # Precision used when comparing two hypercubes
-    
-    """
-    A N-dimensional cube holding a numeric value.
-    """
-    def __init__(self, dimensions: Dimensions = None, limits: set[Limit] = None, output: float = 0.0):
-        self.__dimensions = dimensions if dimensions is not None else {}
-        self.__limits = limits if limits is not None else set()
-        self.__output = output
+    def predict(self, dataset: pd.DataFrame) -> Iterable:
+        return [self.__predict(dict(row.to_dict())) for _, row in dataset.iterrows()]
 
-    def __contains__(self, point: dict[str, float]) -> bool:
-        """
-        Note that a point (dict[str, float]) is inside an hypercube if ALL its dimensions' values satisfy:
-            min_dim <= value < max_dim
-        :param point: a N-dimensional point
-        :return: true if the point is inside the hypercube, false otherwise
-        """
-        return all([(self.get_first(k) <= v < self.get_second(k)) for k, v in point.items()])
+    def __predict(self, data: dict[str, float]) -> float:
+        data = {k: round(v, get_int_precision() + 1) for k, v in data.items()}
+        for cube in self._hypercubes:
+            if cube.__contains__(data):
+                return self._get_cube_output(cube, data)
+        return math.nan
 
-    def __eq__(self, other: HyperCube) -> bool:
-        return all([(abs(dimension.this_dimension[0] - dimension.other_dimension[0]) < HyperCube.EPSILON)
-                    & (abs(dimension.this_dimension[1] - dimension.other_dimension[1]) < HyperCube.EPSILON)
-                    for dimension in self.__zip_dimensions(other)])
+    def _default_cube(self) -> HyperCube:
+        return HyperCube()
 
-    def __getitem__(self, feature: str) -> Dimension:
-        if feature in self.__dimensions.keys():
-            return self.__dimensions[feature]
-        else:
-            raise FeatureNotFoundException(feature)
-
-    def __hash__(self) -> int:
-        result = [hash(name + str(dimension[0]) + str(dimension[1])) for name, dimension in self.dimensions.items()]
-        return sum(result)
-
-    @property
-    def dimensions(self) -> Dimensions:
-        return self.__dimensions
-
-    @property
-    def limit_count(self) -> int:
-        return len(self.__limits)
-
-    @property
-    def mean(self) -> float:
-        return self.__output
-
-    def __expand_one(self, update: MinUpdate, surrounding: HyperCube, ratio: float = 1.0):
-        self.__dimensions[update.name] = \
-            (max(self.get_first(update.name) - update.value / ratio, surrounding.get_first(update.name)),
-             min(self.get_second(update.name) + update.value / ratio, surrounding.get_second(update.name)))
-
-    def __filter_dataframe(self, dataset: pd.DataFrame) -> pd.DataFrame:
-        v = np.array([v for _, v in self.__dimensions.items()])
-        ds = dataset.to_numpy(copy=True)
-        indices = np.all((ds >= v[:, 0]) & (ds < v[:, 1]), axis=1)
-        return dataset[indices]
-
-    def __zip_dimensions(self, hypercube: HyperCube) -> list[ZippedDimension]:
-        return [ZippedDimension(dimension, self[dimension], hypercube[dimension])
-                for dimension in self.__dimensions.keys()]
-
-    def add_limit(self, limit_or_feature: Limit | str, direction: str = None):
-        if isinstance(limit_or_feature, Limit):
-            self.__limits.add(limit_or_feature)
-        else:
-            self.add_limit(Limit(limit_or_feature, direction))
-
-    def check_limits(self, feature: str) -> str | None:
-        filtered = [limit for limit in self.__limits if limit.feature == feature]
-        if len(filtered) == 0:
-            return None
-        if len(filtered) == 1:
-            return filtered[0].direction
-        if len(filtered) == 2:
-            return '*'
-        raise Exception('Too many limits for this feature')
+    def _get_cube_output(self, cube: HyperCube, data: dict[str, float]) -> float:
+        return cube.output
 
     @staticmethod
-    def check_overlap(to_check: Iterable[HyperCube], hypercubes: Iterable[HyperCube]) -> bool:
-        checked = []
-        to_check_copy = list(to_check).copy()
-        while len(to_check_copy) > 0:
-            cube = to_check_copy.pop()
-            for hypercube in hypercubes:
-                if hypercube not in checked and cube.overlap(hypercube):
-                    return True
-            checked += [cube]
-        return False
-
-    def copy(self) -> HyperCube:
-        return HyperCube(self.dimensions.copy(), self.__limits.copy(), self.mean)
-
-    def count(self, dataset: pd.DataFrame) -> int:
-        return self.__filter_dataframe(dataset.iloc[:, :-1]).shape[0]
+    def __create_body(variables: dict[str, Var], dimensions: dict[str, (float, float)]) -> Iterable[Struct]:
+        return [create_term(variables[name], Between(values[0], values[1])) for name, values in dimensions.items()]
 
     @staticmethod
-    def create_surrounding_cube(dataset: pd.DataFrame) -> HyperCube:
-        return HyperCube({
-            column: (min(dataset[column]) - HyperCube.EPSILON ** 2, max(dataset[column]) + HyperCube.EPSILON ** 2)
-            for column in dataset.columns[:-1]
-        })
+    def __create_head(dataframe: pd.DataFrame, variables: list[Var], output: float | LinearRegression) -> Struct:
+        return create_head(dataframe.columns[-1], variables[:-1], output) \
+            if not isinstance(output, LinearRegression) else \
+            create_head(dataframe.columns[-1], variables[:-1], variables[-1])
 
-    def create_tuple(self, generator: random.Random = random.Random(get_default_random_seed())) -> dict:
-        return {k: generator.uniform(self.get_first(k), self.get_second(k)) for k in self.__dimensions.keys()}
+    def _create_output(self, variables, target) -> None:
+        return None
 
-    @staticmethod
-    def cube_from_point(point: dict) -> HyperCube:
-        return HyperCube({k: (v, v) for k, v in list(point.items())[:-1]}, output=list(point.values())[-1])
+    def _create_theory(self, dataframe: pd.DataFrame) -> Theory:
+        new_theory = mutable_theory()
+        for cube in self._hypercubes:
+            logger.info(cube.output)
+            logger.info(cube.dimensions)
+            variables = create_variable_list([], dataframe)
+            variables[dataframe.columns[-1]] = to_var(dataframe.columns[-1])
+            head = HyperCubeExtractor.__create_head(dataframe, list(variables.values()), cube.output)
+            body = HyperCubeExtractor.__create_body(variables, cube.dimensions)
+            output = self._create_output(list(variables.values()), cube.output)
+            if output is not None:
+                body += [output]
+            new_theory.assertZ(
+                clause(
+                    head,
+                    body
+                )
+            )
+        return new_theory
 
-    def expand(self, expansion: Expansion, hypercubes: Iterable[HyperCube]) -> None:
-        feature = expansion.feature
-        a, b = self[feature]
-        self.__dimensions[feature] = expansion.boundaries(a, b)
-        other_cube = self.overlap(hypercubes)
-        if isinstance(other_cube, HyperCube):
-            self.__dimensions[feature] = (other_cube.get_second(feature), b) \
-                if expansion.direction == '-' else (a, other_cube.get_first(feature))
-        if isinstance(self.overlap(hypercubes), HyperCube):
-            raise Exception('Overlapping not handled')
 
-    def expand_all(self, updates: Iterable[MinUpdate], surrounding: HyperCube, ratio: float = 1.0):
-        for update in updates:
-            self.__expand_one(update, surrounding, ratio)
+class FeatureRanker:
+    def __init__(self, feat):
+        self.scores = None
+        self.feat = feat
 
-    def get_first(self, feature: str) -> float:
-        return self[feature][0]
+    def fit(self, model, samples):
+        best = SelectKBest(score_func=f_regression, k="all").fit(samples, model.predict(samples).flatten())
+        self.scores = np.array(best.scores_) / max(best.scores_)
+        return self
 
-    def get_second(self, feature: str) -> float:
-        return self[feature][1]
+    def rankings(self):
+        return list(zip(self.feat, self.scores))
 
-    def has_volume(self) -> bool:
-        return all([dimension[1] - dimension[0] > HyperCube.EPSILON for dimension in self.__dimensions.values()])
 
-    def overlap(self, hypercubes: Iterable[HyperCube] | HyperCube) -> HyperCube | bool | None:
-        if isinstance(hypercubes, Iterable):
-            for hypercube in hypercubes:
-                if (self != hypercube) & self.overlap(hypercube):
-                    return hypercube
-            return None
-        elif self is hypercubes:
-            return False
+class Grid:
+    def __init__(self, iterations: int = 1, strategy: Strategy | list[Strategy] = FixedStrategy()):
+        self.iterations = iterations
+        self.strategy = strategy
+
+    def get(self, feature: str, depth: int) -> int:
+        if isinstance(self.strategy, list):
+            return self.strategy[depth].get(feature)
         else:
-            return all([not ((dimension.other_dimension[0] >= dimension.this_dimension[1]) |
-                             (dimension.this_dimension[0] >= dimension.other_dimension[1]))
-                        for dimension in self.__zip_dimensions(hypercubes)])
+            return self.strategy.get(feature)
 
-    def update_dimension(self, feature: str, lower: float | tuple[float, float], upper: float | None = None) -> None:
-        if upper is None:
-            self.__dimensions[feature] = lower
-        else:
-            self.update_dimension(feature, (lower, upper))
+    def iterate(self) -> range:
+        return range(self.iterations)
 
-    def update_mean(self, dataset: pd.DataFrame, predictor) -> None:
-        filtered = self.__filter_dataframe(dataset.iloc[:, :-1])
-        predictions = predictor.predict(filtered.to_numpy())
-        self.__output = np.mean(predictions)
+    def __repr__(self):
+        return self.__str__()
+
+    def __str__(self):
+        return "Grid ({}). {}".format(self.iterations, self.strategy)

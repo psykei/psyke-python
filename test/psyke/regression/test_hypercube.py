@@ -1,9 +1,8 @@
-import math
 import unittest
 import pandas as pd
 from sklearn.neighbors import KNeighborsRegressor
 from test.psyke import Predictor
-from psyke.regression import FeatureNotFoundException, HyperCube
+from psyke.regression.hypercube import FeatureNotFoundException, HyperCube
 from psyke.regression.utils import Expansion
 from psyke.regression.iter import MinUpdate
 from test.resources.datasets import get_dataset_path
@@ -39,7 +38,7 @@ class TestHypercube(AbstractTestHypercube):
         self.assertEqual(2, self.cube.limit_count)
 
     def test_get_mean(self):
-        self.assertEqual(self.mean, self.cube.mean)
+        self.assertEqual(self.mean, self.cube.output)
 
     def test_get(self):
         self.assertEqual((0.2, 0.6), self.cube['X'])
@@ -62,7 +61,7 @@ class TestHypercube(AbstractTestHypercube):
     def test_copy(self):
         copy = self.cube.copy()
         self.assertEqual(self.cube.dimensions, copy.dimensions)
-        self.assertEqual(self.cube.mean, copy.mean)
+        self.assertEqual(self.cube.output, copy.output)
 
     def test_expand(self):
         arguments = TestHypercube.expansion_provider()
@@ -108,11 +107,11 @@ class TestHypercube(AbstractTestHypercube):
         self.assertEqual(self.dataset.shape[0], HyperCube.create_surrounding_cube(self.dataset).count(self.dataset))
         self.assertEqual(self.filtered_dataset.shape[0], self.cube.count(self.dataset))
 
-    def test_create_tuple(self):
-        point = self.cube.create_tuple()
+    def test_create_samples(self):
+        points = self.cube.create_samples(25)
         for k, v in self.cube.dimensions.items():
-            self.assertTrue(v[0] <= point[k])
-            self.assertTrue(point[k] < v[1])
+            self.assertTrue(all((points.loc[:, k] >= v[0]).values))
+            self.assertTrue(all((points.loc[:, k] < v[1]).values))
 
     def test_add_limit(self):
         self.assertEqual(0, self.cube.limit_count)
@@ -141,7 +140,7 @@ class TestHypercube(AbstractTestHypercube):
         model = KNeighborsRegressor()
         model.fit(self.dataset.iloc[:, :-1], self.dataset.iloc[:, -1])
         predictor = Predictor(model)
-        self.cube.update_mean(self.dataset, predictor)
+        self.cube.update(self.dataset, predictor)
 
     def test_update_dimension(self):
         new_lower, new_upper = 0.6, 1.4
@@ -165,7 +164,7 @@ class TestHypercube(AbstractTestHypercube):
         lower, upper, mean = 0.5, 0.8, 0.6
         cube = HyperCube.cube_from_point({'X': lower, 'Y': upper, 'z': mean})
         self.assertEqual({'X': (lower, lower), 'Y': (upper, upper)}, cube.dimensions)
-        self.assertEqual(mean, cube.mean)
+        self.assertEqual(mean, cube.output)
 
     def test_check_overlap(self):
         self.assertTrue(HyperCube.check_overlap((self.hypercubes[0], ), (self.hypercubes[0].copy(), )))

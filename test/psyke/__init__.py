@@ -1,10 +1,10 @@
 from __future__ import annotations
 from onnxconverter_common import DataType, FloatTensorType, Int64TensorType, StringTensorType
-from psyke.cart import CartPredictor
-from psyke.utils import get_default_random_seed
-from psyke.utils.dataframe import get_discrete_dataset
 from skl2onnx import convert_sklearn
 from sklearn.model_selection import train_test_split
+from psyke import get_default_random_seed
+from psyke.cart import CartPredictor
+from psyke.utils.dataframe import get_discrete_dataset
 from test import get_dataset, get_extractor, get_schema, get_model
 from test.resources.predictors import get_predictor_path
 from test.resources.tests import test_cases
