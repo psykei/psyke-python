@@ -6,14 +6,14 @@ import numpy as np
 import pandas as pd
 from sklearn.feature_selection import SelectKBest, f_regression
 from sklearn.linear_model import LinearRegression
-from tuprolog.core import Var, Struct, clause, var
+from tuprolog.core import Var, Struct, clause, var, struct
 from tuprolog.theory import Theory, mutable_theory
-from psyke import Extractor, logger, regression
+from psyke import Extractor, logger
 from psyke.regression.strategy import FixedStrategy, Strategy
 from psyke.regression.utils import Limit, MinUpdate, ZippedDimension, Expansion
 from psyke.schema import Between
 from psyke.utils import get_int_precision
-from psyke.utils.logic import create_term, create_variable_list, create_head
+from psyke.utils.logic import create_term, create_variable_list, create_head, to_var
 from psyke.regression.hypercube import HyperCube
 
 
@@ -47,10 +47,13 @@ class HyperCubeExtractor(Extractor):
         return [create_term(variables[name], Between(values[0], values[1])) for name, values in dimensions.items()]
 
     @staticmethod
-    def __create_head(dataframe: pd.DataFrame, variables: dict[str, Any], output: float | LinearRegression) -> Struct:
-        return create_head(dataframe.columns[-1], list(variables.values()), output) \
+    def __create_head(dataframe: pd.DataFrame, variables: list[Var], output: float | LinearRegression) -> Struct:
+        return create_head(dataframe.columns[-1], variables[:-1], output) \
             if not isinstance(output, LinearRegression) else \
-            create_head(dataframe.columns[-1], list(variables.values()), var(dataframe.columns[-1].capitalize()))
+            create_head(dataframe.columns[-1], variables[:-1], variables[-1])
+
+    def _create_output(self, variables, target) -> None:
+        return None
 
     def _create_theory(self, dataframe: pd.DataFrame) -> Theory:
         new_theory = mutable_theory()
@@ -58,8 +61,12 @@ class HyperCubeExtractor(Extractor):
             logger.info(cube.output)
             logger.info(cube.dimensions)
             variables = create_variable_list([], dataframe)
-            head = HyperCubeExtractor.__create_head(dataframe, variables, cube.output)
+            variables[dataframe.columns[-1]] = to_var(dataframe.columns[-1])
+            head = HyperCubeExtractor.__create_head(dataframe, list(variables.values()), cube.output)
             body = HyperCubeExtractor.__create_body(variables, cube.dimensions)
+            output = self._create_output(list(variables.values()), cube.output)
+            if output is not None:
+                body += [output]
             new_theory.assertZ(
                 clause(
                     head,

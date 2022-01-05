@@ -33,7 +33,7 @@ class TestIter(unittest.TestCase):
         logger.info(self.extracted_theory)
         # TODO: keep un eye on it.
         for exp, ext in zip(self.expected_theory, self.extracted_theory):
-            for v1, v2 in zip (exp.head.args, ext.head.args):
+            for v1, v2 in zip(exp.head.args, ext.head.args):
                 if isinstance(v1, Var):
                     self.assertTrue(isinstance(v2, Var))
                     self.assertTrue(v1.equals(v2, False))
