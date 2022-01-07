@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+import numpy as np
+import pandas as pd
+from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+
 from psyke.schema import DiscreteFeature
 from psyke.utils import get_default_random_seed
 from tuprolog.theory import Theory
@@ -25,23 +29,56 @@ class Extractor(object):
         self.predictor = predictor
         self.discretization = [] if discretization is None else list(discretization)
 
-    def extract(self, dataset) -> Theory:
+    def extract(self, dataframe: pd.DataFrame) -> Theory:
         """
         Extracts rules from the underlying predictor.
 
-        :param dataset: is the set of instances to be used for the extraction.
+        :param dataframe: is the set of instances to be used for the extraction.
         :return: the theory created from the extracted rules.
         """
         raise NotImplementedError('extract')
 
-    def predict(self, dataset) -> Iterable:
+    def predict(self, dataframe: pd.DataFrame) -> Iterable:
         """
         Predicts the output values of every sample in dataset.
 
-        :param dataset: is the set of instances to predict.
+        :param dataframe: is the set of instances to predict.
         :return: a list of predictions.
         """
         raise NotImplementedError('predict')
+
+    def mae(self, dataframe: pd.DataFrame) -> float:
+        """
+        Calculates the predictions' MAE w.r.t. the instances given as input.
+
+        :param dataframe: is the set of instances to be used to calculate the mean absolute error.
+        :return: the mean absolute error (MAE) of the predictions.
+        """
+        predictions = np.array(self.predict(dataframe.iloc[:, :-1]))
+        idx = ~np.isnan(predictions)
+        return mean_absolute_error(dataframe.iloc[idx, -1], predictions[idx])
+
+    def mse(self, dataframe: pd.DataFrame) -> float:
+        """
+        Calculates the predictions' MSE w.r.t. the instances given as input.
+
+        :param dataframe: is the set of instances to be used to calculate the mean squared error.
+        :return: the mean squared error (MSE) of the predictions.
+        """
+        predictions = np.array(self.predict(dataframe.iloc[:, :-1]))
+        idx = ~np.isnan(predictions)
+        return mean_squared_error(dataframe.iloc[idx, -1], predictions[idx])
+
+    def r2(self, dataframe: pd.DataFrame) -> float:
+        """
+        Calculates the predictions' R2 score w.r.t. the instances given as input.
+
+        :param dataframe: is the set of instances to be used to calculate the R2 score.
+        :return: the R2 score of the predictions.
+        """
+        predictions = np.array(self.predict(dataframe.iloc[:, :-1]))
+        idx = ~np.isnan(predictions)
+        return r2_score(dataframe.iloc[idx, -1], predictions[idx])
 
     @staticmethod
     def cart(predictor: cart.CartPredictor, discretization=None) -> Extractor:

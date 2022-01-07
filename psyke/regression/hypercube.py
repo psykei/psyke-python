@@ -213,7 +213,7 @@ class HyperCube:
 
     def update(self, dataset: pd.DataFrame, predictor) -> None:
         filtered = self._filter_dataframe(dataset.iloc[:, :-1])
-        predictions = predictor.predict(filtered.to_numpy())
+        predictions = predictor.predict(filtered)
         self._output = np.mean(predictions)
         self._diversity = np.std(predictions)
 
@@ -229,6 +229,6 @@ class RegressionCube(HyperCube):
     def update(self, dataset: pd.DataFrame, predictor) -> None:
         filtered = self._filter_dataframe(dataset.iloc[:, :-1])
         if len(filtered > 0):
-            predictions = predictor.predict(filtered.values)
+            predictions = predictor.predict(filtered)
             self._output.fit(filtered, predictions)
             self._diversity = (abs(self._output.predict(filtered) - predictions)).mean()
