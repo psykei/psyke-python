@@ -1,3 +1,4 @@
+import pandas as pd
 from sklearn.linear_model import LinearRegression
 from tuprolog.core import Var
 
@@ -14,13 +15,13 @@ class GridREx(GridEx):
     """
 
     def __init__(self, predictor, grid: Grid, min_examples: int, threshold: float, seed=get_default_random_seed()):
-        super().__init__(predictor, grid, min_examples, threshold)
+        super().__init__(predictor, grid, min_examples, threshold, seed)
 
     def _default_cube(self) -> RegressionCube:
         return RegressionCube()
 
     def _get_cube_output(self, cube: RegressionCube, data: dict[str, float]) -> float:
-        return cube.output.predict([data]).flatten()[0]
+        return cube.output.predict(pd.DataFrame([data])).flatten()[0]
 
     def _create_output(self, variables: list[Var], output: LinearRegression):
         intercept = output.intercept_

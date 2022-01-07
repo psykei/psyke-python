@@ -46,7 +46,7 @@ class AdaptiveStrategy(Strategy):
         self._partitions = partitions if partitions is not None else [(0.33, 2), (0.67, 3)]
 
     def get(self, feature: str) -> int:
-        importance = next(filter(lambda t: t[0] == f, self.features))[1]
+        importance = next(filter(lambda t: t[0] == feature, self.features))[1]
         n = 1
         for (imp, part) in self._partitions:
             if importance >= imp:

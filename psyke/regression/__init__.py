@@ -1,5 +1,4 @@
 from __future__ import annotations
-import math
 from typing import Iterable
 import numpy as np
 import pandas as pd
@@ -22,18 +21,18 @@ class HyperCubeExtractor(Extractor):
         super().__init__(predictor)
         self._hypercubes = []
 
-    def extract(self, dataset: pd.DataFrame) -> Theory:
+    def extract(self, dataframe: pd.DataFrame) -> Theory:
         raise NotImplementedError('extract')
 
-    def predict(self, dataset: pd.DataFrame) -> Iterable:
-        return [self.__predict(dict(row.to_dict())) for _, row in dataset.iterrows()]
+    def predict(self, dataframe: pd.DataFrame) -> Iterable:
+        return np.array([self.__predict(dict(row.to_dict())) for _, row in dataframe.iterrows()])
 
     def __predict(self, data: dict[str, float]) -> float:
         data = {k: round(v, get_int_precision() + 1) for k, v in data.items()}
         for cube in self._hypercubes:
             if cube.__contains__(data):
                 return self._get_cube_output(cube, data)
-        return math.nan
+        return np.nan
 
     def _default_cube(self) -> HyperCube:
         return HyperCube()

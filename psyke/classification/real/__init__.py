@@ -100,13 +100,13 @@ class REAL(Extractor):
         samples_all = samples_0.append(samples_1)
         return samples_all, len(set(self.predictor.predict(samples_all))) == 1
 
-    def extract(self, dataset: pd.DataFrame) -> Theory:
+    def extract(self, dataframe: pd.DataFrame) -> Theory:
         # Order the dataset by column to preserve reproducibility.
-        dataset = dataset.sort_values(by=list(dataset.columns.values), ascending=False)
+        dataframe = dataframe.sort_values(by=list(dataframe.columns.values), ascending=False)
         # Always perform output mapping in the same (sorted) way to preserve reproducibility.
-        self.__output_mapping = {value: index for index, value in enumerate(sorted(set(dataset.iloc[:, -1])))}
-        self.__ruleset = self.__get_or_set(HashableDataFrame(dataset))
-        return self.__create_theory(dataset, self.__ruleset)
+        self.__output_mapping = {value: index for index, value in enumerate(sorted(set(dataframe.iloc[:, -1])))}
+        self.__ruleset = self.__get_or_set(HashableDataFrame(dataframe))
+        return self.__create_theory(dataframe, self.__ruleset)
 
-    def predict(self, dataset) -> list:
-        return [self.__predict(data.transpose()) for _, data in dataset.iterrows()]
+    def predict(self, dataframe) -> list:
+        return [self.__predict(data.transpose()) for _, data in dataframe.iterrows()]

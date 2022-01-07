@@ -111,3 +111,6 @@ class GridEx(HyperCubeExtractor):
             to_split = [cube for cube in to_split if cube not in best[0]] + [best[1]]
             not_in_cache = [best[1]]
 
+    @property
+    def n_rules(self):
+        return len(self._hypercubes)

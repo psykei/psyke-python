@@ -131,13 +131,13 @@ class Trepan(Extractor):
                 nodes.append(child)
         return len(to_remove)
 
-    def extract(self, dataset: pd.DataFrame) -> Theory:
-        dataset.iloc[:, -1] = self.predictor.predict(dataset.iloc[:, :-1])
-        queue = self.__init(dataset)
+    def extract(self, dataframe: pd.DataFrame) -> Theory:
+        dataframe.iloc[:, -1] = self.predictor.predict(dataframe.iloc[:, :-1])
+        queue = self.__init(dataframe)
         while len(queue) > 0:
             node = queue.pop()
             if self.split_logic == SplitLogic.DEFAULT:
-                best: Union[tuple[Node, Node], None] = self.__best_split(node, dataset.columns[:-1])
+                best: Union[tuple[Node, Node], None] = self.__best_split(node, dataframe.columns[:-1])
                 if best is None:
                     continue
             else:
@@ -145,8 +145,8 @@ class Trepan(Extractor):
             queue.add_all(best)
             node.children += list(best)
         self.__optimize()
-        return self.__create_theory(dataset.columns[-1])
+        return self.__create_theory(dataframe.columns[-1])
 
-    def predict(self, dataset: pd.DataFrame) -> Iterable:
-        dataset = get_discrete_dataset(dataset, self.discretization)
-        return [Trepan.__predict(sample, self.__root, dataset.columns[-1]) for _, sample in dataset.iterrows()]
+    def predict(self, dataframe: pd.DataFrame) -> Iterable:
+        dataframe = get_discrete_dataset(dataframe, self.discretization)
+        return [Trepan.__predict(sample, self.__root, dataframe.columns[-1]) for _, sample in dataframe.iterrows()]
