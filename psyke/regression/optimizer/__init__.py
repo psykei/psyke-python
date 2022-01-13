@@ -1,15 +1,23 @@
 import numpy as np
 import pandas as pd
-
+from enum import Enum
 from psyke import Extractor
 from psyke.regression import FixedStrategy, Grid, FeatureRanker
 from psyke.regression.strategy import AdaptiveStrategy
 
 
 class PEDRO:
+    class Algorithm(Enum):
+        GRIDEX = 1,
+        GRIDREX = 2
+
+    class Objective(Enum):
+        MODEL = 1,
+        DATA = 2
+
     def __init__(self, predictor, dataframe: pd.DataFrame, max_mae_increase: float = 1.2,
-                 min_rule_decrease: float = 0.9, readability_tradeoff: float = 0.1,
-                 max_depth: int = 3, patience: int = 3, alg="GridREx", obj="model"):
+                 min_rule_decrease: float = 0.9, readability_tradeoff: float = 0.1, max_depth: int = 3,
+                 patience: int = 3, algorithm: Algorithm = Algorithm.GRIDREX, objective: Objective = Objective.MODEL):
         self.predictor = predictor
         self.dataframe = dataframe
         self.ranked = FeatureRanker(dataframe.columns[:-1]).fit(predictor, dataframe.iloc[:, :-1]).rankings()
@@ -18,8 +26,8 @@ class PEDRO:
         self.readability_tradeoff = readability_tradeoff
         self.patience = patience
         self.max_depth = max_depth
-        self.alg = alg
-        self.objective = obj
+        self.algorithm = algorithm
+        self.objective = objective
         self.params = None
         self.model_mae = abs(self.predictor.predict(dataframe.iloc[:, :-1]).flatten() -
                              dataframe.iloc[:, -1].values).mean()
@@ -53,9 +61,9 @@ class PEDRO:
         params = []
         patience = self.patience
         while patience > 0:
-            print("{}. {}. Threshold = {:.2f}. ".format(self.alg, grid, threshold), end="")
+            print("{}. {}. Threshold = {:.2f}. ".format(self.algorithm, grid, threshold), end="")
             extractor = Extractor.gridrex(self.predictor, grid, threshold=threshold) if \
-                self.alg == "GridREx" else Extractor.gridex(self.predictor, grid, threshold=threshold)
+                self.algorithm == "GridREx" else Extractor.gridex(self.predictor, grid, threshold=threshold)
             _ = extractor.extract(self.dataframe)
             mae, n = extractor.mae(self.dataframe), extractor.n_rules
             print("MAE = {:.2f}, {} rules".format(mae, n))
@@ -147,7 +155,7 @@ class PEDRO:
     @staticmethod
     def __print_params(name, params):
         print("**********************")
-        print("*****Best {}*****".format(name))
+        print("*Best {}*".format(name))
         print("**********************")
         print("MAE = {:.2f}, {} rules".format(params[0], params[1]))
         print("Threshold = {:.2f}".format(params[2]))
@@ -155,7 +163,7 @@ class PEDRO:
         print("Strategy = {}".format(params[3].strategy))
 
     def get_best(self):
-        names = [self.alg, "  MAE  ", "N rules"]
+        names = [self.algorithm, "  MAE  ", "N rules"]
         params = [PEDRO.__best(self.params), self.__best_param(0), self.__best_param(1)]
         for n, p in zip(names, params):
             PEDRO.__print_params(n, p[1])
