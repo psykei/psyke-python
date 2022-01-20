@@ -20,9 +20,6 @@ class GridREx(GridEx):
     def _default_cube(self) -> RegressionCube:
         return RegressionCube()
 
-    def _get_cube_output(self, cube: RegressionCube, data: dict[str, float]) -> float:
-        return cube.output.predict(pd.DataFrame([data])).flatten()[0]
-
     def _create_output(self, variables: list[Var], output: LinearRegression):
         intercept = output.intercept_
         # intercept = self.__intercept(intercept, coefs) if self.scaler else intercept

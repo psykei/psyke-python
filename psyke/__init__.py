@@ -47,7 +47,7 @@ class Extractor(object):
         """
         raise NotImplementedError('predict')
 
-    def mae(self, dataframe: pd.DataFrame) -> float:
+    def mae(self, dataframe: pd.DataFrame, predictor=None) -> float:
         """
         Calculates the predictions' MAE w.r.t. the instances given as input.
 
@@ -56,9 +56,11 @@ class Extractor(object):
         """
         predictions = np.array(self.predict(dataframe.iloc[:, :-1]))
         idx = ~np.isnan(predictions)
-        return mean_absolute_error(dataframe.iloc[idx, -1], predictions[idx])
+        return mean_absolute_error(dataframe.iloc[idx, -1] if predictor is None else
+                                   predictor.predict(dataframe.iloc[idx, :-1]),
+                                   predictions[idx])
 
-    def mse(self, dataframe: pd.DataFrame) -> float:
+    def mse(self, dataframe: pd.DataFrame, predictor=None) -> float:
         """
         Calculates the predictions' MSE w.r.t. the instances given as input.
 
@@ -67,9 +69,11 @@ class Extractor(object):
         """
         predictions = np.array(self.predict(dataframe.iloc[:, :-1]))
         idx = ~np.isnan(predictions)
-        return mean_squared_error(dataframe.iloc[idx, -1], predictions[idx])
+        return mean_squared_error(dataframe.iloc[idx, -1] if predictor is None else
+                                  predictor.predict(dataframe.iloc[idx, :-1]),
+                                  predictions[idx])
 
-    def r2(self, dataframe: pd.DataFrame) -> float:
+    def r2(self, dataframe: pd.DataFrame, predictor=None) -> float:
         """
         Calculates the predictions' R2 score w.r.t. the instances given as input.
 
@@ -78,7 +82,9 @@ class Extractor(object):
         """
         predictions = np.array(self.predict(dataframe.iloc[:, :-1]))
         idx = ~np.isnan(predictions)
-        return r2_score(dataframe.iloc[idx, -1], predictions[idx])
+        return r2_score(dataframe.iloc[idx, -1] if predictor is None else
+                        predictor.predict(dataframe.iloc[idx, :-1]),
+                        predictions[idx])
 
     @staticmethod
     def cart(predictor: cart.CartPredictor, discretization=None) -> Extractor:
@@ -114,6 +120,15 @@ class Extractor(object):
         """
         from psyke.regression.gridrex import GridREx
         return GridREx(predictor, grid, min_examples, threshold, seed)
+
+    @staticmethod
+    def cream(predictor, depth: int, dbscan_threshold: float, error_threshold: float,
+              constant: bool = False, seed: int = get_default_random_seed()) -> Extractor:
+        """
+        Creates a new CREAM extractor.
+        """
+        from psyke.regression.cream import CREAM
+        return CREAM(predictor, depth, dbscan_threshold, error_threshold, constant, seed)
 
     @staticmethod
     def real(predictor, discretization=None) -> Extractor:

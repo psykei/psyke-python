@@ -12,7 +12,7 @@ from psyke.regression.utils import Limit, MinUpdate, ZippedDimension, Expansion
 from psyke.schema import Between
 from psyke.utils import get_int_precision
 from psyke.utils.logic import create_term, create_variable_list, create_head, to_var
-from psyke.regression.hypercube import HyperCube
+from psyke.regression.hypercube import HyperCube, ClosedCube, RegressionCube, ClosedRegressionCube
 
 
 class HyperCubeExtractor(Extractor):
@@ -25,20 +25,22 @@ class HyperCubeExtractor(Extractor):
         raise NotImplementedError('extract')
 
     def predict(self, dataframe: pd.DataFrame) -> Iterable:
-        return np.array([self.__predict(dict(row.to_dict())) for _, row in dataframe.iterrows()])
+        return np.array([self._predict(dict(row.to_dict())) for _, row in dataframe.iterrows()])
 
-    def __predict(self, data: dict[str, float]) -> float:
-        data = {k: round(v, get_int_precision() + 1) for k, v in data.items()}
+    def _predict(self, data: dict[str, float]) -> float:
+        data = {k: v for k, v in data.items()}
         for cube in self._hypercubes:
             if cube.__contains__(data):
-                return self._get_cube_output(cube, data)
+                return HyperCubeExtractor._get_cube_output(cube, data)
         return np.nan
 
     def _default_cube(self) -> HyperCube:
         return HyperCube()
 
-    def _get_cube_output(self, cube: HyperCube, data: dict[str, float]) -> float:
-        return cube.output
+    @staticmethod
+    def _get_cube_output(cube: HyperCube | RegressionCube, data: dict[str, float]) -> float:
+        return cube.output.predict(pd.DataFrame([data])).flatten()[0] if \
+            isinstance(cube, RegressionCube) else cube.output
 
     @staticmethod
     def __create_body(variables: dict[str, Var], dimensions: dict[str, (float, float)]) -> Iterable[Struct]:
@@ -72,6 +74,23 @@ class HyperCubeExtractor(Extractor):
                 )
             )
         return new_theory
+
+    @property
+    def n_rules(self):
+        return len(self._hypercubes)
+
+
+class ClusterExtractor(HyperCubeExtractor):
+
+    def __init__(self, predictor):
+        super().__init__(predictor)
+        self._constant = False
+
+    def extract(self, dataframe: pd.DataFrame) -> Theory:
+        raise NotImplementedError('extract')
+
+    def _default_cube(self) -> ClosedCube:
+        return ClosedCube() if self._constant else ClosedRegressionCube()
 
 
 class FeatureRanker:
@@ -107,3 +126,28 @@ class Grid:
 
     def __str__(self):
         return "Grid ({}). {}".format(self.iterations, self.strategy)
+
+
+class Node:
+    def __init__(self, dataframe: pd.DataFrame, cube: ClosedCube = None):
+        self.dataframe = dataframe
+        self.cube: ClosedCube = cube
+        self.right: Node | None = None
+        self.left: Node | None = None
+
+    @property
+    def children(self) -> list[Node]:
+        return [self.right, self.left]
+
+    def search(self, point: dict[str, float]) -> ClosedCube:
+        if self.right is None:
+            return self.cube
+        if self.right.cube.__contains__(point):
+            return self.right.search(point)
+        return self.left.search(point)
+
+    @property
+    def leaves(self):
+        if self.right is None:
+            return 1
+        return self.right.leaves + self.left.leaves
