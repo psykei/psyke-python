@@ -50,19 +50,19 @@ class Trepan(Extractor):
     def __create_split(node: Node, column: str) -> Union[Split, None]:
         true_examples = Trepan.__create_samples(node, column, 1.0)
         false_examples = Trepan.__create_samples(node, column, 0.0)
-        true_constrains = list(node.constraints) + [(column, 1.0)]
-        false_constrains = list(node.constraints) + [(column, 0.0)]
-        true_node = Node(true_examples, node.n_examples, true_constrains, depth=node.depth + 1)\
+        true_constraints = list(node.constraints) + [(column, 1.0)]
+        false_constraints = list(node.constraints) + [(column, 0.0)]
+        true_node = Node(true_examples, node.n_examples, true_constraints, depth=node.depth + 1)\
             if true_examples.shape[0] > 0 else None
-        false_node = Node(false_examples, node.n_examples, false_constrains, depth=node.depth + 1)\
+        false_node = Node(false_examples, node.n_examples, false_constraints, depth=node.depth + 1)\
             if false_examples.shape[0] > 0 else None
         return None if true_node is None or false_node is None else Split(node, (true_node, false_node))
 
     @staticmethod
     def __create_splits(node: Node, names: Iterable[str]) -> SortedList[Split]:
-        splits, constrains = Trepan.__init_splits(node)
+        splits, constraints = Trepan.__init_splits(node)
         for column in names:
-            if column not in constrains:
+            if column not in constraints:
                 split = Trepan.__create_split(node, column)
                 if split is not None:
                     splits.add(split)
