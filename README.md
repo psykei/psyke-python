@@ -75,7 +75,8 @@ straightforward extracts rules from both classification and regression decision 
   builds and iteratively expands hypercubes in the input space.
   Each cube holds the estimated value of the regression for the inputs that are inside the cube.
   Rules are generated from the cubes' dimensions;
-  * [Gridex](http://dx.doi.org/10.1007/978-3-030-82017-6_2), coming soon.
+  * [Gridex](http://dx.doi.org/10.1007/978-3-030-82017-6_2),
+  extension of the ITER algorithm that produces shorter rule lists retaining higher fidelity w.r.t. the predictor.
 
 ## Users
 
