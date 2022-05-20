@@ -38,6 +38,7 @@ def individuals_from_dataframe(ontology: owlready2.Ontology, dataframe: pd.DataF
 
 
 def rules_from_struct(struct: Struct, rules: list[str] = None) -> list[str]:
+    # equal, notEqual, lessThan, lessThanOrEqual, greaterThan, greaterThanOrEqual
     if rules is None:
         rules = [""]
     if struct.is_recursive:
