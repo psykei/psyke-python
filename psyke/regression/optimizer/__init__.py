@@ -32,9 +32,8 @@ class PEDRO:
         self.model_mae = abs(self.predictor.predict(dataframe.iloc[:, :-1]).flatten() -
                              dataframe.iloc[:, -1].values).mean()
 
-    @staticmethod
-    def __best(params):
-        param_dict = {PEDRO.__score(t): t for t in params}
+    def __best(self, params):
+        param_dict = {self.__score(t): t for t in params}
         min_param = min(param_dict)
         return min_param, param_dict[min_param]
 
@@ -43,16 +42,15 @@ class PEDRO:
         min_param = min(param_dict)
         return min_param, param_dict[min_param]
 
-    @staticmethod
-    def __score(param):
-        return param[0] * np.ceil(param[1] / 5)
+    def __score(self, param):
+        return param[0] * np.ceil(2 * param[1] * self.readability_tradeoff)
 
     def __depth_improvement(self, first, second):
         if second[0] == first[0]:
             return (first[1] - second[1]) * 2
         return 1 / (
                 (1 - second[0] / first[0]) ** 0.1 *
-                np.ceil(second[1] / self.readability_tradeoff) / np.ceil(first[1] / self.readability_tradeoff)
+                np.ceil(second[1] * self.readability_tradeoff) / np.ceil(first[1] * self.readability_tradeoff)
         )
 
     def __search_threshold(self, grid, critical, max_partitions):
@@ -102,7 +100,7 @@ class PEDRO:
         for iterations in range(self.max_depth):
             grid = Grid(iterations + 1, strategy)
             p = self.__search_threshold(grid, critical, max_partitions)
-            b = PEDRO.__best(p)[1]
+            b = self.__best(p)[1]
             print()
             improvement = self.__depth_improvement(
                 [best[0], best[1]], [b[0], b[1]]
@@ -164,8 +162,8 @@ class PEDRO:
 
     def get_best(self):
         names = [self.algorithm, "  MAE  ", "N rules"]
-        params = [PEDRO.__best(self.params), self.__best_param(0), self.__best_param(1)]
+        params = [self.__best(self.params), self.__best_param(0), self.__best_param(1)]
         for n, p in zip(names, params):
             PEDRO.__print_params(n, p[1])
             print()
-        return PEDRO.__best(self.params)[1], self.__best_param(0)[1], self.__best_param(1)[1]
+        return self.__best(self.params)[1], self.__best_param(0)[1], self.__best_param(1)[1]
