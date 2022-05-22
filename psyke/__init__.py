@@ -123,21 +123,21 @@ class Extractor(object):
 
     @staticmethod
     def cream(predictor, depth: int, dbscan_threshold: float,
-              error_threshold: float, constant: bool = False) -> Extractor:
+              error_threshold: float, gauss_components: int = 2, constant: bool = False) -> Extractor:
         """
         Creates a new CREAM extractor.
         """
         from psyke.regression.cream import CREAM
-        return CREAM(predictor, depth, dbscan_threshold, error_threshold, constant)
+        return CREAM(predictor, depth, dbscan_threshold, error_threshold, gauss_components, constant)
 
     @staticmethod
     def creepy(predictor, depth: int, dbscan_threshold: float,
-               error_threshold: float, constant: bool = False) -> Extractor:
+               error_threshold: float, gauss_components: int = 2, constant: bool = False) -> Extractor:
         """
         Creates a new CReEPy extractor.
         """
         from psyke.regression.creepy import CReEPy
-        return CReEPy(predictor, depth, dbscan_threshold, error_threshold, constant)
+        return CReEPy(predictor, depth, dbscan_threshold, error_threshold, gauss_components, constant)
 
     @staticmethod
     def real(predictor, discretization=None) -> Extractor:

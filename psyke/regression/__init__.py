@@ -1,9 +1,7 @@
 from __future__ import annotations
-from collections import Counter
 from typing import Iterable
 import numpy as np
 import pandas as pd
-from sklearn.cluster import DBSCAN
 from sklearn.feature_selection import SelectKBest, f_regression
 from sklearn.linear_model import LinearRegression
 from tuprolog.core import Var, Struct, clause
@@ -83,29 +81,17 @@ class HyperCubeExtractor(Extractor):
 
 class ClusterExtractor(HyperCubeExtractor):
 
-    def __init__(self, predictor, depth: int, dbscan_threshold: float, error_threshold: float, constant: bool = False):
+    def __init__(self, predictor, depth: int, dbscan_threshold: float,
+                 error_threshold: float, gauss_components: int = 2, constant: bool = False):
         super().__init__(predictor)
-        self._constant = False
         self.depth = depth
         self.dbscan_threshold = dbscan_threshold
         self.error_threshold = error_threshold
+        self.gauss_components = gauss_components
         self._constant = constant
 
-    def _iterate(self, surrounding: Node) -> None:
-        raise NotImplementedError('extract')
-
-    def _create_cube(self, df: pd.DataFrame) -> ClosedCube:
-        dbscan_pred = DBSCAN(eps=self.dbscan_threshold).fit_predict(df.iloc[:, :-1])
-        return HyperCube.create_surrounding_cube(
-            df.iloc[np.where(dbscan_pred == Counter(dbscan_pred).most_common(1)[0][0])],
-            True, self._constant
-        )
-
     def extract(self, dataframe: pd.DataFrame) -> Theory:
-        self._hypercubes = Node(dataframe, HyperCube.create_surrounding_cube(dataframe, True, self._constant))
-        self._iterate(self._hypercubes)
-        # return self._create_theory(dataframe)
-        return None
+        raise NotImplementedError('extract')
 
     def _default_cube(self) -> ClosedCube:
         return ClosedCube() if self._constant else ClosedRegressionCube()
