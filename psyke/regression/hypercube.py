@@ -140,7 +140,7 @@ class HyperCube:
         }
         if closed:
             return ClosedCube(dimensions) if constant else ClosedRegressionCube(dimensions)
-        return  HyperCube(dimensions)
+        return HyperCube(dimensions)
 
     def __create_tuple(self, generator: Random) -> dict:
         return {k: generator.uniform(self.get_first(k), self.get_second(k)) for k in self._dimensions.keys()}
@@ -245,6 +245,9 @@ class RegressionCube(HyperCube):
             self._output.fit(filtered, predictions)
             self._diversity = (abs(self._output.predict(filtered) - predictions)).mean()
 
+    def copy(self) -> RegressionCube:
+        return RegressionCube(self.dimensions.copy())
+
 
 class ClosedCube(HyperCube):
     def __init__(self, dimension: dict[str, tuple] = None):
@@ -258,7 +261,13 @@ class ClosedCube(HyperCube):
         ds = dataset.to_numpy(copy=True)
         return np.all((v[:, 0] <= ds) & (ds <= v[:, 1]), axis=1)
 
+    def copy(self) -> ClosedCube:
+        return ClosedCube(self.dimensions.copy())
+
 
 class ClosedRegressionCube(ClosedCube, RegressionCube):
     def __init__(self, dimension: dict[str, tuple] = None):
         super().__init__(dimension=dimension)
+
+    def copy(self) -> ClosedRegressionCube:
+        return ClosedRegressionCube(self.dimensions.copy())
