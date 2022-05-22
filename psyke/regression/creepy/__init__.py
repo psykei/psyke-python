@@ -25,12 +25,11 @@ class CReEPy(ClusterExtractor):
         data = {k: v for k, v in data.items()}
         return HyperCubeExtractor._get_cube_output(self._hypercubes.search(data), data)
 
-    def _split_with_errors(self, right: ClosedCube, outer_cube: ClosedCube, data: pd.DataFrame, indices: ndarray):
+    def _split(self, right: ClosedCube, outer_cube: ClosedCube, data: pd.DataFrame, indices: ndarray):
         right.update(data.iloc[indices], self.predictor)
         left = outer_cube.copy()
         left.update(data.iloc[~indices], self.predictor)
-        return right, self._calculate_error(data.iloc[indices, :-1], right), \
-            left, self._calculate_error(data.iloc[~indices, :-1], left)
+        return right, left
 
     def __eligible_cubes(self, gauss_pred: ndarray, node: Node):
         cubes = [
@@ -67,21 +66,19 @@ class CReEPy(ClusterExtractor):
             components = max(self.gauss_components - depth + 1, 2)
             gauss_pred = GaussianMixture(n_components=components).fit_predict(node.dataframe)
             cubes, indices = self.__eligible_cubes(gauss_pred, node)
-            cubes = [(c.volume(), len(idx), idx, c) for c, idx in zip(cubes, indices) if idx is not None]
+            cubes = [(c.volume(), len(idx), idx, c)
+                     for c, idx in zip(cubes, indices) if (idx is not None) and (not node.cube.equal(c))]
             if len(cubes) < 1:
                 continue
             _, _, indices, cube = max(cubes)
-            if node.cube.equal(cube):
-                _, _, indices, cube = min(cubes)
 
             cube.update(node.dataframe[indices], self.predictor)
             node.right = Node(node.dataframe[indices], cube)
             node.cube.update(node.dataframe[~indices], self.predictor)
             node.left = Node(node.dataframe[~indices], node.cube)
-            error = self._calculate_error(node.dataframe.iloc[indices, :-1], cube)
 
-            if depth < self.depth and error > self.error_threshold:
-                to_split.append((error, depth + 1, node.right))
+            if depth < self.depth and cube.diversity > self.error_threshold:
+                to_split.append((cube.diversity, depth + 1, node.right))
 
     def _calculate_error(self, dataframe: pd.DataFrame, cube: ClosedCube) -> float:
         output = cube.output
