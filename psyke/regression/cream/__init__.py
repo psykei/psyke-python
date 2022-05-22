@@ -24,10 +24,10 @@ class CREAM(CReEPy):
             indices = self._indices(inner_cube, node.dataframe)
             if indices is None:
                 continue
-            right, right_e, left, left_e = self._split_with_errors(inner_cube, node.cube, node.dataframe, indices)
+            right, left = self._split(inner_cube, node.cube, node.dataframe, indices)
             cubes.append((
-                ((right_e + left_e) / 2, right.volume(), left.volume()),
-                (right, indices, right_e), (left, ~indices, left_e)
+                ((right.diversity + left.diversity) / 2, right.volume(), left.volume()),
+                (right, indices), (left, ~indices)
             ))
         return cubes
 
@@ -48,6 +48,6 @@ class CREAM(CReEPy):
 
             if depth < self.depth:
                 to_split += [
-                    (error, depth + 1, n)
-                    for (n, error) in zip(node.children, [right[2], left[2]]) if error > self.error_threshold
+                    (error, depth + 1, n) for (n, error) in
+                    zip(node.children, [right[0].diversity, left[0].diversity]) if error > self.error_threshold
                 ]
