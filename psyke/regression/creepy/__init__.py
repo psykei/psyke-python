@@ -10,6 +10,7 @@ from sklearn.linear_model import LinearRegression
 from sklearn.mixture import GaussianMixture
 from tuprolog.theory import Theory
 from psyke.regression import ClusterExtractor, Node, ClosedCube, HyperCubeExtractor, HyperCube
+from psyke.regression.utils import select_gaussian_mixture
 
 
 class CReEPy(ClusterExtractor):
@@ -18,7 +19,7 @@ class CReEPy(ClusterExtractor):
     """
 
     def __init__(self, predictor, depth: int, dbscan_threshold: float,
-                 error_threshold: float, gauss_components: int = 2, constant: bool = False):
+                 error_threshold: float, gauss_components: int = 5, constant: bool = False):
         super().__init__(predictor, depth, dbscan_threshold, error_threshold, gauss_components, constant)
 
     def _predict(self, data: dict[str, float]) -> float:
@@ -63,8 +64,7 @@ class CReEPy(ClusterExtractor):
         while len(to_split) > 0:
             to_split.sort(reverse=True)
             (_, depth, node) = to_split.pop()
-            components = max(self.gauss_components - depth + 1, 2)
-            gauss_pred = GaussianMixture(n_components=components).fit_predict(node.dataframe)
+            gauss_pred = select_gaussian_mixture(node.dataframe, self.gauss_components).predict(node.dataframe)
             cubes, indices = self.__eligible_cubes(gauss_pred, node)
             cubes = [(c.volume(), len(idx), idx, c)
                      for c, idx in zip(cubes, indices) if (idx is not None) and (not node.cube.equal(c))]

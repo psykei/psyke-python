@@ -1,7 +1,16 @@
 import math
 
+import pandas as pd
+from sklearn.mixture import GaussianMixture
+
 Dimension = tuple[float, float]
 Dimensions = dict[str, Dimension]
+
+
+def select_gaussian_mixture(data: pd.DataFrame, max_components) -> GaussianMixture:
+    components = range(2, max_components + 1)
+    models = [GaussianMixture(n_components=n).fit(data) for n in components]
+    return min([(m.bic(data), i, m) for i, m in enumerate(models)])[2]
 
 
 class Expansion:
@@ -45,4 +54,3 @@ class ZippedDimension:
         self.name = name
         self.this_dimension = this_dimension
         self.other_dimension = other_dimension
-        
