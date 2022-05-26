@@ -19,15 +19,14 @@ class CREAM(CReEPy):
 
     def __eligible_cubes(self, gauss_pred: ndarray, node: Node):
         cubes = []
-        for inner_cube in [
-            self._create_cube(node.dataframe.iloc[np.where(gauss_pred == i)]) for i in range(len(np.unique(gauss_pred)))
-        ]:
+        for i in range(len(np.unique(gauss_pred))):
+            inner_cube = self._create_cube(node.dataframe.iloc[np.where(gauss_pred == i)])
             indices = self._indices(inner_cube, node.dataframe)
             if indices is None:
                 continue
             right, left = self._split(inner_cube, node.cube, node.dataframe, indices)
             cubes.append((
-                ((right.diversity + left.diversity) / 2, right.volume(), left.volume()),
+                ((right.diversity + left.diversity) / 2, right.volume(), left.volume(), i),
                 (right, indices), (left, ~indices)
             ))
         return cubes
