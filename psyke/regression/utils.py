@@ -1,7 +1,10 @@
 import math
 
+import numpy as np
 import pandas as pd
+from kneed import KneeLocator
 from sklearn.mixture import GaussianMixture
+from sklearn.neighbors import NearestNeighbors
 
 Dimension = tuple[float, float]
 Dimensions = dict[str, Dimension]
@@ -11,6 +14,15 @@ def select_gaussian_mixture(data: pd.DataFrame, max_components) -> GaussianMixtu
     components = range(2, max_components + 1)
     models = [GaussianMixture(n_components=n).fit(data) for n in components]
     return min([(m.bic(data), i, m) for i, m in enumerate(models)])[2]
+
+
+def select_dbscan_epsilon(data: pd.DataFrame) -> float:
+    neighbors = NearestNeighbors(n_neighbors=min(len(data.columns) * 2, len(data))).fit(data)
+    distances = sorted(np.mean(neighbors.kneighbors(data)[0], axis=1), reverse=True)
+    kn = KneeLocator([d for d in range(len(distances))], distances, curve='convex', direction='decreasing')
+    if kn.knee is None:
+        return distances[0]
+    return distances[kn.knee] * .9
 
 
 class Expansion:

@@ -1,8 +1,6 @@
 from __future__ import annotations
 import numpy as np
 from numpy import ndarray
-from sklearn.mixture import GaussianMixture
-from tuprolog.theory import Theory
 from psyke.regression import Node
 from psyke.regression.creepy import CReEPy
 from psyke.regression.utils import select_gaussian_mixture
@@ -13,9 +11,9 @@ class CREAM(CReEPy):
     Explanator implementing CREAM algorithm.
     """
 
-    def __init__(self, predictor, depth: int, dbscan_threshold: float,
-                 error_threshold: float, gauss_components: int = 5, constant: bool = False):
-        super().__init__(predictor, depth, dbscan_threshold, error_threshold, gauss_components, constant)
+    def __init__(self, predictor, depth: int, error_threshold: float,
+                 gauss_components: int = 5, constant: bool = False):
+        super().__init__(predictor, depth, error_threshold, gauss_components, constant)
 
     def __eligible_cubes(self, gauss_pred: ndarray, node: Node):
         cubes = []

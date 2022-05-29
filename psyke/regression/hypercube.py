@@ -184,6 +184,11 @@ class HyperCube:
     def volume(self) -> float:
         return reduce(lambda a, b: a * b, [dimension[1] - dimension[0] for dimension in self._dimensions.values()], 1)
 
+    def diagonal(self) -> float:
+        return reduce(
+            lambda a, b: a + b, [(dimension[1] - dimension[0])**2 for dimension in self._dimensions.values()], 0
+        )**0.5
+
     def is_adjacent(self, cube: HyperCube) -> str | None:
         adjacent = None
         for (feature, [a1, b1]) in self._dimensions.items():

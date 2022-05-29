@@ -81,11 +81,10 @@ class HyperCubeExtractor(Extractor):
 
 class ClusterExtractor(HyperCubeExtractor):
 
-    def __init__(self, predictor, depth: int, dbscan_threshold: float,
-                 error_threshold: float, gauss_components: int = 2, constant: bool = False):
+    def __init__(self, predictor, depth: int, error_threshold: float,
+                 gauss_components: int = 2, constant: bool = False):
         super().__init__(predictor)
         self.depth = depth
-        self.dbscan_threshold = dbscan_threshold
         self.error_threshold = error_threshold
         self.gauss_components = gauss_components
         self._constant = constant
