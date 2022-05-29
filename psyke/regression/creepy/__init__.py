@@ -7,10 +7,9 @@ import pandas as pd
 from numpy import ndarray
 from sklearn.cluster import DBSCAN
 from sklearn.linear_model import LinearRegression
-from sklearn.mixture import GaussianMixture
 from tuprolog.theory import Theory
 from psyke.regression import ClusterExtractor, Node, ClosedCube, HyperCubeExtractor, HyperCube
-from psyke.regression.utils import select_gaussian_mixture
+from psyke.regression.utils import select_gaussian_mixture, select_dbscan_epsilon
 
 
 class CReEPy(ClusterExtractor):
@@ -18,9 +17,9 @@ class CReEPy(ClusterExtractor):
     Explanator implementing CReEPy algorithm.
     """
 
-    def __init__(self, predictor, depth: int, dbscan_threshold: float,
-                 error_threshold: float, gauss_components: int = 5, constant: bool = False):
-        super().__init__(predictor, depth, dbscan_threshold, error_threshold, gauss_components, constant)
+    def __init__(self, predictor, depth: int, error_threshold: float,
+                 gauss_components: int = 5, constant: bool = False):
+        super().__init__(predictor, depth, error_threshold, gauss_components, constant)
 
     def _predict(self, data: dict[str, float]) -> float:
         data = {k: v for k, v in data.items()}
@@ -47,7 +46,7 @@ class CReEPy(ClusterExtractor):
         return indices
 
     def _create_cube(self, df: pd.DataFrame) -> ClosedCube:
-        dbscan_pred = DBSCAN(eps=self.dbscan_threshold).fit_predict(df.iloc[:, :-1])
+        dbscan_pred = DBSCAN(eps=select_dbscan_epsilon(df)).fit_predict(df.iloc[:, :-1])
         return HyperCube.create_surrounding_cube(
             df.iloc[np.where(dbscan_pred == Counter(dbscan_pred).most_common(1)[0][0])],
             True, self._constant
@@ -66,11 +65,11 @@ class CReEPy(ClusterExtractor):
             (_, depth, node) = to_split.pop()
             gauss_pred = select_gaussian_mixture(node.dataframe, self.gauss_components).predict(node.dataframe)
             cubes, indices = self.__eligible_cubes(gauss_pred, node)
-            cubes = [(c.volume(), len(idx), idx, c)
-                     for c, idx in zip(cubes, indices) if (idx is not None) and (not node.cube.equal(c))]
+            cubes = [(c.volume(), len(idx), i, idx, c)
+                     for i, (c, idx) in enumerate(zip(cubes, indices)) if (idx is not None) and (not node.cube.equal(c))]
             if len(cubes) < 1:
                 continue
-            _, _, indices, cube = max(cubes)
+            _, _, _, indices, cube = max(cubes)
 
             cube.update(node.dataframe[indices], self.predictor)
             node.right = Node(node.dataframe[indices], cube)
