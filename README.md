@@ -41,9 +41,9 @@ is intended as a library for extracting symbolic knowledge (in the form of logic
 
 More precisely, PSyKE offers a general purpose API for knowledge extraction, and a number of different algorithms implementing it,
 supporting both classification and regression problems.
-The extracted knowledge consists of a Prolog theory (i.e. a list of Horn clauses).
+The extracted knowledge consists of a Prolog theory (i.e., a list of Horn clauses) or an OWL ontology containing SWRL rules.
 
-PSyKE relies on [2ppy](https://github.com/tuProlog/2ppy) (tuProlog in Python) for logic support, which is in turn based on the [2p-Kt](https://github.com/tuProlog/2p-kt) logic ecosystem.
+PSyKE relies on [2ppy](https://github.com/tuProlog/2ppy) (tuProlog in Python) for logic support, which in turn is based on the [2p-Kt](https://github.com/tuProlog/2p-kt) logic ecosystem.
 
 ### Class diagram overview:
 
@@ -54,29 +54,31 @@ To generate/edit the class diagram browse the URL above, after replacing `svg` w
 -->
 
 PSyKE is designed around the notion of _extractor_.
-More precisely, an `Extractor` is any object capable of extracting a logic `Theory` out of a  trained sub-symbolic regressor or classifier.
-Accordingly, any `Extractor` is composed of 
+More precisely, an `Extractor` is any object capable of extracting a logic `Theory` out of a trained sub-symbolic regressor or classifier.
+Accordingly, an `Extractor` is composed of 
 _(i)_ a trained predictor (i.e., black-box used as an oracle) and 
-_(ii)_ a set of discrete feature descriptors (as some algorithms require a discrete dataset), and it provides two methods:
-* `extract`: given a dataset it returns a logic theory;
-* `predict`: predicts a value using the extracted rules instead of the original predictor.
+_(ii)_ a set of feature descriptors, and it provides two methods:
+* `extract`: returns a logic theory given a dataset;
+* `predict`: predicts a value using the extracted rules (instead of the original predictor).
 
 Currently, the supported extraction algorithms are:
 * [CART](https://doi.org/10.1201/9781315139470),
 straightforward extracts rules from both classification and regression decision trees;
 * Classification:
-  * [REAL](http://dx.doi.org/10.1016/B978-1-55860-335-6.50013-1) (Rule Extraction As Search),
-  generates a rule for each sample in the dataset if the sample isn't covered yet.
-  Before ending the extraction the rules set is optimized;
+  * [REAL](http://dx.doi.org/10.1016/B978-1-55860-335-6.50013-1) (Rule Extraction As Learning),
+  generates and generalizes rules strarting from dataset samples;
   * [Trepan](http://dx.doi.org/10.1016/B978-1-55860-335-6.50013-1),
-  first it generates a decision tree using m-of-n expressions, than it extracts rule from it;
+  generates rules by inducing a decision tree and possibly exploiting m-of-n expressions;
 * Regression:
   * [ITER](http://dx.doi.org/10.1007/11823728_26),
   builds and iteratively expands hypercubes in the input space.
-  Each cube holds the estimated value of the regression for the inputs that are inside the cube.
-  Rules are generated from the cubes' dimensions;
-  * [Gridex](http://dx.doi.org/10.1007/978-3-030-82017-6_2),
+  Each cube holds a constant value, that is the estimated output for the samples inside the cube;
+  * [GridEx](http://dx.doi.org/10.1007/978-3-030-82017-6_2),
   extension of the ITER algorithm that produces shorter rule lists retaining higher fidelity w.r.t. the predictor.
+  * GridREx,
+  extension of GridEx where the output of each hypercube is a linear combination of the input variables and not a constant value.
+  
+Users may exploit the PEDRO algorithm, included in PSyKE, to tune the optimal values for GridEx and GridREx hyper-parameters.
 
 ## Users
 
@@ -98,16 +100,16 @@ pip install psyke
 * onnxruntime 1.9.0+
 * parameterized 0.8.1+
 
-Once installed, one can create an extractor from a predictor 
-(e.g. Neural Networks, Support Vector Machines, K-Nearest Neighbor, Random Forests, etc.)
+Once installed, it is possible to create an extractor from a predictor 
+(e.g. Neural Network, Support Vector Machine, K-Nearest Neighbor, Random Forest, etc.)
 and from the dataset used to train the predictor.
 
-> **Note:** the predictor must expose a method named `predict` to be properly used as oracle.
+> **Note:** the predictor must expose a method named `predict` to be properly used as an oracle.
 
 #### End users
 
 A brief example is presented in `demo.py` script.
-Using sklearn iris dataset we train a K-Nearest Neighbor to predict the correct iris class.
+Using sklearn iris dataset we train a K-Nearest Neighbor to predict the correct output class.
 Before training, we make the dataset discrete.
 After that we create two different extractors: REAL and Trepan.
 We output the extracted theory for both extractors.
@@ -153,11 +155,11 @@ To participate in the development of PSyKE, we suggest the [PyCharm](https://www
 
 Contributions to this project are welcome. Just some rules:
 * We use [git flow](https://github.com/nvie/gitflow), so if you write new features, please do so in a separate `feature/` branch
-* We recommend forking the project, developing your stuff, then contributing back vie pull request
+* We recommend forking the project, developing your code, then contributing back via pull request
 * Commit often
 * Stay in sync with the `develop` (or `master`) branch (pull frequently if the build passes)
 * Do not introduce low quality or untested code
 
 #### Issue tracking
-If you meet some problem in using or developing PSyKE, you are encouraged to signal it through the project
+If you meet some problems in using or developing PSyKE, you are encouraged to signal it through the project
 ["Issues" section](https://github.com/psykei/psyke-python/issues) on GitHub.
