@@ -80,6 +80,8 @@ straightforward extracts rules from both classification and regression decision 
   
 Users may exploit the PEDRO algorithm, included in PSyKE, to tune the optimal values for GridEx and GridREx hyper-parameters.
 
+We are working on PSyKE to extend its features to encompass explainable clustering tasks, as well as to make more general-purpose the supported extraction algorithms (e.g., by adding classification support to GridEx and GridREx).
+
 ## Users
 
 ### End users
