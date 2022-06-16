@@ -66,7 +66,7 @@ class REAL(Extractor):
         for predicates, mutable_predicates in zip(rule.to_lists(), mutable_rule):
             for predicate in predicates:
                 samples = self.__remove_antecedents(samples, predicate, mutable_predicates)
-        return Rule(mutable_rule[0], mutable_rule[1]).reduce(self.discretization)
+        return Rule(mutable_rule[0], mutable_rule[1])
 
     @lru_cache(maxsize=512)
     def __get_or_set(self, dataset: HashableDataFrame) -> IndexedRuleSet:
@@ -90,7 +90,7 @@ class REAL(Extractor):
         true_predicates, false_predicates = [], []
         for feature, value in sample.items():
             true_predicates.append(str(feature)) if value == 1 else false_predicates.append(str(feature))
-        return Rule(sorted(true_predicates), sorted(false_predicates))
+        return Rule(sorted(true_predicates), sorted(false_predicates)).reduce(self.discretization)
 
     def __subset(self, samples: pd.DataFrame, predicate: str) -> (pd.DataFrame, bool):
         samples_0 = samples.copy()
