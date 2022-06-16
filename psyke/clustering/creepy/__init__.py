@@ -7,8 +7,9 @@ import pandas as pd
 from sklearn.cluster import DBSCAN
 from sklearn.linear_model import LinearRegression
 from tuprolog.theory import Theory
-from psyke.regression import ClusterExtractor, Node, ClosedCube, HyperCubeExtractor, HyperCube
-from psyke.regression.utils import select_gaussian_mixture, select_dbscan_epsilon
+from psyke.clustering import ClusterExtractor
+from psyke.regression import Node, ClosedCube, HyperCubeExtractor, HyperCube
+from psyke.clustering.utils import select_gaussian_mixture, select_dbscan_epsilon
 
 
 class CReEPy(ClusterExtractor):

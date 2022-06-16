@@ -1,5 +1,5 @@
 from __future__ import annotations
-
+from statistics import mode
 from functools import reduce
 from typing import Iterable
 import pandas as pd
@@ -254,6 +254,21 @@ class RegressionCube(HyperCube):
         return RegressionCube(self.dimensions.copy())
 
 
+class ClassificationCube(HyperCube):
+    def __init__(self, dimension: dict[str, tuple] = None):
+        super().__init__(dimension=dimension)
+
+    def update(self, dataset: pd.DataFrame, predictor) -> None:
+        filtered = self._filter_dataframe(dataset.iloc[:, :-1])
+        if len(filtered > 0):
+            predictions = predictor.predict(filtered)
+            self._output = mode(predictions)
+            self._diversity = len(np.where(np.array(predictions) == self._output)[0]) / len(filtered)
+
+    def copy(self) -> ClassificationCube:
+        return ClassificationCube(self.dimensions.copy())
+
+
 class ClosedCube(HyperCube):
     def __init__(self, dimension: dict[str, tuple] = None):
         super().__init__(dimension=dimension)
@@ -276,3 +291,11 @@ class ClosedRegressionCube(ClosedCube, RegressionCube):
 
     def copy(self) -> ClosedRegressionCube:
         return ClosedRegressionCube(self.dimensions.copy())
+
+
+class ClosedClassificationCube(ClosedCube, ClassificationCube):
+    def __init__(self, dimension: dict[str, tuple] = None):
+        super().__init__(dimension=dimension)
+
+    def copy(self) -> ClosedClassificationCube:
+        return ClosedClassificationCube(self.dimensions.copy())

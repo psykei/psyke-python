@@ -127,7 +127,7 @@ class Extractor(object):
         """
         Creates a new CREAM extractor.
         """
-        from psyke.regression.cream import CREAM
+        from psyke.clustering.cream import CREAM
         return CREAM(predictor, depth, error_threshold, gauss_components, constant)
 
     @staticmethod
@@ -136,7 +136,7 @@ class Extractor(object):
         """
         Creates a new CReEPy extractor.
         """
-        from psyke.regression.creepy import CReEPy
+        from psyke.clustering.creepy import CReEPy
         return CReEPy(predictor, depth, error_threshold, gauss_components, constant)
 
     @staticmethod
