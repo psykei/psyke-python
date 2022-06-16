@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Iterable
+from typing import Iterable, Tuple, Any
 import numpy as np
 import pandas as pd
 from sklearn.feature_selection import SelectKBest, f_regression
@@ -55,15 +55,25 @@ class HyperCubeExtractor(Extractor):
     def _create_output(self, variables, target) -> None:
         return None
 
+    def __ignore_dimensions(self) -> Iterable[str]:
+        cube = self._hypercubes[0]
+        return [
+            dimension for dimension in cube.dimensions if all(c[dimension] == cube[dimension] for c in self._hypercubes)
+        ]
+
     def _create_theory(self, dataframe: pd.DataFrame) -> Theory:
         new_theory = mutable_theory()
+        ignore_dimensions = self.__ignore_dimensions()
         for cube in self._hypercubes:
             logger.info(cube.output)
             logger.info(cube.dimensions)
             variables = create_variable_list([], dataframe)
             variables[dataframe.columns[-1]] = to_var(dataframe.columns[-1])
             head = HyperCubeExtractor.__create_head(dataframe, list(variables.values()), cube.output)
-            body = HyperCubeExtractor.__create_body(variables, cube.dimensions)
+            dimensions = dict(cube.dimensions)
+            for dimension in ignore_dimensions:
+                del dimensions[dimension]
+            body = HyperCubeExtractor.__create_body(variables, dimensions)
             output = self._create_output(list(variables.values()), cube.output)
             if output is not None:
                 body += [output]
@@ -85,8 +95,8 @@ class FeatureRanker:
         self.scores = None
         self.feat = feat
 
-    def fit(self, model, samples):
-        best = SelectKBest(score_func=f_regression, k="all").fit(samples, model.predict(samples).flatten())
+    def fit(self, model, samples, function=f_regression):
+        best = SelectKBest(score_func=function, k="all").fit(samples, model.predict(samples).flatten())
         self.scores = np.array(best.scores_) / max(best.scores_)
         return self
 

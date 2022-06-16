@@ -22,6 +22,10 @@ class REAL(Extractor):
         self.__ruleset: IndexedRuleSet = IndexedRuleSet()
         self.__output_mapping = {}
 
+    @property
+    def n_rules(self):
+        return len(self.__ruleset)
+
     def __covers(self, sample: pd.Series, rules: list[Rule]) -> bool:
         new_rule = self.__rule_from_example(sample)
         return any([new_rule in rule for rule in rules])

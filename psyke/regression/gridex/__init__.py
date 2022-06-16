@@ -63,9 +63,6 @@ class GridEx(HyperCubeExtractor):
                     if n > 0:
                         fake = fake.append(cube.create_samples(self.min_examples - n, self.__generator))
                         cube.update(fake, self.predictor)
-                        #if cube.diversity > self.threshold:
-                        #    self._hypercubes += [cube]
-                        #else:
                         to_split += [cube]
                 to_split = self._merge(to_split, fake)
                 self._hypercubes += [cube for cube in to_split]
@@ -95,7 +92,8 @@ class GridEx(HyperCubeExtractor):
             merged_cube = cube.merge_along_dimension(other_cube, feature)
             merged_cube.update(dataframe, self.predictor)
             merge_cache[(cube, other_cube)] = merged_cube
-        return merge_cache[(cube, other_cube)].diversity < self.threshold
+        return cube.output == other_cube.output if self.majority else \
+            merge_cache[(cube, other_cube)].diversity < self.threshold
 
     def _merge(self, to_split: Iterable[HyperCube], dataframe: pd.DataFrame) -> Iterable[HyperCube]:
         not_in_cache = [cube for cube in to_split]
