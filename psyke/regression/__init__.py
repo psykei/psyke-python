@@ -11,14 +11,15 @@ from psyke.regression.strategy import FixedStrategy, Strategy
 from psyke.regression.utils import Limit, MinUpdate, ZippedDimension, Expansion
 from psyke.schema import Between
 from psyke.utils.logic import create_term, create_variable_list, create_head, to_var
-from psyke.regression.hypercube import HyperCube, ClosedCube, RegressionCube, ClosedRegressionCube
+from psyke.regression.hypercube import HyperCube, ClosedCube, RegressionCube, ClosedRegressionCube, ClassificationCube
 
 
 class HyperCubeExtractor(Extractor):
 
-    def __init__(self, predictor):
+    def __init__(self, predictor, majority=False):
         super().__init__(predictor)
         self._hypercubes = []
+        self.majority = majority
 
     def extract(self, dataframe: pd.DataFrame) -> Theory:
         raise NotImplementedError('extract')
@@ -33,8 +34,8 @@ class HyperCubeExtractor(Extractor):
                 return HyperCubeExtractor._get_cube_output(cube, data)
         return np.nan
 
-    def _default_cube(self) -> HyperCube:
-        return HyperCube()
+    def _default_cube(self) -> HyperCube | ClassificationCube:
+        return ClassificationCube() if self.majority else HyperCube()
 
     @staticmethod
     def _get_cube_output(cube: HyperCube | RegressionCube, data: dict[str, float]) -> float:

@@ -22,9 +22,5 @@ class GridREx(GridEx):
 
     def _create_output(self, variables: list[Var], output: LinearRegression):
         intercept = output.intercept_
-        # intercept = self.__intercept(intercept, coefs) if self.scaler else intercept
-        # coefs = [
-        #     toRoundedReal(v / self.scaler.var_[f]**0.5) for (f, v) in enumerate(coefs)
-        # ] if self.scaler else [toRoundedReal(v) for v in coefs]
         coefs = [to_rounded_real(v) for v in output.coef_]
         return linear_function_creator(variables, coefs, to_rounded_real(intercept))

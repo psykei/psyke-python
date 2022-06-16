@@ -17,11 +17,13 @@ class GridEx(HyperCubeExtractor):
     Explanator implementing GridEx algorithm, doi:10.1007/978-3-030-82017-6_2.
     """
 
-    def __init__(self, predictor, grid: Grid, min_examples: int, threshold: float, seed=get_default_random_seed()):
+    def __init__(self, predictor, grid: Grid, min_examples: int, threshold: float,
+                 majority: bool = False, seed=get_default_random_seed()):
         super().__init__(predictor)
         self.grid = grid
         self.min_examples = min_examples
         self.threshold = threshold
+        self.majority = majority
         self.__generator = rnd.Random(seed)
 
     def extract(self, dataframe: pd.DataFrame) -> Theory:
@@ -61,11 +63,11 @@ class GridEx(HyperCubeExtractor):
                     if n > 0:
                         fake = fake.append(cube.create_samples(self.min_examples - n, self.__generator))
                         cube.update(fake, self.predictor)
-                        if cube.diversity > self.threshold:
-                            self._hypercubes += [cube]
-                        else:
-                            to_split += [cube]
-                self._merge(to_split, fake)
+                        #if cube.diversity > self.threshold:
+                        #    self._hypercubes += [cube]
+                        #else:
+                        to_split += [cube]
+                to_split = self._merge(to_split, fake)
                 self._hypercubes += [cube for cube in to_split]
 
             prev = self._hypercubes.copy()
@@ -95,7 +97,7 @@ class GridEx(HyperCubeExtractor):
             merge_cache[(cube, other_cube)] = merged_cube
         return merge_cache[(cube, other_cube)].diversity < self.threshold
 
-    def _merge(self, to_split: Iterable[HyperCube], dataframe: pd.DataFrame):
+    def _merge(self, to_split: Iterable[HyperCube], dataframe: pd.DataFrame) -> Iterable[HyperCube]:
         not_in_cache = [cube for cube in to_split]
         adjacent_cache = {}
         merge_cache = {}
@@ -109,3 +111,4 @@ class GridEx(HyperCubeExtractor):
             best = to_merge[0]
             to_split = [cube for cube in to_split if cube not in best[0]] + [best[1]]
             not_in_cache = [best[1]]
+        return to_split

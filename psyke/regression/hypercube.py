@@ -263,7 +263,7 @@ class ClassificationCube(HyperCube):
         if len(filtered > 0):
             predictions = predictor.predict(filtered)
             self._output = mode(predictions)
-            self._diversity = len(np.where(np.array(predictions) == self._output)[0]) / len(filtered)
+            self._diversity = 1 - len(np.where(np.array(predictions) == self._output)[0]) / len(filtered)
 
     def copy(self) -> ClassificationCube:
         return ClassificationCube(self.dimensions.copy())
