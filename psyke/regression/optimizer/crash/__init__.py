@@ -59,7 +59,8 @@ class CRASH(Optimizer):
                 if self.algorithm == CRASH.Algorithm.CReEPy \
                 else Extractor.cream(self.predictor, depth, threshold, 10, False)
             _ = extractor.extract(self.dataframe)
-            mae, n = extractor.mae(self.dataframe), extractor.n_rules
+            mae, n = (extractor.mae(self.dataframe, self.predictor) if self.objective == Objective.MODEL else
+                      extractor.mae(self.dataframe)), extractor.n_rules
             print(f"MAE = {mae:.2f}, {n} rules")
 
             if len(params) == 0:
@@ -67,7 +68,7 @@ class CRASH(Optimizer):
                 threshold += step
                 continue
 
-            if n == 1:
+            if (n == 1) or (mae == 0.0):
                 params.append((mae, n, depth, threshold))
                 break
 

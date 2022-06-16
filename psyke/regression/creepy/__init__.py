@@ -4,7 +4,6 @@ from collections import Counter
 
 import numpy as np
 import pandas as pd
-from numpy import ndarray
 from sklearn.cluster import DBSCAN
 from sklearn.linear_model import LinearRegression
 from tuprolog.theory import Theory
@@ -25,28 +24,31 @@ class CReEPy(ClusterExtractor):
         data = {k: v for k, v in data.items()}
         return HyperCubeExtractor._get_cube_output(self._hypercubes.search(data), data)
 
-    def _split(self, right: ClosedCube, outer_cube: ClosedCube, data: pd.DataFrame, indices: ndarray):
+    def _split(self, right: ClosedCube, outer_cube: ClosedCube, data: pd.DataFrame, indices: np.ndarray):
         right.update(data.iloc[indices], self.predictor)
         left = outer_cube.copy()
         left.update(data.iloc[~indices], self.predictor)
         return right, left
 
-    def __eligible_cubes(self, gauss_pred: ndarray, node: Node):
-        cubes = [
-            self._create_cube(node.dataframe.iloc[np.where(gauss_pred == i)]) for i in range(len(np.unique(gauss_pred)))
-        ]
+    def __eligible_cubes(self, gauss_pred: np.ndarray, node: Node, clusters: int):
+        cubes = []
+        for i in range(len(np.unique(gauss_pred))):
+            df = node.dataframe.iloc[np.where(gauss_pred == i)]
+            if len(df) == 0:
+                continue
+            cubes.append(self._create_cube(df, clusters))
         indices = [self._indices(cube, node.dataframe) for cube in cubes]
         return cubes, indices
 
     @staticmethod
-    def _indices(cube: ClosedCube, data: pd.DataFrame) -> ndarray | None:
+    def _indices(cube: ClosedCube, data: pd.DataFrame) -> np.ndarray | None:
         indices = cube.filter_indices(data.iloc[:, :-1])
         if len(data.iloc[indices]) * len(data.iloc[~indices]) == 0:
             return None
         return indices
 
-    def _create_cube(self, df: pd.DataFrame) -> ClosedCube:
-        dbscan_pred = DBSCAN(eps=select_dbscan_epsilon(df)).fit_predict(df.iloc[:, :-1])
+    def _create_cube(self, df: pd.DataFrame, clusters: int) -> ClosedCube:
+        dbscan_pred = DBSCAN(eps=select_dbscan_epsilon(df, clusters)).fit_predict(df.iloc[:, :-1])
         return HyperCube.create_surrounding_cube(
             df.iloc[np.where(dbscan_pred == Counter(dbscan_pred).most_common(1)[0][0])],
             True, self._constant
@@ -59,12 +61,13 @@ class CReEPy(ClusterExtractor):
         return None
 
     def _iterate(self, surrounding: Node) -> None:
-        to_split = [(self.error_threshold * 10, 1, surrounding)]
+        to_split = [(self.error_threshold * 10, 1, 1, surrounding)]
         while len(to_split) > 0:
             to_split.sort(reverse=True)
-            (_, depth, node) = to_split.pop()
-            gauss_pred = select_gaussian_mixture(node.dataframe, self.gauss_components).predict(node.dataframe)
-            cubes, indices = self.__eligible_cubes(gauss_pred, node)
+            (_, depth, _, node) = to_split.pop()
+            gauss_params = select_gaussian_mixture(node.dataframe, self.gauss_components)
+            gauss_pred = gauss_params[2].predict(node.dataframe)
+            cubes, indices = self.__eligible_cubes(gauss_pred, node, gauss_params[1])
             cubes = [(c.volume(), len(idx), i, idx, c)
                      for i, (c, idx) in enumerate(zip(cubes, indices)) if (idx is not None) and (not node.cube.equal(c))]
             if len(cubes) < 1:
@@ -77,7 +80,7 @@ class CReEPy(ClusterExtractor):
             node.left = Node(node.dataframe[~indices], node.cube)
 
             if depth < self.depth and cube.diversity > self.error_threshold:
-                to_split.append((cube.diversity, depth + 1, node.right))
+                to_split.append((cube.diversity, depth + 1, np.random.uniform(), node.right))
 
     def _calculate_error(self, dataframe: pd.DataFrame, cube: ClosedCube) -> float:
         output = cube.output

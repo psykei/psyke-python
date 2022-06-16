@@ -18,7 +18,7 @@ class Optimizer:
         if second[0] == first[0]:
             return (first[1] - second[1]) * 2
         return 1 / (
-                (1 - second[0] / first[0]) ** 0.1 *
+                (1 - second[0] / first[0]) ** self.readability_tradeoff *
                 np.ceil(second[1] / self.readability_tradeoff) / np.ceil(first[1] / self.readability_tradeoff)
         )
 
