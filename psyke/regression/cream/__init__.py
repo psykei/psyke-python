@@ -1,6 +1,5 @@
 from __future__ import annotations
 import numpy as np
-from numpy import ndarray
 from psyke.regression import Node
 from psyke.regression.creepy import CReEPy
 from psyke.regression.utils import select_gaussian_mixture
@@ -15,10 +14,13 @@ class CREAM(CReEPy):
                  gauss_components: int = 5, constant: bool = False):
         super().__init__(predictor, depth, error_threshold, gauss_components, constant)
 
-    def __eligible_cubes(self, gauss_pred: ndarray, node: Node):
+    def __eligible_cubes(self, gauss_pred: np.ndarray, node: Node, clusters: int):
         cubes = []
         for i in range(len(np.unique(gauss_pred))):
-            inner_cube = self._create_cube(node.dataframe.iloc[np.where(gauss_pred == i)])
+            df = node.dataframe.iloc[np.where(gauss_pred == i)]
+            if len(df) == 0:
+                continue
+            inner_cube = self._create_cube(df, clusters)
             indices = self._indices(inner_cube, node.dataframe)
             if indices is None:
                 continue
@@ -30,12 +32,13 @@ class CREAM(CReEPy):
         return cubes
 
     def _iterate(self, surrounding: Node) -> None:
-        to_split = [(self.error_threshold * 10, 1, surrounding)]
+        to_split = [(self.error_threshold * 10, 1, 1, surrounding)]
         while len(to_split) > 0:
             to_split.sort(reverse=True)
-            (_, depth, node) = to_split.pop()
-            gauss_pred = select_gaussian_mixture(node.dataframe, self.gauss_components).predict(node.dataframe)
-            cubes = self.__eligible_cubes(gauss_pred, node)
+            (_, depth, _, node) = to_split.pop()
+            gauss_params = select_gaussian_mixture(node.dataframe, self.gauss_components)
+            gauss_pred = gauss_params[2].predict(node.dataframe)
+            cubes = self.__eligible_cubes(gauss_pred, node, gauss_params[1])
             if len(cubes) < 1:
                 continue
             _, right, left = min(cubes)
@@ -45,6 +48,6 @@ class CREAM(CReEPy):
 
             if depth < self.depth:
                 to_split += [
-                    (error, depth + 1, n) for (n, error) in
+                    (error, depth + 1, np.random.uniform(), n) for (n, error) in
                     zip(node.children, [right[0].diversity, left[0].diversity]) if error > self.error_threshold
                 ]

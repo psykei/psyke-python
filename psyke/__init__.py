@@ -57,7 +57,7 @@ class Extractor(object):
         predictions = np.array(self.predict(dataframe.iloc[:, :-1]))
         idx = ~np.isnan(predictions)
         return mean_absolute_error(dataframe.iloc[idx, -1] if predictor is None else
-                                   predictor.predict(dataframe.iloc[idx, :-1]),
+                                   predictor.predict(dataframe.iloc[idx, :-1]).flatten(),
                                    predictions[idx])
 
     def mse(self, dataframe: pd.DataFrame, predictor=None) -> float:
@@ -70,7 +70,7 @@ class Extractor(object):
         predictions = np.array(self.predict(dataframe.iloc[:, :-1]))
         idx = ~np.isnan(predictions)
         return mean_squared_error(dataframe.iloc[idx, -1] if predictor is None else
-                                  predictor.predict(dataframe.iloc[idx, :-1]),
+                                  predictor.predict(dataframe.iloc[idx, :-1]).flatten(),
                                   predictions[idx])
 
     def r2(self, dataframe: pd.DataFrame, predictor=None) -> float:
@@ -83,7 +83,7 @@ class Extractor(object):
         predictions = np.array(self.predict(dataframe.iloc[:, :-1]))
         idx = ~np.isnan(predictions)
         return r2_score(dataframe.iloc[idx, -1] if predictor is None else
-                        predictor.predict(dataframe.iloc[idx, :-1]),
+                        predictor.predict(dataframe.iloc[idx, :-1]).flatten(),
                         predictions[idx])
 
     @staticmethod
