@@ -32,6 +32,12 @@ class GridEx(HyperCubeExtractor):
         self._iterate(surrounding, dataframe)
         return self._create_theory(dataframe)
 
+    def _ignore_dimensions(self) -> Iterable[str]:
+        cube = self._hypercubes[0]
+        return [
+            dimension for dimension in cube.dimensions if all(c[dimension] == cube[dimension] for c in self._hypercubes)
+        ]
+
     def _iterate(self, surrounding: HyperCube, dataframe: pd.DataFrame):
         fake = dataframe.copy()
         prev = [surrounding]

@@ -55,15 +55,12 @@ class HyperCubeExtractor(Extractor):
     def _create_output(self, variables, target) -> None:
         return None
 
-    def __ignore_dimensions(self) -> Iterable[str]:
-        cube = self._hypercubes[0]
-        return [
-            dimension for dimension in cube.dimensions if all(c[dimension] == cube[dimension] for c in self._hypercubes)
-        ]
+    def _ignore_dimensions(self) -> Iterable[str]:
+        return []
 
     def _create_theory(self, dataframe: pd.DataFrame) -> Theory:
         new_theory = mutable_theory()
-        ignore_dimensions = self.__ignore_dimensions()
+        ignore_dimensions = self._ignore_dimensions()
         for cube in self._hypercubes:
             logger.info(cube.output)
             logger.info(cube.dimensions)
