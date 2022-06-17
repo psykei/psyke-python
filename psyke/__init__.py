@@ -134,12 +134,12 @@ class Extractor(object):
 
     @staticmethod
     def gridex(predictor, grid, min_examples: int = 250, threshold: float = 0.1,
-               majority: bool = False, seed: int = get_default_random_seed()) -> Extractor:
+               seed: int = get_default_random_seed()) -> Extractor:
         """
         Creates a new GridEx extractor.
         """
         from psyke.regression.gridex import GridEx
-        return GridEx(predictor, grid, min_examples, threshold, majority, seed)
+        return GridEx(predictor, grid, min_examples, threshold, seed)
 
     @staticmethod
     def gridrex(predictor, grid, min_examples: int = 250, threshold: float = 0.1,

@@ -18,15 +18,16 @@ class GridEx(HyperCubeExtractor):
     """
 
     def __init__(self, predictor, grid: Grid, min_examples: int, threshold: float,
-                 majority: bool = False, seed=get_default_random_seed()):
+                 seed=get_default_random_seed()):
         super().__init__(predictor)
         self.grid = grid
         self.min_examples = min_examples
         self.threshold = threshold
-        self.majority = majority
         self.__generator = rnd.Random(seed)
 
     def extract(self, dataframe: pd.DataFrame) -> Theory:
+        if isinstance(self.predictor.predict(dataframe.iloc[0:1, :-1]).flatten()[0], str):
+            self._regression = False
         surrounding = HyperCube.create_surrounding_cube(dataframe)
         surrounding.init_std(2 * self.threshold)
         self._iterate(surrounding, dataframe)
@@ -98,8 +99,8 @@ class GridEx(HyperCubeExtractor):
             merged_cube = cube.merge_along_dimension(other_cube, feature)
             merged_cube.update(dataframe, self.predictor)
             merge_cache[(cube, other_cube)] = merged_cube
-        return cube.output == other_cube.output if self.majority else \
-            merge_cache[(cube, other_cube)].diversity < self.threshold
+        return merge_cache[(cube, other_cube)].diversity < self.threshold if self._regression else \
+            cube.output == other_cube.output
 
     def _merge(self, to_split: Iterable[HyperCube], dataframe: pd.DataFrame) -> Iterable[HyperCube]:
         not_in_cache = [cube for cube in to_split]

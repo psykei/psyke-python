@@ -2,7 +2,7 @@ from functools import lru_cache
 from psyke.classification.real.utils import Rule, IndexedRuleSet
 from psyke import Extractor
 from psyke.schema import DiscreteFeature
-from psyke.utils.dataframe import get_discrete_dataset, HashableDataFrame
+from psyke.utils.dataframe import HashableDataFrame
 from psyke.utils.logic import create_term, create_head, create_variable_list
 from tuprolog.core import Var, Struct, Clause, clause
 from tuprolog.theory import MutableTheory, mutable_theory, Theory
@@ -77,7 +77,6 @@ class REAL(Extractor):
         return self.__create_ruleset(dataset)
 
     def __predict(self, sample: pd.Series):
-        sample = get_discrete_dataset(sample.to_frame().transpose(), self.discretization).loc[0]
         x = [index for index, rule in self.__ruleset.flatten() if self.__rule_from_example(sample) in rule]
         reverse_mapping = dict((v, k) for k, v in self.__output_mapping.items())
         return reverse_mapping[x[0]] if len(x) > 0 else -1

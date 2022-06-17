@@ -2,7 +2,7 @@ from __future__ import annotations
 from typing import Iterable, Tuple, Any
 import numpy as np
 import pandas as pd
-from sklearn.feature_selection import SelectKBest, f_regression
+from sklearn.feature_selection import SelectKBest, f_regression, f_classif
 from sklearn.linear_model import LinearRegression
 from tuprolog.core import Var, Struct, clause
 from tuprolog.theory import Theory, mutable_theory
@@ -19,7 +19,7 @@ class HyperCubeExtractor(Extractor):
     def __init__(self, predictor, majority=False):
         super().__init__(predictor)
         self._hypercubes = []
-        self.majority = majority
+        self._regression = True
 
     def extract(self, dataframe: pd.DataFrame) -> Theory:
         raise NotImplementedError('extract')
@@ -35,7 +35,7 @@ class HyperCubeExtractor(Extractor):
         return np.nan
 
     def _default_cube(self) -> HyperCube | ClassificationCube:
-        return ClassificationCube() if self.majority else HyperCube()
+        return HyperCube() if self._regression else ClassificationCube()
 
     @staticmethod
     def _get_cube_output(cube: HyperCube | RegressionCube, data: dict[str, float]) -> float:
@@ -92,8 +92,10 @@ class FeatureRanker:
         self.scores = None
         self.feat = feat
 
-    def fit(self, model, samples, function=f_regression):
-        best = SelectKBest(score_func=function, k="all").fit(samples, model.predict(samples).flatten())
+    def fit(self, model, samples):
+        predictions = model.predict(samples).flatten()
+        function = f_classif if isinstance(predictions[0], str) else f_regression
+        best = SelectKBest(score_func=function, k="all").fit(samples, predictions)
         self.scores = np.array(best.scores_) / max(best.scores_)
         return self
 
