@@ -43,7 +43,7 @@ def initialize(file: str) -> list[dict[str:Theory]]:
         training_set, test_set = train_test_split(dataset, test_size=0.5, random_state=get_default_random_seed())
 
         schema = None
-        if 'disc' in row.keys() and row['disc'] == "Y":
+        if 'disc' in row.keys() and bool(row['disc']):
             schema = get_schema(training_set)
             params['discretization'] = schema
             training_set = get_discrete_dataset(training_set.iloc[:, :-1], schema)\
@@ -59,6 +59,8 @@ def initialize(file: str) -> list[dict[str:Theory]]:
             tree.fit(training_set.iloc[:, :-1], training_set.iloc[:, -1])
             params['predictor'] = CartPredictor(tree)
 
+        if 'simplify' in row.keys():
+            params['simplify'] = bool(row['simplify'])
         extractor = get_extractor(row['extractor_type'], params)
         theory = extractor.extract(training_set)
 

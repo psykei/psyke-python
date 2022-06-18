@@ -4,7 +4,7 @@ from psyke import logger
 from psyke.utils import get_int_precision
 from psyke.utils.dataframe import get_discrete_dataset
 from test import get_in_rule, get_not_in_rule
-from test.psyke import initialize, data_to_struct, get_default_accuracy
+from test.psyke import initialize, data_to_struct
 from tuprolog.solve.prolog import prolog_solver
 import unittest
 

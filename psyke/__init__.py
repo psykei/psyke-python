@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score, f1_score, accuracy_score
 
+import psyke
 from psyke.schema import DiscreteFeature
 from psyke.utils import get_default_random_seed
 from tuprolog.theory import Theory
@@ -116,12 +117,13 @@ class Extractor(object):
                         predictions)
 
     @staticmethod
-    def cart(predictor: cart.CartPredictor, discretization=None) -> Extractor:
+    def cart(predictor: psyke.cart.CartPredictor, discretization: Iterable[DiscreteFeature] = None,
+             simplify: bool = True) -> Extractor:
         """
         Creates a new Cart extractor.
         """
         from psyke.cart import Cart
-        return Cart(predictor, discretization)
+        return Cart(predictor, discretization, simplify)
 
     @staticmethod
     def iter(predictor, min_update: float = 0.1, n_points: int = 1, max_iterations: int = 600, min_examples: int = 250,
