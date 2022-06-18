@@ -24,9 +24,10 @@ class Cart(Extractor):
                                        isinstance(value, GreaterThan)))
         return results
 
-    def __create_theory(self, data: pd.DataFrame) -> Theory:
+    def __create_theory(self, data: pd.DataFrame, simplify: bool) -> Theory:
         new_theory = mutable_theory()
         for name, value in self.predictor:
+            name = [(n[0], n[1]) for n in name if not simplify or n[2]]
             variables = create_variable_list(self.discretization, data)
             new_theory.assertZ(
                 clause(
@@ -36,8 +37,8 @@ class Cart(Extractor):
             )
         return new_theory
 
-    def extract(self, data: pd.DataFrame) -> Theory:
-        return self.__create_theory(data)
+    def extract(self, data: pd.DataFrame, simplify: bool = True) -> Theory:
+        return self.__create_theory(data, simplify)
 
     def predict(self, data) -> Iterable:
         return self.predictor.predict(data)
