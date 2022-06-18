@@ -59,8 +59,6 @@ def initialize(file: str) -> list[dict[str:Theory]]:
             tree.fit(training_set.iloc[:, :-1], training_set.iloc[:, -1])
             params['predictor'] = CartPredictor(tree)
 
-        if 'simplify' in row.keys():
-            params['simplify'] = bool(row['simplify'])
         extractor = get_extractor(row['extractor_type'], params)
         theory = extractor.extract(training_set)
 
