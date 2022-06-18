@@ -41,3 +41,7 @@ class Cart(Extractor):
 
     def predict(self, data) -> Iterable:
         return self.predictor.predict(data)
+
+    @property
+    def n_rules(self) -> int:
+        return self.predictor.n_leaves

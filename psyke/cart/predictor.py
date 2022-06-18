@@ -52,6 +52,10 @@ class CartPredictor:
     def predictor(self) -> Union[DecisionTreeClassifier, DecisionTreeRegressor]:
         return self._predictor
 
+    @property
+    def n_leaves(self) -> int:
+        return len(list(self.__get_leaves()))
+
     @predictor.setter
     def predictor(self, predictor: Union[DecisionTreeClassifier, DecisionTreeRegressor]):
         self._predictor = predictor
