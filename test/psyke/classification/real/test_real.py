@@ -29,8 +29,7 @@ class TestReal(unittest.TestCase):
         logger.info(predictions)
         logger.info(expected)
 
-        # self.assertTrue(predictions == expected)
-        self.assertTrue(predictions == predictions)
+        self.assertTrue(predictions == expected)
 
 
 if __name__ == '__main__':
