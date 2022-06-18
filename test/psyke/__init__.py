@@ -42,10 +42,12 @@ def initialize(file: str) -> list[dict[str:Theory]]:
 
         training_set, test_set = train_test_split(dataset, test_size=0.5, random_state=get_default_random_seed())
 
-        schema = get_schema(training_set)
-        params['discretization'] = schema
-        training_set = get_discrete_dataset(training_set.iloc[:, :-1], schema)\
-            .join(training_set.iloc[:, -1].reset_index(drop=True))
+        schema = None
+        if 'disc' in row.keys() and row['disc'] == "Y":
+            schema = get_schema(training_set)
+            params['discretization'] = schema
+            training_set = get_discrete_dataset(training_set.iloc[:, :-1], schema)\
+                .join(training_set.iloc[:, -1].reset_index(drop=True))
 
         # Handle cart's tests.
         # Cart needs to inspect the tree of the predictor.
