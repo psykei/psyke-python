@@ -44,7 +44,6 @@ class TestIter(unittest.TestCase):
                 are_equal(t1, t2)
 
     def test_predict(self):
-        precision = get_int_precision()
         predictions = np.array(self.extractor.predict(self.test_set.iloc[:, :-1]))
         solver = prolog_solver(static_kb=self.extracted_theory.assertZ(get_in_rule()))
         substitutions = [solver.solveOnce(data_to_struct(data)) for _, data in self.test_set.iterrows()]
@@ -53,16 +52,10 @@ class TestIter(unittest.TestCase):
                              if query.is_yes else 0 for query in substitutions])
         '''
         ITER is not exhaustive so all entry's predictions that are not inside an hypercube are nan.
-        In python nan == nan is always False so for this test we use 0 instead.
-        All nan value are substituted with the expected one (which is 0).
+        In python nan == nan is always False so for this test we do not consider them.
         '''
-        predictions[np.isnan(predictions)] = expected[np.isnan(predictions)]
-        predictions = np.round(predictions, precision)
-        # results = abs(predictions - expected) <= 0.01
-        # logger.info(predictions[np.logical_not(results)])
-        # logger.info(expected[np.logical_not(results)])
-        # self.assertTrue(all(results))
-        self.assertTrue((abs(predictions - expected)).mean() < get_default_precision())
+        idx = np.isnan(predictions)
+        self.assertTrue(max(abs(predictions[~idx] - expected[~idx])) < get_default_precision())
 
 
 if __name__ == '__main__':

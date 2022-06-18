@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 
 from psyke import Extractor
-from psyke.regression.optimizer import Objective, Optimizer
+from psyke.optimizer import Objective, Optimizer
 
 
 class CRASH(Optimizer):

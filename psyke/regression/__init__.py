@@ -1,8 +1,8 @@
 from __future__ import annotations
-from typing import Iterable
+from typing import Iterable, Tuple, Any
 import numpy as np
 import pandas as pd
-from sklearn.feature_selection import SelectKBest, f_regression
+from sklearn.feature_selection import SelectKBest, f_regression, f_classif
 from sklearn.linear_model import LinearRegression
 from tuprolog.core import Var, Struct, clause
 from tuprolog.theory import Theory, mutable_theory
@@ -11,14 +11,15 @@ from psyke.regression.strategy import FixedStrategy, Strategy
 from psyke.regression.utils import Limit, MinUpdate, ZippedDimension, Expansion
 from psyke.schema import Between
 from psyke.utils.logic import create_term, create_variable_list, create_head, to_var
-from psyke.regression.hypercube import HyperCube, ClosedCube, RegressionCube, ClosedRegressionCube
+from psyke.regression.hypercube import HyperCube, ClosedCube, RegressionCube, ClosedRegressionCube, ClassificationCube
 
 
 class HyperCubeExtractor(Extractor):
 
-    def __init__(self, predictor):
+    def __init__(self, predictor, majority=False):
         super().__init__(predictor)
         self._hypercubes = []
+        self._regression = True
 
     def extract(self, dataframe: pd.DataFrame) -> Theory:
         raise NotImplementedError('extract')
@@ -33,8 +34,8 @@ class HyperCubeExtractor(Extractor):
                 return HyperCubeExtractor._get_cube_output(cube, data)
         return np.nan
 
-    def _default_cube(self) -> HyperCube:
-        return HyperCube()
+    def _default_cube(self) -> HyperCube | ClassificationCube:
+        return HyperCube() if self._regression else ClassificationCube()
 
     @staticmethod
     def _get_cube_output(cube: HyperCube | RegressionCube, data: dict[str, float]) -> float:
@@ -54,15 +55,22 @@ class HyperCubeExtractor(Extractor):
     def _create_output(self, variables, target) -> None:
         return None
 
+    def _ignore_dimensions(self) -> Iterable[str]:
+        return []
+
     def _create_theory(self, dataframe: pd.DataFrame) -> Theory:
         new_theory = mutable_theory()
+        ignore_dimensions = self._ignore_dimensions()
         for cube in self._hypercubes:
             logger.info(cube.output)
             logger.info(cube.dimensions)
             variables = create_variable_list([], dataframe)
             variables[dataframe.columns[-1]] = to_var(dataframe.columns[-1])
             head = HyperCubeExtractor.__create_head(dataframe, list(variables.values()), cube.output)
-            body = HyperCubeExtractor.__create_body(variables, cube.dimensions)
+            dimensions = dict(cube.dimensions)
+            for dimension in ignore_dimensions:
+                del dimensions[dimension]
+            body = HyperCubeExtractor.__create_body(variables, dimensions)
             output = self._create_output(list(variables.values()), cube.output)
             if output is not None:
                 body += [output]
@@ -79,30 +87,15 @@ class HyperCubeExtractor(Extractor):
         return len(self._hypercubes)
 
 
-class ClusterExtractor(HyperCubeExtractor):
-
-    def __init__(self, predictor, depth: int, error_threshold: float,
-                 gauss_components: int = 2, constant: bool = False):
-        super().__init__(predictor)
-        self.depth = depth
-        self.error_threshold = error_threshold
-        self.gauss_components = gauss_components
-        self._constant = constant
-
-    def extract(self, dataframe: pd.DataFrame) -> Theory:
-        raise NotImplementedError('extract')
-
-    def _default_cube(self) -> ClosedCube:
-        return ClosedCube() if self._constant else ClosedRegressionCube()
-
-
 class FeatureRanker:
     def __init__(self, feat):
         self.scores = None
         self.feat = feat
 
     def fit(self, model, samples):
-        best = SelectKBest(score_func=f_regression, k="all").fit(samples, model.predict(samples).flatten())
+        predictions = model.predict(samples).flatten()
+        function = f_classif if isinstance(predictions[0], str) else f_regression
+        best = SelectKBest(score_func=function, k="all").fit(samples, predictions)
         self.scores = np.array(best.scores_) / max(best.scores_)
         return self
 

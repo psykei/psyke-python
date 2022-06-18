@@ -4,7 +4,7 @@ import numpy as np
 from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
 from psyke.schema import Value, LessThan, GreaterThan
 
-LeafConstraints = list[tuple[str, Value]]
+LeafConstraints = list[tuple[str, Value, bool]]
 LeafSequence = Iterable[tuple[LeafConstraints, Any]]
 
 
@@ -19,7 +19,7 @@ class CartPredictor:
     def __get_constraints(self, nodes: Iterable[(int, bool)]) -> LeafConstraints:
         return [(self._predictor.feature_names_in_[self._predictor.tree_.feature[i[0]]],
                  LessThan(self._predictor.tree_.threshold[i[0]]) if i[1] else
-                 GreaterThan(self._predictor.tree_.threshold[i[0]])) for i in nodes]
+                 GreaterThan(self._predictor.tree_.threshold[i[0]]), i[1]) for i in nodes]
 
     def __get_leaves(self) -> Iterable[int]:
         left_orphan = [i for i, v in enumerate(self._predictor.tree_.children_left) if v == -1]
@@ -51,6 +51,10 @@ class CartPredictor:
     @property
     def predictor(self) -> Union[DecisionTreeClassifier, DecisionTreeRegressor]:
         return self._predictor
+
+    @property
+    def n_leaves(self) -> int:
+        return len(list(self.__get_leaves()))
 
     @predictor.setter
     def predictor(self, predictor: Union[DecisionTreeClassifier, DecisionTreeRegressor]):

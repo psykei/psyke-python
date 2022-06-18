@@ -1,8 +1,8 @@
 from __future__ import annotations
 import numpy as np
 from psyke.regression import Node
-from psyke.regression.creepy import CReEPy
-from psyke.regression.utils import select_gaussian_mixture
+from psyke.clustering.creepy import CReEPy
+from psyke.clustering.utils import select_gaussian_mixture
 
 
 class CREAM(CReEPy):

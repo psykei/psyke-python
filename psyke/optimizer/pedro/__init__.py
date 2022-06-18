@@ -3,7 +3,7 @@ import pandas as pd
 from enum import Enum
 from psyke import Extractor
 from psyke.regression import FixedStrategy, Grid, FeatureRanker
-from psyke.regression.optimizer import Objective, Optimizer
+from psyke.optimizer import Objective, Optimizer
 from psyke.regression.strategy import AdaptiveStrategy
 
 
