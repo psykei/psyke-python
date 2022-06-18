@@ -9,7 +9,7 @@ from psyke.utils import get_default_random_seed
 from sklearn.datasets import fetch_california_housing, load_iris
 from tuprolog.core import rule, struct, logic_list, scope
 from psyke import Extractor
-from psyke.utils.dataframe import get_discrete_features_equal_frequency
+from psyke.utils.dataframe import get_discrete_features_supervised
 from test.resources.predictors import PATH
 
 REQUIRED_PREDICTORS: str = PATH / '.required.csv'
@@ -83,8 +83,8 @@ def _normalize_data(x: pd.DataFrame) -> pd.DataFrame:
     return (x - x.min()) / (x.max() - x.min())
 
 
-def get_schema(dataset: pd.DataFrame, bins: int = None) -> Union[Iterable[DiscreteFeature], None]:
-    return get_discrete_features_equal_frequency(dataset, bins)
+def get_schema(dataset: pd.DataFrame) -> Union[Iterable[DiscreteFeature], None]:
+    return get_discrete_features_supervised(dataset)
     # return SCHEMAS[filename] if filename in SCHEMAS.keys() else None
 
 
