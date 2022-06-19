@@ -93,7 +93,7 @@ class FeatureRanker:
         self.feat = feat
 
     def fit(self, model, samples):
-        predictions = model.predict(samples).flatten()
+        predictions = np.array(model.predict(samples)).flatten()
         function = f_classif if isinstance(predictions[0], str) else f_regression
         best = SelectKBest(score_func=function, k="all").fit(samples, predictions)
         self.scores = np.array(best.scores_) / max(best.scores_)

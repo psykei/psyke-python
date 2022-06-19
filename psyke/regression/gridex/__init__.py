@@ -4,6 +4,7 @@ import random as rnd
 from itertools import product
 from typing import Iterable
 
+import numpy as np
 import pandas as pd
 from tuprolog.theory import Theory
 
@@ -26,7 +27,7 @@ class GridEx(HyperCubeExtractor):
         self.__generator = rnd.Random(seed)
 
     def extract(self, dataframe: pd.DataFrame) -> Theory:
-        if isinstance(self.predictor.predict(dataframe.iloc[0:1, :-1]).flatten()[0], str):
+        if isinstance(np.array(self.predictor.predict(dataframe.iloc[0:1, :-1])).flatten()[0], str):
             self._regression = False
         surrounding = HyperCube.create_surrounding_cube(dataframe)
         surrounding.init_std(2 * self.threshold)
