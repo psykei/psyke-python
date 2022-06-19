@@ -44,10 +44,11 @@ class CReEPy(ClusterExtractor):
             return None
         return indices
 
-    def _create_cube(self, df: pd.DataFrame, clusters: int) -> ClosedCube:
-        dbscan_pred = DBSCAN(eps=select_dbscan_epsilon(df, clusters)).fit_predict(df.iloc[:, :-1])
+    def _create_cube(self, dataframe: pd.DataFrame, clusters: int) -> ClosedCube:
+        data = CReEPy._remove_string_label(dataframe)
+        dbscan_pred = DBSCAN(eps=select_dbscan_epsilon(data, clusters)).fit_predict(data.iloc[:, :-1])
         return HyperCube.create_surrounding_cube(
-            df.iloc[np.where(dbscan_pred == Counter(dbscan_pred).most_common(1)[0][0])],
+            dataframe.iloc[np.where(dbscan_pred == Counter(dbscan_pred).most_common(1)[0][0])],
             True, self._output
         )
 
@@ -56,13 +57,20 @@ class CReEPy(ClusterExtractor):
             self._iterate(Node(dataframe, HyperCube.create_surrounding_cube(dataframe, True, self._output)))
         return self._create_theory(dataframe)
 
+    @staticmethod
+    def _remove_string_label(dataframe: pd.DataFrame):
+        return dataframe.replace({dataframe.columns[-1]: {v: k for k, v in dict(
+            enumerate(dataframe.iloc[:, -1].unique())
+        ).items()}}) if isinstance(dataframe.iloc[0, -1], str) else dataframe
+
     def _iterate(self, surrounding: Node) -> Iterable[HyperCube]:
         to_split = [(self.error_threshold * 10, 1, 1, surrounding)]
         while len(to_split) > 0:
             to_split.sort(reverse=True)
             (_, depth, _, node) = to_split.pop()
-            gauss_params = select_gaussian_mixture(node.dataframe, self.gauss_components)
-            gauss_pred = gauss_params[2].predict(node.dataframe)
+            data = CReEPy._remove_string_label(node.dataframe)
+            gauss_params = select_gaussian_mixture(data, self.gauss_components)
+            gauss_pred = gauss_params[2].predict(data)
             cubes, indices = self.__eligible_cubes(gauss_pred, node, gauss_params[1])
             cubes = [(c.volume(), len(idx), i, idx, c)
                      for i, (c, idx) in enumerate(zip(cubes, indices)) if (idx is not None) and (not node.cube.equal(c))]

@@ -41,8 +41,9 @@ class CREAM(CReEPy):
         while len(to_split) > 0:
             to_split.sort(reverse=True)
             (_, depth, _, node) = to_split.pop()
-            gauss_params = select_gaussian_mixture(node.dataframe, self.gauss_components)
-            gauss_pred = gauss_params[2].predict(node.dataframe)
+            data = CReEPy._remove_string_label(node.dataframe)
+            gauss_params = select_gaussian_mixture(data, self.gauss_components)
+            gauss_pred = gauss_params[2].predict(data)
             cubes = self.__eligible_cubes(gauss_pred, node, gauss_params[1])
             if len(cubes) < 1:
                 continue
