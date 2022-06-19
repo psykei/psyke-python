@@ -1,6 +1,9 @@
 from __future__ import annotations
+
+from typing import Iterable
+
 import numpy as np
-from psyke.regression import Node
+from psyke.regression import Node, HyperCube
 from psyke.clustering.creepy import CReEPy
 from psyke.clustering.utils import select_gaussian_mixture
 
@@ -31,7 +34,7 @@ class CREAM(CReEPy):
             ))
         return cubes
 
-    def _iterate(self, surrounding: Node) -> None:
+    def _iterate(self, surrounding: Node) -> Iterable[HyperCube]:
         to_split = [(self.error_threshold * 10, 1, 1, surrounding)]
         while len(to_split) > 0:
             to_split.sort(reverse=True)
@@ -51,3 +54,4 @@ class CREAM(CReEPy):
                     (error, depth + 1, np.random.uniform(), n) for (n, error) in
                     zip(node.children, [right[0].diversity, left[0].diversity]) if error > self.error_threshold
                 ]
+        return self._node_to_cubes(surrounding)
