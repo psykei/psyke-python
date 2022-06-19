@@ -144,7 +144,7 @@ class HyperCube:
     @staticmethod
     def create_surrounding_cube(dataset: pd.DataFrame, closed: bool = False,
                                 output=None) -> \
-            HyperCube | ClosedCube | ClosedRegressionCube | ClosedClassificationCube:
+            HyperCube | ClassificationCube | ClosedCube | ClosedRegressionCube | ClosedClassificationCube:
         from psyke.regression import HyperCubeExtractor
         output = HyperCubeExtractor.Target.CONSTANT if output is None else output
         dimensions = {
@@ -157,6 +157,8 @@ class HyperCube:
             if output == HyperCubeExtractor.Target.REGRESSION:
                 return ClosedRegressionCube(dimensions)
             return ClosedClassificationCube(dimensions)
+        if output == HyperCubeExtractor.Target.CLASSIFICATION:
+            return ClassificationCube(dimensions)
         return HyperCube(dimensions)
 
     def __create_tuple(self, generator: Random) -> dict:
