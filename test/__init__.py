@@ -24,6 +24,8 @@ def get_extractor(extractor_type: str, parameters: dict):
         return Extractor.real(**parameters)
     elif extractor_type.lower() == 'trepan':
         return Extractor.trepan(**parameters)
+    elif extractor_type.lower() == 'gridex':
+        return Extractor.gridex(**parameters)
     else:
         raise NotImplementedError(extractor_type + ' not implemented yet.')
 
@@ -46,7 +48,7 @@ def get_in_rule():
     return rule(
         struct('in', local_scope.var('X'), logic_list(local_scope.var('H'), local_scope.var('T'))),
         [
-            struct('=<', local_scope.var('X'), local_scope.var('T')),
+            struct('<', local_scope.var('X'), local_scope.var('T')),
             struct('=<', local_scope.var('H'), local_scope.var('X'))
         ]
     )
