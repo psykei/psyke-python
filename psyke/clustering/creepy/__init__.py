@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections import Counter
+from typing import Iterable
 
 import numpy as np
 import pandas as pd
@@ -21,9 +22,9 @@ class CReEPy(ClusterExtractor):
                  gauss_components: int = 5, constant: bool = False):
         super().__init__(predictor, depth, error_threshold, gauss_components, constant)
 
-    def _predict(self, data: dict[str, float]) -> float:
-        data = {k: v for k, v in data.items()}
-        return HyperCubeExtractor._get_cube_output(self._hypercubes.search(data), data)
+    # def _predict(self, data: dict[str, float]) -> float:
+    #    data = {k: v for k, v in data.items()}
+    #    return HyperCubeExtractor._get_cube_output(self._hypercubes.search(data), data)
 
     def _split(self, right: ClosedCube, outer_cube: ClosedCube, data: pd.DataFrame, indices: np.ndarray):
         right.update(data.iloc[indices], self.predictor)
@@ -56,12 +57,11 @@ class CReEPy(ClusterExtractor):
         )
 
     def extract(self, dataframe: pd.DataFrame) -> Theory:
-        self._hypercubes = Node(dataframe, HyperCube.create_surrounding_cube(dataframe, True, self._constant))
-        self._iterate(self._hypercubes)
-        # return self._create_theory(dataframe)
-        return None
+        self._hypercubes = \
+            self._iterate(Node(dataframe, HyperCube.create_surrounding_cube(dataframe, True, self._constant)))
+        return self._create_theory(dataframe)
 
-    def _iterate(self, surrounding: Node) -> None:
+    def _iterate(self, surrounding: Node) -> Iterable[HyperCube]:
         to_split = [(self.error_threshold * 10, 1, 1, surrounding)]
         while len(to_split) > 0:
             to_split.sort(reverse=True)
@@ -82,6 +82,13 @@ class CReEPy(ClusterExtractor):
 
             if depth < self.depth and cube.diversity > self.error_threshold:
                 to_split.append((cube.diversity, depth + 1, np.random.uniform(), node.right))
+        return self._node_to_cubes(surrounding)
+
+    def _node_to_cubes(self, root: Node) -> list[ClosedCube]:
+        if root.right is None:
+            return [root.cube]
+        else:
+            return self._node_to_cubes(root.right) + self._node_to_cubes(root.left)
 
     def _calculate_error(self, dataframe: pd.DataFrame, cube: ClosedCube) -> float:
         output = cube.output
@@ -92,4 +99,4 @@ class CReEPy(ClusterExtractor):
 
     @property
     def n_rules(self):
-        return self._hypercubes.leaves
+        return len(list(self._hypercubes))
