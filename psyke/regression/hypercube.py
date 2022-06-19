@@ -5,11 +5,15 @@ from typing import Iterable
 import pandas as pd
 from numpy import ndarray
 from sklearn.linear_model import LinearRegression
+from tuprolog.core import Var, Struct
+
 from psyke.regression import Limit, MinUpdate, ZippedDimension, Expansion
 from random import Random
 import numpy as np
 from psyke import get_default_random_seed
 from psyke.regression.utils import Dimension, Dimensions
+from psyke.schema import Between
+from psyke.utils.logic import create_term, to_rounded_real, linear_function_creator
 
 
 class FeatureNotFoundException(Exception):
@@ -131,15 +135,28 @@ class HyperCube:
     def count(self, dataset: pd.DataFrame) -> int:
         return self._filter_dataframe(dataset.iloc[:, :-1]).shape[0]
 
+    def body(self, variables: dict[str, Var], ignore: list[str]) -> Iterable[Struct]:
+        dimensions = dict(self.dimensions)
+        for dimension in ignore:
+            del dimensions[dimension]
+        return [create_term(variables[name], Between(values[0], values[1])) for name, values in dimensions.items()]
+
     @staticmethod
-    def create_surrounding_cube(dataset: pd.DataFrame, closed: bool = False, constant: bool = True) -> \
-            HyperCube | ClosedCube | ClosedRegressionCube:
+    def create_surrounding_cube(dataset: pd.DataFrame, closed: bool = False,
+                                output=None) -> \
+            HyperCube | ClosedCube | ClosedRegressionCube | ClosedClassificationCube:
+        from psyke.regression import HyperCubeExtractor
+        output = HyperCubeExtractor.Target.CONSTANT if output is None else output
         dimensions = {
             column: (min(dataset[column]) - HyperCube.EPSILON ** 2, max(dataset[column]) + HyperCube.EPSILON ** 2)
             for column in dataset.columns[:-1]
         }
         if closed:
-            return ClosedCube(dimensions) if constant else ClosedRegressionCube(dimensions)
+            if output == HyperCubeExtractor.Target.CONSTANT:
+                return ClosedCube(dimensions)
+            if output == HyperCubeExtractor.Target.REGRESSION:
+                return ClosedRegressionCube(dimensions)
+            return ClosedClassificationCube(dimensions)
         return HyperCube(dimensions)
 
     def __create_tuple(self, generator: Random) -> dict:
@@ -253,6 +270,11 @@ class RegressionCube(HyperCube):
     def copy(self) -> RegressionCube:
         return RegressionCube(self.dimensions.copy())
 
+    def body(self, variables: dict[str, Var], ignore: list[str]) -> Iterable[Struct]:
+        return list(super().body(variables, ignore)) + [linear_function_creator(
+            list(variables.values()), [to_rounded_real(v) for v in self.output.coef_], to_rounded_real(self.output.intercept_)
+        )]
+
 
 class ClassificationCube(HyperCube):
     def __init__(self, dimension: dict[str, tuple] = None):
@@ -263,7 +285,7 @@ class ClassificationCube(HyperCube):
         if len(filtered > 0):
             predictions = predictor.predict(filtered)
             self._output = mode(predictions)
-            self._diversity = 1 - len(np.where(np.array(predictions) == self._output)[0]) / len(filtered)
+            self._diversity = 1 - sum(prediction == self.output for prediction in predictions) / len(filtered)
 
     def copy(self) -> ClassificationCube:
         return ClassificationCube(self.dimensions.copy())

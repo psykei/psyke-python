@@ -6,10 +6,9 @@ from typing import Iterable
 import numpy as np
 import pandas as pd
 from sklearn.cluster import DBSCAN
-from sklearn.linear_model import LinearRegression
 from tuprolog.theory import Theory
 from psyke.clustering import ClusterExtractor
-from psyke.regression import Node, ClosedCube, HyperCubeExtractor, HyperCube
+from psyke.regression import Node, ClosedCube, HyperCube
 from psyke.clustering.utils import select_gaussian_mixture, select_dbscan_epsilon
 
 
@@ -19,12 +18,8 @@ class CReEPy(ClusterExtractor):
     """
 
     def __init__(self, predictor, depth: int, error_threshold: float,
-                 gauss_components: int = 5, constant: bool = False):
-        super().__init__(predictor, depth, error_threshold, gauss_components, constant)
-
-    # def _predict(self, data: dict[str, float]) -> float:
-    #    data = {k: v for k, v in data.items()}
-    #    return HyperCubeExtractor._get_cube_output(self._hypercubes.search(data), data)
+                 output: ClusterExtractor.Target = ClusterExtractor.Target.CONSTANT, gauss_components: int = 5):
+        super().__init__(predictor, depth, error_threshold, output, gauss_components)
 
     def _split(self, right: ClosedCube, outer_cube: ClosedCube, data: pd.DataFrame, indices: np.ndarray):
         right.update(data.iloc[indices], self.predictor)
@@ -53,12 +48,12 @@ class CReEPy(ClusterExtractor):
         dbscan_pred = DBSCAN(eps=select_dbscan_epsilon(df, clusters)).fit_predict(df.iloc[:, :-1])
         return HyperCube.create_surrounding_cube(
             df.iloc[np.where(dbscan_pred == Counter(dbscan_pred).most_common(1)[0][0])],
-            True, self._constant
+            True, self._output
         )
 
     def extract(self, dataframe: pd.DataFrame) -> Theory:
         self._hypercubes = \
-            self._iterate(Node(dataframe, HyperCube.create_surrounding_cube(dataframe, True, self._constant)))
+            self._iterate(Node(dataframe, HyperCube.create_surrounding_cube(dataframe, True, self._output)))
         return self._create_theory(dataframe)
 
     def _iterate(self, surrounding: Node) -> Iterable[HyperCube]:
@@ -89,13 +84,6 @@ class CReEPy(ClusterExtractor):
             return [root.cube]
         else:
             return self._node_to_cubes(root.right) + self._node_to_cubes(root.left)
-
-    def _calculate_error(self, dataframe: pd.DataFrame, cube: ClosedCube) -> float:
-        output = cube.output
-        if isinstance(output, float):
-            return abs(self.predictor.predict(dataframe) - output).mean()
-        elif isinstance(output, LinearRegression):
-            return abs(self.predictor.predict(dataframe) - output.predict(dataframe)).mean()
 
     @property
     def n_rules(self):

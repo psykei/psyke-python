@@ -3,6 +3,8 @@ from __future__ import annotations
 from typing import Iterable
 
 import numpy as np
+
+from psyke.clustering import ClusterExtractor
 from psyke.regression import Node, HyperCube
 from psyke.clustering.creepy import CReEPy
 from psyke.clustering.utils import select_gaussian_mixture
@@ -14,8 +16,8 @@ class CREAM(CReEPy):
     """
 
     def __init__(self, predictor, depth: int, error_threshold: float,
-                 gauss_components: int = 5, constant: bool = False):
-        super().__init__(predictor, depth, error_threshold, gauss_components, constant)
+                 output: ClusterExtractor.Target = ClusterExtractor.Target.CONSTANT, gauss_components: int = 5):
+        super().__init__(predictor, depth, error_threshold, output, gauss_components)
 
     def __eligible_cubes(self, gauss_pred: np.ndarray, node: Node, clusters: int):
         cubes = []

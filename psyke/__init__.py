@@ -153,22 +153,20 @@ class Extractor(object):
         return GridREx(predictor, grid, min_examples, threshold, seed)
 
     @staticmethod
-    def cream(predictor, depth: int, error_threshold: float,
-              gauss_components: int = 2, constant: bool = False) -> Extractor:
+    def cream(predictor, depth: int, error_threshold: float, output, gauss_components: int = 2) -> Extractor:
         """
         Creates a new CREAM extractor.
         """
         from psyke.clustering.cream import CREAM
-        return CREAM(predictor, depth, error_threshold, gauss_components, constant)
+        return CREAM(predictor, depth, error_threshold, output, gauss_components)
 
     @staticmethod
-    def creepy(predictor, depth: int, error_threshold: float,
-               gauss_components: int = 2, constant: bool = False) -> Extractor:
+    def creepy(predictor, depth: int, error_threshold: float, output, gauss_components: int = 2) -> Extractor:
         """
         Creates a new CReEPy extractor.
         """
         from psyke.clustering.creepy import CReEPy
-        return CReEPy(predictor, depth, error_threshold, gauss_components, constant)
+        return CReEPy(predictor, depth, error_threshold, output, gauss_components)
 
     @staticmethod
     def real(predictor, discretization=None) -> Extractor:

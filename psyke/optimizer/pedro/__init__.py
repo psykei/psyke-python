@@ -38,7 +38,8 @@ class PEDRO(Optimizer):
                 if self.algorithm == PEDRO.Algorithm.GRIDREX \
                 else Extractor.gridex(self.predictor, grid, threshold=threshold)
             _ = extractor.extract(self.dataframe)
-            mae, n = extractor.mae(self.dataframe), extractor.n_rules
+            mae, n = (extractor.mae(self.dataframe, self.predictor) if self.objective == Objective.MODEL else
+                      extractor.mae(self.dataframe)), extractor.n_rules
             print("MAE = {:.2f}, {} rules".format(mae, n))
 
             if len(params) == 0:

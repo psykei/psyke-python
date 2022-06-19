@@ -1,5 +1,7 @@
 from __future__ import annotations
-from typing import Iterable, Tuple, Any
+
+from enum import Enum
+from typing import Iterable
 import numpy as np
 import pandas as pd
 from sklearn.feature_selection import SelectKBest, f_regression, f_classif
@@ -9,17 +11,21 @@ from tuprolog.theory import Theory, mutable_theory
 from psyke import Extractor, logger
 from psyke.regression.strategy import FixedStrategy, Strategy
 from psyke.regression.utils import Limit, MinUpdate, ZippedDimension, Expansion
-from psyke.schema import Between
-from psyke.utils.logic import create_term, create_variable_list, create_head, to_var
+from psyke.utils.logic import create_variable_list, create_head, to_var
 from psyke.regression.hypercube import HyperCube, ClosedCube, RegressionCube, ClosedRegressionCube, ClassificationCube
 
 
 class HyperCubeExtractor(Extractor):
 
-    def __init__(self, predictor, majority=False):
+    class Target(Enum):
+        CLASSIFICATION = 1,
+        CONSTANT = 2,
+        REGRESSION = 3
+
+    def __init__(self, predictor):
         super().__init__(predictor)
         self._hypercubes = []
-        self._regression = True
+        self._output = HyperCubeExtractor.Target.CONSTANT
 
     def extract(self, dataframe: pd.DataFrame) -> Theory:
         raise NotImplementedError('extract')
@@ -34,8 +40,12 @@ class HyperCubeExtractor(Extractor):
                 return HyperCubeExtractor._get_cube_output(cube, data)
         return np.nan
 
-    def _default_cube(self) -> HyperCube | ClassificationCube:
-        return HyperCube() if self._regression else ClassificationCube()
+    def _default_cube(self) -> HyperCube | RegressionCube | ClassificationCube:
+        if self._output == HyperCubeExtractor.Target.CONSTANT:
+            return HyperCube()
+        if self._output == HyperCubeExtractor.Target.REGRESSION:
+            return RegressionCube()
+        return ClassificationCube()
 
     @staticmethod
     def _get_cube_output(cube: HyperCube | RegressionCube, data: dict[str, float]) -> float:
@@ -43,17 +53,10 @@ class HyperCubeExtractor(Extractor):
             isinstance(cube, RegressionCube) else cube.output
 
     @staticmethod
-    def __create_body(variables: dict[str, Var], dimensions: dict[str, (float, float)]) -> Iterable[Struct]:
-        return [create_term(variables[name], Between(values[0], values[1])) for name, values in dimensions.items()]
-
-    @staticmethod
     def __create_head(dataframe: pd.DataFrame, variables: list[Var], output: float | LinearRegression) -> Struct:
         return create_head(dataframe.columns[-1], variables[:-1], output) \
             if not isinstance(output, LinearRegression) else \
             create_head(dataframe.columns[-1], variables[:-1], variables[-1])
-
-    def _create_output(self, variables, target) -> None:
-        return None
 
     def _ignore_dimensions(self) -> Iterable[str]:
         return []
@@ -67,19 +70,8 @@ class HyperCubeExtractor(Extractor):
             variables = create_variable_list([], dataframe)
             variables[dataframe.columns[-1]] = to_var(dataframe.columns[-1])
             head = HyperCubeExtractor.__create_head(dataframe, list(variables.values()), cube.output)
-            dimensions = dict(cube.dimensions)
-            for dimension in ignore_dimensions:
-                del dimensions[dimension]
-            body = HyperCubeExtractor.__create_body(variables, dimensions)
-            output = self._create_output(list(variables.values()), cube.output)
-            if output is not None:
-                body += [output]
-            new_theory.assertZ(
-                clause(
-                    head,
-                    body
-                )
-            )
+            body = cube.body(variables, ignore_dimensions)
+            new_theory.assertZ(clause(head, body))
         return new_theory
 
     @property

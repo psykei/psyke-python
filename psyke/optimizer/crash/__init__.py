@@ -55,9 +55,9 @@ class CRASH(Optimizer):
         patience = self.patience
         while patience > 0:
             print(f"{self.algorithm}. Depth: {depth}. Threshold = {threshold:.2f}. ", end="")
-            extractor = Extractor.creepy(self.predictor, depth, threshold, 10, False) \
+            extractor = Extractor.creepy(self.predictor, depth, threshold, False, 10) \
                 if self.algorithm == CRASH.Algorithm.CReEPy \
-                else Extractor.cream(self.predictor, depth, threshold, 10, False)
+                else Extractor.cream(self.predictor, depth, threshold, False, 10)
             _ = extractor.extract(self.dataframe)
             mae, n = (extractor.mae(self.dataframe, self.predictor) if self.objective == Objective.MODEL else
                       extractor.mae(self.dataframe)), extractor.n_rules
