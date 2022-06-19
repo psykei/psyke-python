@@ -100,8 +100,8 @@ class GridEx(HyperCubeExtractor):
             merged_cube = cube.merge_along_dimension(other_cube, feature)
             merged_cube.update(dataframe, self.predictor)
             merge_cache[(cube, other_cube)] = merged_cube
-        return merge_cache[(cube, other_cube)].diversity < self.threshold if self._output else \
-            cube.output == other_cube.output
+        return cube.output == other_cube.output if self._output == HyperCubeExtractor.Target.CLASSIFICATION else \
+            merge_cache[(cube, other_cube)].diversity < self.threshold
 
     def _merge(self, to_split: Iterable[HyperCube], dataframe: pd.DataFrame) -> Iterable[HyperCube]:
         not_in_cache = [cube for cube in to_split]
