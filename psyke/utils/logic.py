@@ -4,6 +4,7 @@ import re
 from typing import Iterable
 import pandas as pd
 from tuprolog.core import Var, Struct, Real, Term, Integer, Numeric, clause
+import re
 from tuprolog.core import struct, real, atom, var, numeric, logic_list, Clause
 from tuprolog.core.operators import DEFAULT_OPERATORS, operator, operator_set, XFX
 from tuprolog.core.formatters import TermFormatter
