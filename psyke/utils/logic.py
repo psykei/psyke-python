@@ -1,6 +1,7 @@
 from typing import Iterable
 
 import pandas as pd
+import re
 from tuprolog.core import Var, Struct, Real, Term, Integer, Numeric
 from tuprolog.core import struct, real, atom, var, numeric, logic_list, Clause
 from tuprolog.core.operators import DEFAULT_OPERATORS, operator, operator_set, XFX
@@ -18,6 +19,8 @@ OP_IN = operator('in', XFX, 700)
 OP_NOT = operator('not_in', XFX, 700)
 
 RULES_OPERATORS = DEFAULT_OPERATORS + operator_set(OP_IN, OP_NOT)
+
+REGEX = r'(?<=\.\d\d)\d*(?=(\D|\b))'
 
 
 def is_sum(term: Struct) -> bool:
@@ -132,7 +135,7 @@ def pretty_clause(clause: Clause) -> str:
     else:
         head = str(formatter.format(clause.head))
         body = str(formatter.format(clause.body))
-        return f"{head} :-\n    {body}"
+        return f"{re.sub(REGEX, '', head)} :-\n    {re.sub(REGEX, '', body)}"
 
 
 def pretty_theory(theory: Theory) -> str:
