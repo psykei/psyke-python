@@ -1,10 +1,18 @@
 name: check
 on:
   push:
-    branches:
-      - master
-      - develop
-      - 'feature/**'
+    tags: '*'
+    branches-ignore:
+      - 'autodelivery**'
+      - 'bump-**'
+      - 'renovate/**'
+      - 'dependabot/**'
+    paths-ignore:
+      - 'CHANGELOG.md'
+      - 'renovate.json'
+      - '.gitignore'
+  pull_request:
+  workflow_dispatch:
 env:
   PROJECT_NAME: psyke-python
   WORKFLOW: check
@@ -46,6 +54,7 @@ jobs:
           (git push) || echo 'nothing to push'
   run-unit-tests:
     strategy:
+      fail-fast: false
       matrix:
         os:
           - ubuntu-latest
@@ -62,6 +71,10 @@ jobs:
           - '3.9.7'
     runs-on: ${{ matrix.os }}
     name: Run tests on Python ${{ matrix.python-version }}, on ${{ matrix.os }}
+    timeout-minutes: 45
+    concurrency:
+      group: ${{ github.workflow }}-run-unit-tests-${{ python-version }}-${{ matrix.os }}-${{ github.event.number || github.ref }}
+      cancel-in-progress: true
     needs:
       - create-test-predictors-if-needed
     steps:
