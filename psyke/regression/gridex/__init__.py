@@ -4,8 +4,8 @@ import random as rnd
 from itertools import product
 from typing import Iterable
 
+import numpy as np
 import pandas as pd
-from sklearn.preprocessing import StandardScaler, MinMaxScaler
 from tuprolog.theory import Theory
 
 from psyke import get_default_random_seed
@@ -18,7 +18,8 @@ class GridEx(HyperCubeExtractor):
     Explanator implementing GridEx algorithm, doi:10.1007/978-3-030-82017-6_2.
     """
 
-    def __init__(self, predictor, grid: Grid, min_examples: int, threshold: float, seed=get_default_random_seed()):
+    def __init__(self, predictor, grid: Grid, min_examples: int, threshold: float,
+                 seed=get_default_random_seed()):
         super().__init__(predictor)
         self.grid = grid
         self.min_examples = min_examples
@@ -26,10 +27,18 @@ class GridEx(HyperCubeExtractor):
         self.__generator = rnd.Random(seed)
 
     def extract(self, dataframe: pd.DataFrame) -> Theory:
-        surrounding = HyperCube.create_surrounding_cube(dataframe)
+        if isinstance(np.array(self.predictor.predict(dataframe.iloc[0:1, :-1])).flatten()[0], str):
+            self._output = HyperCubeExtractor.Target.CLASSIFICATION
+        surrounding = HyperCube.create_surrounding_cube(dataframe, output=self._output)
         surrounding.init_std(2 * self.threshold)
         self._iterate(surrounding, dataframe)
         return self._create_theory(dataframe)
+
+    def _ignore_dimensions(self) -> Iterable[str]:
+        cube = self._hypercubes[0]
+        return [
+            dimension for dimension in cube.dimensions if all(c[dimension] == cube[dimension] for c in self._hypercubes)
+        ]
 
     def _iterate(self, surrounding: HyperCube, dataframe: pd.DataFrame):
         fake = dataframe.copy()
@@ -62,11 +71,8 @@ class GridEx(HyperCubeExtractor):
                     if n > 0:
                         fake = fake.append(cube.create_samples(self.min_examples - n, self.__generator))
                         cube.update(fake, self.predictor)
-                        if cube.diversity > self.threshold:
-                            self._hypercubes += [cube]
-                        else:
-                            to_split += [cube]
-                self._merge(to_split, fake)
+                        to_split += [cube]
+                to_split = self._merge(to_split, fake)
                 self._hypercubes += [cube for cube in to_split]
 
             prev = self._hypercubes.copy()
@@ -94,9 +100,10 @@ class GridEx(HyperCubeExtractor):
             merged_cube = cube.merge_along_dimension(other_cube, feature)
             merged_cube.update(dataframe, self.predictor)
             merge_cache[(cube, other_cube)] = merged_cube
-        return merge_cache[(cube, other_cube)].diversity < self.threshold
+        return cube.output == other_cube.output if self._output == HyperCubeExtractor.Target.CLASSIFICATION else \
+            merge_cache[(cube, other_cube)].diversity < self.threshold
 
-    def _merge(self, to_split: Iterable[HyperCube], dataframe: pd.DataFrame):
+    def _merge(self, to_split: Iterable[HyperCube], dataframe: pd.DataFrame) -> Iterable[HyperCube]:
         not_in_cache = [cube for cube in to_split]
         adjacent_cache = {}
         merge_cache = {}
@@ -110,7 +117,4 @@ class GridEx(HyperCubeExtractor):
             best = to_merge[0]
             to_split = [cube for cube in to_split if cube not in best[0]] + [best[1]]
             not_in_cache = [best[1]]
-
-    @property
-    def n_rules(self):
-        return len(self._hypercubes)
+        return to_split

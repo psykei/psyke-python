@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import numpy as np
 import pandas as pd
-from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score, f1_score, accuracy_score
 
+import psyke
 from psyke.schema import DiscreteFeature
 from psyke.utils import get_default_random_seed
 from tuprolog.theory import Theory
@@ -47,46 +48,82 @@ class Extractor(object):
         """
         raise NotImplementedError('predict')
 
-    def mae(self, dataframe: pd.DataFrame) -> float:
+    def mae(self, dataframe: pd.DataFrame, predictor=None) -> float:
         """
         Calculates the predictions' MAE w.r.t. the instances given as input.
 
         :param dataframe: is the set of instances to be used to calculate the mean absolute error.
+        :param predictor: if provided, its predictions on the dataframe are taken instead of the dataframe instances.
         :return: the mean absolute error (MAE) of the predictions.
         """
         predictions = np.array(self.predict(dataframe.iloc[:, :-1]))
         idx = ~np.isnan(predictions)
-        return mean_absolute_error(dataframe.iloc[idx, -1], predictions[idx])
+        return mean_absolute_error(dataframe.iloc[idx, -1] if predictor is None else
+                                   predictor.predict(dataframe.iloc[idx, :-1]).flatten(),
+                                   predictions[idx])
 
-    def mse(self, dataframe: pd.DataFrame) -> float:
+    def mse(self, dataframe: pd.DataFrame, predictor=None) -> float:
         """
         Calculates the predictions' MSE w.r.t. the instances given as input.
 
         :param dataframe: is the set of instances to be used to calculate the mean squared error.
+        :param predictor: if provided, its predictions on the dataframe are taken instead of the dataframe instances.
         :return: the mean squared error (MSE) of the predictions.
         """
         predictions = np.array(self.predict(dataframe.iloc[:, :-1]))
         idx = ~np.isnan(predictions)
-        return mean_squared_error(dataframe.iloc[idx, -1], predictions[idx])
+        return mean_squared_error(dataframe.iloc[idx, -1] if predictor is None else
+                                  predictor.predict(dataframe.iloc[idx, :-1]).flatten(),
+                                  predictions[idx])
 
-    def r2(self, dataframe: pd.DataFrame) -> float:
+    def r2(self, dataframe: pd.DataFrame, predictor=None) -> float:
         """
         Calculates the predictions' R2 score w.r.t. the instances given as input.
 
         :param dataframe: is the set of instances to be used to calculate the R2 score.
+        :param predictor: if provided, its predictions on the dataframe are taken instead of the dataframe instances.
         :return: the R2 score of the predictions.
         """
         predictions = np.array(self.predict(dataframe.iloc[:, :-1]))
         idx = ~np.isnan(predictions)
-        return r2_score(dataframe.iloc[idx, -1], predictions[idx])
+        return r2_score(dataframe.iloc[idx, -1] if predictor is None else
+                        predictor.predict(dataframe.iloc[idx, :-1]).flatten(),
+                        predictions[idx])
+
+    def accuracy(self, dataframe: pd.DataFrame, predictor=None) -> float:
+        """
+        Calculates the predictions' accuracy classification score w.r.t. the instances given as input.
+
+        :param dataframe: is the set of instances to be used to calculate the accuracy classification score.
+        :param predictor: if provided, its predictions on the dataframe are taken instead of the dataframe instances.
+        :return: the accuracy classification score of the predictions.
+        """
+        predictions = np.array(self.predict(dataframe.iloc[:, :-1]))
+        return accuracy_score(dataframe.iloc[:, -1] if predictor is None else
+                              predictor.predict(dataframe.iloc[:, :-1]).flatten(),
+                              predictions)
+
+    def f1(self, dataframe: pd.DataFrame, predictor=None) -> float:
+        """
+        Calculates the predictions' F1 score w.r.t. the instances given as input.
+
+        :param dataframe: is the set of instances to be used to calculate the F1 score.
+        :param predictor: if provided, its predictions on the dataframe are taken instead of the dataframe instances.
+        :return: the F1 score of the predictions.
+        """
+        predictions = np.array(self.predict(dataframe.iloc[:, :-1]))
+        return f1_score(dataframe.iloc[:, -1] if predictor is None else
+                        predictor.predict(dataframe.iloc[:, :-1]).flatten(),
+                        predictions)
 
     @staticmethod
-    def cart(predictor: cart.CartPredictor, discretization=None) -> Extractor:
+    def cart(predictor: psyke.cart.CartPredictor, discretization: Iterable[DiscreteFeature] = None,
+             simplify: bool = True) -> Extractor:
         """
         Creates a new Cart extractor.
         """
         from psyke.cart import Cart
-        return Cart(predictor, discretization)
+        return Cart(predictor, discretization, simplify)
 
     @staticmethod
     def iter(predictor, min_update: float = 0.1, n_points: int = 1, max_iterations: int = 600, min_examples: int = 250,
@@ -114,6 +151,22 @@ class Extractor(object):
         """
         from psyke.regression.gridrex import GridREx
         return GridREx(predictor, grid, min_examples, threshold, seed)
+
+    @staticmethod
+    def cream(predictor, depth: int, error_threshold: float, output, gauss_components: int = 2) -> Extractor:
+        """
+        Creates a new CREAM extractor.
+        """
+        from psyke.clustering.cream import CREAM
+        return CREAM(predictor, depth, error_threshold, output, gauss_components)
+
+    @staticmethod
+    def creepy(predictor, depth: int, error_threshold: float, output, gauss_components: int = 2) -> Extractor:
+        """
+        Creates a new CReEPy extractor.
+        """
+        from psyke.clustering.creepy import CReEPy
+        return CReEPy(predictor, depth, error_threshold, output, gauss_components)
 
     @staticmethod
     def real(predictor, discretization=None) -> Extractor:

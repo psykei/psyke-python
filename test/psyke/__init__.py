@@ -4,11 +4,13 @@ from skl2onnx import convert_sklearn
 from sklearn.model_selection import train_test_split
 from psyke import get_default_random_seed
 from psyke.cart import CartPredictor
+from psyke.regression import Grid, FixedStrategy, FeatureRanker
+from psyke.regression.strategy import AdaptiveStrategy
 from psyke.utils.dataframe import get_discrete_dataset
 from test import get_dataset, get_extractor, get_schema, get_model
 from test.resources.predictors import get_predictor_path
 from test.resources.tests import test_cases
-from tuprolog.core import var, struct, numeric
+from tuprolog.core import var, struct, numeric, Real
 from tuprolog.theory import Theory
 from tuprolog.theory.parsing import parse_theory
 from typing import Iterable
@@ -31,6 +33,24 @@ def set_default_accuracy(value: float) -> None:
     _test_options['accuracy'] = value
 
 
+def are_similar(a: Real, b: Real) -> bool:
+    return abs(a.value - b.value) < 0.01
+
+
+def are_equal(instance, expected, actual):
+    if expected.is_functor_well_formed:
+        instance.assertTrue(actual.is_functor_well_formed)
+        instance.assertEqual(expected.functor, actual.functor)
+        instance.assertTrue(expected.args[0].equals(actual.args[0], False))
+        instance.assertTrue(are_similar(expected.args[1][0], actual.args[1][0]))
+        instance.assertTrue(are_similar(expected.args[1][1].head, actual.args[1][1].head))
+    elif expected.is_recursive:
+        instance.assertTrue(actual.is_recursive)
+        instance.assertEqual(expected.arity, actual.arity)
+        for i in range(expected.arity):
+            are_equal(instance, expected.args[i], actual.args[i])
+
+
 def initialize(file: str) -> list[dict[str:Theory]]:
     for row in test_cases(file):
         params = dict() if row['extractor_params'] == '' else ast.literal_eval(row['extractor_params'])
@@ -43,8 +63,8 @@ def initialize(file: str) -> list[dict[str:Theory]]:
         training_set, test_set = train_test_split(dataset, test_size=0.5, random_state=get_default_random_seed())
 
         schema = None
-        if 'bins' in row.keys() and int(row['bins']) > 0:
-            schema = get_schema(training_set, int(row['bins']))
+        if 'disc' in row.keys() and bool(row['disc']):
+            schema = get_schema(training_set)
             params['discretization'] = schema
             training_set = get_discrete_dataset(training_set.iloc[:, :-1], schema)\
                 .join(training_set.iloc[:, -1].reset_index(drop=True))
@@ -58,6 +78,16 @@ def initialize(file: str) -> list[dict[str:Theory]]:
             tree = get_model(row['predictor'], {})
             tree.fit(training_set.iloc[:, :-1], training_set.iloc[:, -1])
             params['predictor'] = CartPredictor(tree)
+
+        # Handle GridEx tests
+        if 'grid' in row.keys() and bool:
+            strategy, n = eval(row['strategies'])
+            if strategy == "F":
+                params['grid'] = Grid(int(row['grid']), FixedStrategy(n))
+            else:
+                ranked = FeatureRanker(training_set.columns[:-1])\
+                    .fit(params['predictor'], training_set.iloc[:, :-1]).rankings()
+                params['grid'] = Grid(int(row['grid']), AdaptiveStrategy(ranked, n))
 
         extractor = get_extractor(row['extractor_type'], params)
         theory = extractor.extract(training_set)

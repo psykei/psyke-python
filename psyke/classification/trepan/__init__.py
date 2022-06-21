@@ -1,6 +1,5 @@
 from psyke.classification.trepan.utils import Node, Split, SplitLogic
 from psyke import Extractor, DiscreteFeature
-from psyke.utils.dataframe import get_discrete_dataset
 from psyke.utils.logic import create_term, create_variable_list, create_head
 from psyke.utils.sorted import SortedList
 from tuprolog.core import Var, Struct, clause
@@ -18,6 +17,10 @@ class Trepan(Extractor):
         self.max_depth = max_depth
         self.split_logic = split_logic
         self.__root: Node
+
+    @property
+    def n_rules(self):
+        return sum(1 for _ in self.__root)
 
     def __best_split(self, node: Node, names: Iterable[str]) -> Union[tuple[Node, Node], None]:
         if node.samples.shape[0] < self.min_examples:
@@ -148,5 +151,4 @@ class Trepan(Extractor):
         return self.__create_theory(dataframe.columns[-1])
 
     def predict(self, dataframe: pd.DataFrame) -> Iterable:
-        dataframe = get_discrete_dataset(dataframe, self.discretization)
         return [Trepan.__predict(sample, self.__root, dataframe.columns[-1]) for _, sample in dataframe.iterrows()]

@@ -1,9 +1,10 @@
+import numpy as np
 from parameterized import parameterized_class
 from psyke import logger
 from psyke.utils import get_int_precision
 from psyke.utils.dataframe import get_discrete_dataset
 from test import get_in_rule, get_not_in_rule
-from test.psyke import initialize, data_to_struct, get_default_accuracy
+from test.psyke import initialize, data_to_struct
 from tuprolog.solve.prolog import prolog_solver
 import unittest
 
@@ -26,7 +27,7 @@ class TestCart(unittest.TestCase):
 
         # Handle both classification and regression.
         if not isinstance(predictions[0], str):
-            predictions = [round(x, get_int_precision()) for x in predictions]
+            predictions = np.array([round(x, get_int_precision()) for x in predictions])
         solver = prolog_solver(static_kb=self.extracted_theory.assertZ(get_in_rule()).assertZ(get_not_in_rule()))
 
         substitutions = [solver.solveOnce(data_to_struct(data)) for _, data in self.test_set.iterrows()]
@@ -34,19 +35,9 @@ class TestCart(unittest.TestCase):
         expected = [query.solved_query.get_arg_at(index) if query.is_yes else '-1' for query in substitutions]
 
         # Handle both classification and regression.
-        if isinstance(predictions[0], str):
-            expected = [str(x) for x in expected]
-        else:
-            expected = [float(x.value) for x in expected]
+        expected = [str(x) for x in expected] if isinstance(predictions[0], str) else [float(x.value) for x in expected]
 
-        for index, value in enumerate(expected):
-            if value == '-1':
-                expected[index] = predictions[index]
-
-        accuracy = sum([v == expected[i] for i, v in enumerate(predictions)]) / len(predictions)
-        if not accuracy > get_default_accuracy():
-            print(accuracy, get_default_accuracy())
-        self.assertTrue(accuracy > get_default_accuracy())
+        self.assertTrue(all(predictions == expected))
 
 
 if __name__ == '__main__':

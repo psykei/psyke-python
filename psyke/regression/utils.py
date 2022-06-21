@@ -1,4 +1,7 @@
 import math
+import warnings
+
+warnings.simplefilter("ignore")
 
 Dimension = tuple[float, float]
 Dimensions = dict[str, Dimension]
@@ -45,4 +48,3 @@ class ZippedDimension:
         self.name = name
         self.this_dimension = this_dimension
         self.other_dimension = other_dimension
-        

@@ -1,5 +1,6 @@
 from parameterized import parameterized_class
 from psyke import logger
+from psyke.utils.dataframe import get_discrete_dataset
 from psyke.utils.logic import pretty_theory
 from test import get_in_rule, get_not_in_rule
 from test.psyke import initialize, data_to_struct
@@ -16,8 +17,8 @@ class TestTrepan(unittest.TestCase):
         self.assertTrue(self.expected_theory.equals(self.extracted_theory, False))
 
     def test_predict(self):
-
-        predictions = self.extractor.predict(self.test_set.iloc[:, :-1])
+        discrete_dataset = get_discrete_dataset(self.test_set.iloc[:, :-1], self.discretization)
+        predictions = self.extractor.predict(discrete_dataset)
         solver = prolog_solver(static_kb=self.extracted_theory.assertZ(get_not_in_rule()).assertZ(get_in_rule()))
 
         substitutions = [solver.solveOnce(data_to_struct(data)) for _, data in self.test_set.iterrows()]

@@ -1,12 +1,19 @@
 from __future__ import annotations
+from statistics import mode
+from functools import reduce
 from typing import Iterable
 import pandas as pd
+from numpy import ndarray
 from sklearn.linear_model import LinearRegression
+from tuprolog.core import Var, Struct
+
 from psyke.regression import Limit, MinUpdate, ZippedDimension, Expansion
 from random import Random
 import numpy as np
 from psyke import get_default_random_seed
 from psyke.regression.utils import Dimension, Dimensions
+from psyke.schema import Between
+from psyke.utils.logic import create_term, to_rounded_real, linear_function_creator
 
 
 class FeatureNotFoundException(Exception):
@@ -34,7 +41,7 @@ class HyperCube:
         """
         Note that a point (dict[str, float]) is inside a hypercube if ALL its dimensions' values satisfy:
             min_dim <= value < max_dim
-        :param point: a N-dimensional point
+        :param point: an N-dimensional point
         :return: true if the point is inside the hypercube, false otherwise
         """
         return all([(self.get_first(k) <= v < self.get_second(k)) for k, v in point.items()])
@@ -79,11 +86,13 @@ class HyperCube:
             min(self.get_second(update.name) + update.value / ratio, surrounding.get_second(update.name))
         ))
 
-    def _filter_dataframe(self, dataset: pd.DataFrame) -> pd.DataFrame:
+    def filter_indices(self, dataset: pd.DataFrame) -> ndarray:
         v = np.array([v for _, v in self._dimensions.items()])
         ds = dataset.to_numpy(copy=True)
-        indices = np.all((ds >= v[:, 0]) & (ds < v[:, 1]), axis=1)
-        return dataset[indices]
+        return np.all((v[:, 0] <= ds) & (ds < v[:, 1]), axis=1)
+
+    def _filter_dataframe(self, dataset: pd.DataFrame) -> pd.DataFrame:
+        return dataset[self.filter_indices(dataset)]
 
     def __zip_dimensions(self, hypercube: HyperCube) -> list[ZippedDimension]:
         return [ZippedDimension(dimension, self[dimension], hypercube[dimension])
@@ -126,12 +135,31 @@ class HyperCube:
     def count(self, dataset: pd.DataFrame) -> int:
         return self._filter_dataframe(dataset.iloc[:, :-1]).shape[0]
 
+    def body(self, variables: dict[str, Var], ignore: list[str]) -> Iterable[Struct]:
+        dimensions = dict(self.dimensions)
+        for dimension in ignore:
+            del dimensions[dimension]
+        return [create_term(variables[name], Between(values[0], values[1])) for name, values in dimensions.items()]
+
     @staticmethod
-    def create_surrounding_cube(dataset: pd.DataFrame) -> HyperCube:
-        return HyperCube({
+    def create_surrounding_cube(dataset: pd.DataFrame, closed: bool = False,
+                                output=None) -> \
+            HyperCube | ClassificationCube | ClosedCube | ClosedRegressionCube | ClosedClassificationCube:
+        from psyke.regression import HyperCubeExtractor
+        output = HyperCubeExtractor.Target.CONSTANT if output is None else output
+        dimensions = {
             column: (min(dataset[column]) - HyperCube.EPSILON ** 2, max(dataset[column]) + HyperCube.EPSILON ** 2)
             for column in dataset.columns[:-1]
-        })
+        }
+        if closed:
+            if output == HyperCubeExtractor.Target.CONSTANT:
+                return ClosedCube(dimensions)
+            if output == HyperCubeExtractor.Target.REGRESSION:
+                return ClosedRegressionCube(dimensions)
+            return ClosedClassificationCube(dimensions)
+        if output == HyperCubeExtractor.Target.CLASSIFICATION:
+            return ClassificationCube(dimensions)
+        return HyperCube(dimensions)
 
     def __create_tuple(self, generator: Random) -> dict:
         return {k: generator.uniform(self.get_first(k), self.get_second(k)) for k in self._dimensions.keys()}
@@ -171,6 +199,14 @@ class HyperCube:
 
     def has_volume(self) -> bool:
         return all([dimension[1] - dimension[0] > HyperCube.EPSILON for dimension in self._dimensions.values()])
+
+    def volume(self) -> float:
+        return reduce(lambda a, b: a * b, [dimension[1] - dimension[0] for dimension in self._dimensions.values()], 1)
+
+    def diagonal(self) -> float:
+        return reduce(
+            lambda a, b: a + b, [(dimension[1] - dimension[0])**2 for dimension in self._dimensions.values()], 0
+        )**0.5
 
     def is_adjacent(self, cube: HyperCube) -> str | None:
         adjacent = None
@@ -223,8 +259,8 @@ class HyperCube:
 
 
 class RegressionCube(HyperCube):
-    def __init__(self):
-        super().__init__(output=LinearRegression())
+    def __init__(self, dimension: dict[str, tuple] = None):
+        super().__init__(dimension=dimension, output=LinearRegression())
 
     def update(self, dataset: pd.DataFrame, predictor) -> None:
         filtered = self._filter_dataframe(dataset.iloc[:, :-1])
@@ -232,3 +268,58 @@ class RegressionCube(HyperCube):
             predictions = predictor.predict(filtered)
             self._output.fit(filtered, predictions)
             self._diversity = (abs(self._output.predict(filtered) - predictions)).mean()
+
+    def copy(self) -> RegressionCube:
+        return RegressionCube(self.dimensions.copy())
+
+    def body(self, variables: dict[str, Var], ignore: list[str]) -> Iterable[Struct]:
+        return list(super().body(variables, ignore)) + [linear_function_creator(
+            list(variables.values()), [to_rounded_real(v) for v in self.output.coef_], to_rounded_real(self.output.intercept_)
+        )]
+
+
+class ClassificationCube(HyperCube):
+    def __init__(self, dimension: dict[str, tuple] = None):
+        super().__init__(dimension=dimension)
+
+    def update(self, dataset: pd.DataFrame, predictor) -> None:
+        filtered = self._filter_dataframe(dataset.iloc[:, :-1])
+        if len(filtered > 0):
+            predictions = predictor.predict(filtered)
+            self._output = mode(predictions)
+            self._diversity = 1 - sum(prediction == self.output for prediction in predictions) / len(filtered)
+
+    def copy(self) -> ClassificationCube:
+        return ClassificationCube(self.dimensions.copy())
+
+
+class ClosedCube(HyperCube):
+    def __init__(self, dimension: dict[str, tuple] = None):
+        super().__init__(dimension=dimension)
+
+    def __contains__(self, point: dict[str, float]) -> bool:
+        return all([(self.get_first(k) <= v <= self.get_second(k)) for k, v in point.items()])
+
+    def filter_indices(self, dataset: pd.DataFrame) -> ndarray:
+        v = np.array([v for _, v in self._dimensions.items()])
+        ds = dataset.to_numpy(copy=True)
+        return np.all((v[:, 0] <= ds) & (ds <= v[:, 1]), axis=1)
+
+    def copy(self) -> ClosedCube:
+        return ClosedCube(self.dimensions.copy())
+
+
+class ClosedRegressionCube(ClosedCube, RegressionCube):
+    def __init__(self, dimension: dict[str, tuple] = None):
+        super().__init__(dimension=dimension)
+
+    def copy(self) -> ClosedRegressionCube:
+        return ClosedRegressionCube(self.dimensions.copy())
+
+
+class ClosedClassificationCube(ClosedCube, ClassificationCube):
+    def __init__(self, dimension: dict[str, tuple] = None):
+        super().__init__(dimension=dimension)
+
+    def copy(self) -> ClosedClassificationCube:
+        return ClosedClassificationCube(self.dimensions.copy())

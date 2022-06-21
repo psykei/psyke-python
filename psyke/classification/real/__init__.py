@@ -2,12 +2,13 @@ from functools import lru_cache
 from psyke.classification.real.utils import Rule, IndexedRuleSet
 from psyke import Extractor
 from psyke.schema import DiscreteFeature
-from psyke.utils.dataframe import get_discrete_dataset, HashableDataFrame
+from psyke.utils.dataframe import HashableDataFrame
 from psyke.utils.logic import create_term, create_head, create_variable_list
 from tuprolog.core import Var, Struct, Clause, clause
 from tuprolog.theory import MutableTheory, mutable_theory, Theory
 from typing import Iterable
 import pandas as pd
+import numpy as np
 
 
 class REAL(Extractor):
@@ -21,6 +22,10 @@ class REAL(Extractor):
         super().__init__(predictor, discretization)
         self.__ruleset: IndexedRuleSet = IndexedRuleSet()
         self.__output_mapping = {}
+
+    @property
+    def n_rules(self):
+        return len(self.__ruleset)
 
     def __covers(self, sample: pd.Series, rules: list[Rule]) -> bool:
         new_rule = self.__rule_from_example(sample)
@@ -63,34 +68,50 @@ class REAL(Extractor):
     def __generalise(self, rule: Rule, sample: pd.Series) -> Rule:
         mutable_rule = rule.to_lists()
         samples = sample.to_frame().transpose()
-        for predicates, mutable_predicates in zip(rule.to_lists(), mutable_rule):
-            for predicate in predicates:
-                samples = self.__remove_antecedents(samples, predicate, mutable_predicates)
-        return Rule(mutable_rule[0], mutable_rule[1])
+        for predicate in rule.true_predicates:
+            samples = self.__remove_antecedent(samples.copy(), predicate, mutable_rule)
+        return Rule(mutable_rule[0], mutable_rule[1]).reduce(self.discretization)
+
+    def __remove_antecedent(self, samples: pd.DataFrame, predicate: str, rule: list[list[str]]) -> (pd.DataFrame, bool):
+        feature = [feature for feature in self.discretization if predicate in feature.admissible_values][0]
+        output = np.array(self.predictor.predict(samples))
+        copies = [samples.copy()]
+        samples[predicate] = 0
+        for f in [f for f in feature.admissible_values if f != predicate]:
+            copy = samples.copy()
+            copy[f] = 1
+            if all(output == np.array(self.predictor.predict(copy))):
+                copies.append(copy)
+                rule[1].remove(f)
+        if len(copies) > 1:
+            rule[0].remove(predicate)
+        return pd.concat([df for df in copies], ignore_index=True)
+        # if len(samples[np.array(self.predictor.predict(samples)) != "setosa"][samples["SepalLength_0"] == 1]) == 0
+        #    togliere SL0
+
 
     @lru_cache(maxsize=512)
     def __get_or_set(self, dataset: HashableDataFrame) -> IndexedRuleSet:
         return self.__create_ruleset(dataset)
 
     def __predict(self, sample: pd.Series):
-        sample = get_discrete_dataset(sample.to_frame().transpose(), self.discretization).loc[0]
         x = [index for index, rule in self.__ruleset.flatten() if self.__rule_from_example(sample) in rule]
         reverse_mapping = dict((v, k) for k, v in self.__output_mapping.items())
         return reverse_mapping[x[0]] if len(x) > 0 else -1
 
-    def __remove_antecedents(self, samples: pd.DataFrame, predicate: str,
-                             mutable_predicates: list[str]) -> pd.DataFrame:
-        data, is_subset = self.__subset(samples, predicate)
-        if is_subset:
-            mutable_predicates.remove(predicate)
-            return data
-        return samples
+    # def __remove_antecedents2(self, samples: pd.DataFrame, predicate: str,
+    #                         mutable_predicates: list[str]) -> pd.DataFrame:
+    #   data, is_subset = self.__subset(samples, predicate)
+    #   if is_subset:
+    #       mutable_predicates.remove(predicate)
+    #       return data
+    #   return samples
 
     def __rule_from_example(self, sample: pd.Series) -> Rule:
         true_predicates, false_predicates = [], []
         for feature, value in sample.items():
             true_predicates.append(str(feature)) if value == 1 else false_predicates.append(str(feature))
-        return Rule(sorted(true_predicates), sorted(false_predicates)).reduce(self.discretization)
+        return Rule(sorted(true_predicates), sorted(false_predicates))
 
     def __subset(self, samples: pd.DataFrame, predicate: str) -> (pd.DataFrame, bool):
         samples_0 = samples.copy()
