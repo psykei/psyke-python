@@ -132,7 +132,7 @@ setup(
     include_package_data=True,
     python_requires='>=3.9.0, <3.10',
     install_requires=[
-        'numpy~=1.21.3',
+        'numpy~=1.23.0',
         'pandas~=1.3.4',
         'scikit-learn~=1.0.1',
         '2ppy>=0.3.3',
