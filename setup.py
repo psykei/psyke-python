@@ -134,7 +134,7 @@ setup(
     install_requires=[
         'numpy~=1.23.0',
         'pandas~=1.4.3',
-        'scikit-learn~=1.0.1',
+        'scikit-learn~=1.1.1',
         '2ppy>=0.3.3',
         # 'skl2onnx~=1.10.0',
         # 'onnxruntime~=1.9.0'
