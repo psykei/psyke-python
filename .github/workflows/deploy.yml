@@ -31,7 +31,7 @@ jobs:
         run: echo ::set-output name=version::$(cat .python-version)
 
       - name: Setup Python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v3
         with:
           python-version: ${{ steps.get-python-version.outputs.version }}
 
