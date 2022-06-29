@@ -23,7 +23,7 @@ jobs:
     name: Create test predictors if needed
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           fetch-depth: 0
           submodules: recursive
@@ -84,7 +84,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           fetch-depth: 0
           submodules: recursive
