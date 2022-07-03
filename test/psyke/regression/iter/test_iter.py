@@ -38,8 +38,8 @@ class TestIter(unittest.TestCase):
         ITER is not exhaustive so all entry's predictions that are not inside an hypercube are nan.
         In python nan == nan is always False so for this test we do not consider them.
         '''
-        idx = np.isnan(predictions)
-        self.assertTrue(max(abs(predictions[~idx] - expected[~idx])) < get_default_precision())
+        idx = [pred is not None for pred in predictions]
+        self.assertTrue(max(abs(predictions[idx] - expected[idx])) < get_default_precision())
 
 
 if __name__ == '__main__':

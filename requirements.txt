@@ -10,3 +10,4 @@ parameterized>=0.8.1
 protobuf~=3.19.0
 setuptools~=57.0.0
 kneed>=0.7.0
+kivy>=2.1.0

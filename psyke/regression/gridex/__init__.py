@@ -28,8 +28,8 @@ class GridEx(HyperCubeExtractor):
 
     def extract(self, dataframe: pd.DataFrame) -> Theory:
         if isinstance(np.array(self.predictor.predict(dataframe.iloc[0:1, :-1])).flatten()[0], str):
-            self._output = HyperCubeExtractor.Target.CLASSIFICATION
-        surrounding = HyperCube.create_surrounding_cube(dataframe, output=self._output)
+            self.output = HyperCubeExtractor.Target.CLASSIFICATION
+        surrounding = HyperCube.create_surrounding_cube(dataframe, output=self.output)
         surrounding.init_std(2 * self.threshold)
         self._iterate(surrounding, dataframe)
         return self._create_theory(dataframe)
@@ -100,7 +100,7 @@ class GridEx(HyperCubeExtractor):
             merged_cube = cube.merge_along_dimension(other_cube, feature)
             merged_cube.update(dataframe, self.predictor)
             merge_cache[(cube, other_cube)] = merged_cube
-        return cube.output == other_cube.output if self._output == HyperCubeExtractor.Target.CLASSIFICATION else \
+        return cube.output == other_cube.output if self.output == HyperCubeExtractor.Target.CLASSIFICATION else \
             merge_cache[(cube, other_cube)].diversity < self.threshold
 
     def _merge(self, to_split: Iterable[HyperCube], dataframe: pd.DataFrame) -> Iterable[HyperCube]:

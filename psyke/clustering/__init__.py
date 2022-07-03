@@ -15,14 +15,14 @@ class ClusterExtractor(HyperCubeExtractor):
         self.depth = depth
         self.error_threshold = error_threshold
         self.gauss_components = gauss_components
-        self._output = output
+        self.output = output
 
     def extract(self, dataframe: pd.DataFrame) -> Theory:
         raise NotImplementedError('extract')
 
     def _default_cube(self) -> Union[ClosedCube, ClosedRegressionCube, ClosedClassificationCube]:
-        if self._output == ClusterExtractor.Target.CONSTANT:
+        if self.output == ClusterExtractor.Target.CONSTANT:
             return ClosedCube()
-        if self._output == ClusterExtractor.Target.REGRESSION:
+        if self.output == ClusterExtractor.Target.REGRESSION:
             return ClosedRegressionCube()
         return ClosedClassificationCube()

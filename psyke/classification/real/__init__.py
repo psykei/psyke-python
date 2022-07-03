@@ -86,9 +86,6 @@ class REAL(Extractor):
         if len(copies) > 1:
             rule[0].remove(predicate)
         return pd.concat([df for df in copies], ignore_index=True)
-        # if len(samples[np.array(self.predictor.predict(samples)) != "setosa"][samples["SepalLength_0"] == 1]) == 0
-        #    togliere SL0
-
 
     @lru_cache(maxsize=512)
     def __get_or_set(self, dataset: HashableDataFrame) -> IndexedRuleSet:
@@ -97,7 +94,7 @@ class REAL(Extractor):
     def __predict(self, sample: pd.Series):
         x = [index for index, rule in self.__ruleset.flatten() if self.__rule_from_example(sample) in rule]
         reverse_mapping = dict((v, k) for k, v in self.__output_mapping.items())
-        return reverse_mapping[x[0]] if len(x) > 0 else -1
+        return reverse_mapping[x[0]] if len(x) > 0 else None
 
     # def __remove_antecedents2(self, samples: pd.DataFrame, predicate: str,
     #                         mutable_predicates: list[str]) -> pd.DataFrame:

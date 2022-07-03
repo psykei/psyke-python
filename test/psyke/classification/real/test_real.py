@@ -24,7 +24,7 @@ class TestReal(unittest.TestCase):
         substitutions = [solver.solveOnce(data_to_struct(data))
                          for _, data in self.test_set.iterrows()]
         index = self.test_set.shape[1] - 1
-        expected = [str(query.solved_query.get_arg_at(index)) if query.is_yes else -1 for query in substitutions]
+        expected = [str(query.solved_query.get_arg_at(index)) if query.is_yes else None for query in substitutions]
 
         logger.info(predictions)
         logger.info(expected)

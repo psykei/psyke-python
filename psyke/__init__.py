@@ -153,7 +153,7 @@ class Extractor(object):
         return GridREx(predictor, grid, min_examples, threshold, seed)
 
     @staticmethod
-    def cream(predictor, depth: int, error_threshold: float, output, gauss_components: int = 2) -> Extractor:
+    def cream(predictor, depth: int, error_threshold: float, output, gauss_components: int = 10) -> Extractor:
         """
         Creates a new CREAM extractor.
         """
@@ -161,7 +161,7 @@ class Extractor(object):
         return CREAM(predictor, depth, error_threshold, output, gauss_components)
 
     @staticmethod
-    def creepy(predictor, depth: int, error_threshold: float, output, gauss_components: int = 2) -> Extractor:
+    def creepy(predictor, depth: int, error_threshold: float, output, gauss_components: int = 10) -> Extractor:
         """
         Creates a new CReEPy extractor.
         """

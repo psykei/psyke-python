@@ -49,12 +49,12 @@ class CReEPy(ClusterExtractor):
         dbscan_pred = DBSCAN(eps=select_dbscan_epsilon(data, clusters)).fit_predict(data.iloc[:, :-1])
         return HyperCube.create_surrounding_cube(
             dataframe.iloc[np.where(dbscan_pred == Counter(dbscan_pred).most_common(1)[0][0])],
-            True, self._output
+            True, self.output
         )
 
     def extract(self, dataframe: pd.DataFrame) -> Theory:
         self._hypercubes = \
-            self._iterate(Node(dataframe, HyperCube.create_surrounding_cube(dataframe, True, self._output)))
+            self._iterate(Node(dataframe, HyperCube.create_surrounding_cube(dataframe, True, self.output)))
         return self._create_theory(dataframe)
 
     @staticmethod

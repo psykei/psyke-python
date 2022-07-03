@@ -13,7 +13,7 @@ class Cart(Extractor):
     def __init__(self, predictor: CartPredictor, discretization: Iterable[DiscreteFeature] = None,
                  simplify: bool = True):
         super().__init__(predictor, discretization)
-        self.__simplify = simplify
+        self.simplify = simplify
 
     def __create_body(self, variables: dict[str, Var], constraints: LeafConstraints) -> Iterable[Struct]:
         results = []
@@ -29,7 +29,7 @@ class Cart(Extractor):
     def __create_theory(self, data: pd.DataFrame) -> Theory:
         new_theory = mutable_theory()
         for name, value in self.predictor:
-            name = [(n[0], n[1]) for n in name if not self.__simplify or n[2]]
+            name = [(n[0], n[1]) for n in name if not self.simplify or n[2]]
             variables = create_variable_list(self.discretization, data)
             new_theory.assertZ(
                 clause(
