@@ -8,5 +8,5 @@ skl2onnx==1.11.2
 onnxruntime==1.11.1
 parameterized==0.8.1
 protobuf==3.20.1
-setuptools==62.6.0
+setuptools==63.1.0
 kneed==0.7.0
