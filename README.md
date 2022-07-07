@@ -1,5 +1,7 @@
 # PSyKE
 
+![PSyKE Logo](.img/logo-wide.png)
+
 Some quick links:
 * [Home Page](https://apice.unibo.it/xwiki/bin/view/PSyKE/)
 * [GitHub Repository](https://github.com/psykei/psyke-python)
