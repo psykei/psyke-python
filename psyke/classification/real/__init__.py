@@ -1,6 +1,7 @@
 from functools import lru_cache
 from psyke.classification.real.utils import Rule, IndexedRuleSet
 from psyke import Extractor
+from psyke.classification import BaseClassifier
 from psyke.schema import DiscreteFeature
 from psyke.utils.dataframe import HashableDataFrame
 from psyke.utils.logic import create_term, create_head, create_variable_list
@@ -129,5 +130,8 @@ class REAL(Extractor):
         self.__ruleset = self.__get_or_set(HashableDataFrame(dataframe))
         return self.__create_theory(dataframe, self.__ruleset)
 
-    def predict(self, dataframe) -> list:
-        return [self.__predict(data.transpose()) for _, data in dataframe.iterrows()]
+    def to_predictor(self) -> BaseClassifier:
+        class RealClassifier(BaseClassifier):
+            def predict(classifier, X):
+                return [self.__predict(data.transpose()) for _, data in X.iterrows()]
+        return RealClassifier()

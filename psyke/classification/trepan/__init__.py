@@ -1,5 +1,6 @@
 from psyke.classification.trepan.utils import Node, Split, SplitLogic
 from psyke import Extractor, DiscreteFeature
+from psyke.classification import BaseClassifier
 from psyke.utils.logic import create_term, create_variable_list, create_head
 from psyke.utils.sorted import SortedList
 from tuprolog.core import Var, Struct, clause
@@ -150,5 +151,9 @@ class Trepan(Extractor):
         self.__optimize()
         return self.__create_theory(dataframe.columns[-1])
 
-    def predict(self, dataframe: pd.DataFrame) -> Iterable:
-        return [Trepan.__predict(sample, self.__root, dataframe.columns[-1]) for _, sample in dataframe.iterrows()]
+    def to_predictor(self) -> BaseClassifier:
+        class TrepanClassifier(BaseClassifier):
+            def predict(classifier, X):
+                return [Trepan.__predict(sample, self.__root, X.columns[-1]) for _, sample in X.iterrows()]
+
+        return TrepanClassifier()

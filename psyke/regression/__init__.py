@@ -13,6 +13,13 @@ from psyke.regression.strategy import FixedStrategy, Strategy
 from psyke.regression.utils import Limit, MinUpdate, ZippedDimension, Expansion
 from psyke.utils.logic import create_variable_list, create_head, to_var
 from psyke.regression.hypercube import HyperCube, ClosedCube, RegressionCube, ClosedRegressionCube, ClassificationCube
+from psyke import Predictor
+from sklearn.base import RegressorMixin
+
+
+class BaseRegressor(Predictor, RegressorMixin):
+    def train(self, X, y):
+        return RuntimeError("Untrainable regressor")
 
 
 class HyperCubeExtractor(Extractor):

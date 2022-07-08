@@ -4,15 +4,25 @@ import numpy as np
 import pandas as pd
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score, f1_score, accuracy_score
 
-import psyke
 from psyke.schema import DiscreteFeature
 from psyke.utils import get_default_random_seed
 from tuprolog.theory import Theory
-from typing import Iterable
+from typing import Iterable, Protocol
 import logging
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger('psyke')
+
+
+class Predictor(Protocol):
+    def fit(self, X, y):
+        ...
+
+    def predict(self, X):
+        ...
+
+    def score(self, X, y):
+        ...
 
 
 class Extractor(object):
@@ -39,14 +49,13 @@ class Extractor(object):
         """
         raise NotImplementedError('extract')
 
-    def predict(self, dataframe: pd.DataFrame) -> Iterable:
+    def to_predictor(self) -> Predictor:
         """
-        Predicts the output values of every sample in dataset.
+        Produces a predictor out of the extracted rules.
 
-        :param dataframe: is the set of instances to predict.
-        :return: a list of predictions.
+        :return: an already-trained, SciKit-Learn compliant predictor having methods predict, and score
         """
-        raise NotImplementedError('predict')
+        raise NotImplementedError('to_predictor')
 
     def mae(self, dataframe: pd.DataFrame, predictor=None) -> float:
         """
