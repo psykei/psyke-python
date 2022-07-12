@@ -77,7 +77,7 @@ class Simplifier(AbstractTermVisitor):
         return struct(term.getFunctor(), [a.accept(self) for a in args])
 
 
-def create_functor(constraint: Value, positive: bool) -> str:
+def create_functor(constraint: Value, positive: bool = True) -> str:
     if isinstance(constraint, LessThan):
         return '=<' if positive else '>'
     if isinstance(constraint, GreaterThan):

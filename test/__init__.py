@@ -1,18 +1,23 @@
-from typing import Iterable, Union
+from typing import Iterable, Union, Callable
 import numpy as np
 import pandas as pd
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
+from tuprolog.core import Clause
+from tuprolog.theory.parsing import DEFAULT_CLAUSES_PARSER
 from psyke.schema import DiscreteFeature, Value
 from psyke.utils import get_default_random_seed
 from sklearn.datasets import fetch_california_housing, load_iris
-from tuprolog.core import rule, struct, logic_list, scope
 from psyke import Extractor
 from psyke.utils.dataframe import get_discrete_features_supervised
 from test.resources.predictors import PATH
 
 REQUIRED_PREDICTORS: str = PATH / '.required.csv'
+LE = '=<'
+GE = '>='
+L = '<'
+G = '>'
 
 
 def get_extractor(extractor_type: str, parameters: dict):
@@ -34,7 +39,7 @@ def get_model(model_type: str, parameters: dict):
     if model_type.lower() == 'rfr':
         return RandomForestRegressor(**parameters, random_state=np.random.seed(get_default_random_seed()))
     elif model_type.lower() == 'knnc':
-        return KNeighborsClassifier(**parameters)  # It's deterministic, don't not have a random_state
+        return KNeighborsClassifier(**parameters)  # It's deterministic, don't have a random_state
     elif model_type.lower() == 'dtc':
         return DecisionTreeClassifier(random_state=np.random.seed(get_default_random_seed()))
     elif model_type.lower() == 'dtr':
@@ -43,24 +48,50 @@ def get_model(model_type: str, parameters: dict):
         raise NotImplementedError(model_type + ' not handled yet.')
 
 
-def get_in_rule():
-    local_scope = scope()
-    return rule(
-        struct('in', local_scope.var('X'), logic_list(local_scope.var('H'), local_scope.var('T'))),
-        [
-            struct('<', local_scope.var('X'), local_scope.var('T')),
-            struct('=<', local_scope.var('H'), local_scope.var('X'))
-        ]
-    )
+def get_in_rule(min_included: bool = True, max_included: bool = False) -> Clause:
+    """
+    Create the logic 'in' predicate in(X, [Min, Max]).
+    The predicate is true if X is in between Min and Max.
+    :param min_included: if X == Min then true
+    :param max_included: if X == Max then true
+    :return: the tuProlog clause for the 'in' predicate
+    """
+    in_textual_rule: Callable = lambda x, y: "in(X, [Min, Max]) :- !, X " + x + " Min, X " + y + " Max."
+    parser = DEFAULT_CLAUSES_PARSER
+    if min_included:
+        if max_included:
+            theory = parser.parse_clauses(in_textual_rule(GE, LE), operators=None)
+        else:
+            theory = parser.parse_clauses(in_textual_rule(GE, L), operators=None)
+    else:
+        if max_included:
+            theory = parser.parse_clauses(in_textual_rule(G, LE), operators=None)
+        else:
+            theory = parser.parse_clauses(in_textual_rule(G, L), operators=None)
+    return theory[0]
 
 
-def get_not_in_rule():
-    local_scope = scope()
-    return rule(
-        struct('not_in', local_scope.var('X'), logic_list(local_scope.var('H'), local_scope.var('T'))),
-        struct(';', struct('<', local_scope.var('T'), local_scope.var('X')),
-               struct('<', local_scope.var('X'), local_scope.var('H')))
-    )
+def get_not_in_rule(min_included: bool = False, max_included: bool = True) -> Clause:
+    """
+    Create the logic 'not_in' predicate not_in(X, [Min, Max]).
+    The predicate is true if X is outside the range between Min and Max.
+    :param min_included: if X == Min then true
+    :param max_included: if X == Max then true
+    :return: the tuProlog clause for the 'not_in' predicate
+    """
+    not_in_textual_rule: Callable = lambda x, y: "not_in(X, [Min, Max]) :- X " + x + " Min; X " + y + " Max."
+    parser = DEFAULT_CLAUSES_PARSER
+    if min_included:
+        if max_included:
+            theory = parser.parse_clauses(not_in_textual_rule(LE, GE), operators=None)
+        else:
+            theory = parser.parse_clauses(not_in_textual_rule(LE, G), operators=None)
+    else:
+        if max_included:
+            theory = parser.parse_clauses(not_in_textual_rule(L, GE), operators=None)
+        else:
+            theory = parser.parse_clauses(not_in_textual_rule(L, G), operators=None)
+    return theory[0]
 
 
 def get_dataset(name: str):
