@@ -69,7 +69,7 @@ def initialize(file: str) -> list[dict[str:Theory]]:
             training_set = get_discrete_dataset(training_set.iloc[:, :-1], schema)\
                 .join(training_set.iloc[:, -1].reset_index(drop=True))
 
-        # Handle cart's tests.
+        # Handle Cart tests.
         # Cart needs to inspect the tree of the predictor.
         # Unfortunately onnx does not provide a method to do that.
         if row['predictor'].lower() not in ['dtc', 'dtr']:
@@ -80,6 +80,7 @@ def initialize(file: str) -> list[dict[str:Theory]]:
             params['predictor'] = CartPredictor(tree)
 
         # Handle GridEx tests
+        # TODO: this is algorithm specific therefore it should be handled inside the algorithm itself.
         if 'grid' in row.keys() and bool:
             strategy, n = eval(row['strategies'])
             if strategy == "F":
