@@ -1,12 +1,11 @@
 from typing import Iterable
-
 import pandas as pd
 from tuprolog.core import Var, Struct, Real, Term, Integer, Numeric
 from tuprolog.core import struct, real, atom, var, numeric, logic_list, Clause
 from tuprolog.core.operators import DEFAULT_OPERATORS, operator, operator_set, XFX
 from tuprolog.core.formatters import TermFormatter
 from tuprolog.core.visitors import AbstractTermVisitor
-from tuprolog.theory import Theory
+from tuprolog.theory import Theory, mutable_theory
 from psyke.schema import Value, LessThan, GreaterThan, Between, Constant
 from psyke import DiscreteFeature
 from psyke.utils import get_int_precision
@@ -166,3 +165,73 @@ def linear_function_creator(features: list[Var], weights: Iterable[Real], interc
     x = foldr(lambda a, b: struct('+', a, b), x)
     x = intercept if x is None else struct('+', intercept, x)
     return struct('is', features[-1], x)
+
+
+def prune(theory: Theory) -> Theory:
+    """
+    Prune unnecessary clauses from a logic theory T.
+    A clause c1 in T is removable when both conditions hold:
+        - there is a clause c2 in T that includes (attacks) c1
+          (same head, body terms of c2 are a subset of c1 ones);
+        - there is no clause c3 that defends c1
+          (same head except for the last argument, body terms of c3 are a subset of c1 ones)
+          or the maximum number of terms in the body of any clause defending c1
+          is less than the maximum number of terms of any clause attacking c1.
+    :param theory: the logic theory
+    :return: a new simplified theory
+    """
+
+    def is_clause_included(clause, other, last_arg_equal=True):
+
+        def is_term_included(term, terms):
+
+            def is_term_equal(t1, t2):
+                if t1.functor == t2.functor:
+                    for i in range(t1.arity):
+                        if t1.args[i].is_var and t2.args[i].is_var:
+                            if t1.args[i].name != t2.args[i].name:
+                                return False
+                        else:
+                            if t1.args[i] != t2.args[i]:
+                                return False
+                    return True
+            return any(is_term_equal(term, t2) for t2 in terms)
+
+        terms2 = clause.body.unfolded if clause.body.is_recursive else [clause.body]
+        terms1 = other.body.unfolded if other.body.is_recursive else [other.body]
+        if clause != other \
+           and clause.head.args[-1] == other.head.args[-1] \
+                if last_arg_equal else clause.head.args[-1] != other.head.args[-1]:
+            if not clause.body.is_truth:
+                return all(is_term_included(t1, terms2) for t1 in terms1)
+            else:
+                return True
+        else:
+            return False
+
+    def evaluate(clause, clauses, index, side):
+        result = -1
+        for i in range(len(clauses)):
+            if index != i \
+                    and clause.body_size > 0 \
+                    and is_clause_included(clause, clauses[i], side):
+                tmp_result = clauses[i].body_size
+                if result < tmp_result:
+                    result = tmp_result
+        return result
+
+    def attack(clause, clauses, index):
+        return evaluate(clause, clauses, index, True)
+
+    def defense(clause, clauses, index):
+        return evaluate(clause, clauses, index, False)
+
+    new_theory = mutable_theory()
+    theory_copy = mutable_theory(theory)
+    clauses_copy = theory_copy.clauses
+    for i, clause in enumerate(theory.clauses):
+        a = attack(clause, clauses_copy, i)
+        d = defense(clause, clauses_copy, i)
+        if a < d or a == d == -1:
+            new_theory.assertZ(clause)
+    return new_theory

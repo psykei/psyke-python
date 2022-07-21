@@ -1,17 +1,21 @@
 from __future__ import annotations
 from onnxconverter_common import DataType, FloatTensorType, Int64TensorType, StringTensorType
+from psyke.utils import get_int_precision
 from skl2onnx import convert_sklearn
 from sklearn.model_selection import train_test_split
+from tuprolog.solve.prolog import prolog_solver
+
 from psyke import get_default_random_seed
 from psyke.cart import CartPredictor
 from psyke.regression import Grid, FixedStrategy, FeatureRanker
 from psyke.regression.strategy import AdaptiveStrategy
 from psyke.utils.dataframe import get_discrete_dataset
-from test import get_dataset, get_extractor, get_schema, get_model
+from psyke.utils.logic import prune
+from test import get_dataset, get_extractor, get_schema, get_model, get_in_rule, get_not_in_rule
 from test.resources.predictors import get_predictor_path
 from test.resources.tests import test_cases
 from tuprolog.core import var, struct, numeric, Real
-from tuprolog.theory import Theory
+from tuprolog.theory import Theory, mutable_theory
 from tuprolog.theory.parsing import parse_theory
 from typing import Iterable
 import ast
@@ -62,12 +66,14 @@ def initialize(file: str) -> list[dict[str:Theory]]:
 
         training_set, test_set = train_test_split(dataset, test_size=0.5, random_state=get_default_random_seed())
 
-        schema = None
+        schema, test_set_for_predictor = None, test_set
         if 'disc' in row.keys() and bool(row['disc']):
             schema = get_schema(training_set)
             params['discretization'] = schema
             training_set = get_discrete_dataset(training_set.iloc[:, :-1], schema)\
                 .join(training_set.iloc[:, -1].reset_index(drop=True))
+            test_set_for_predictor = get_discrete_dataset(test_set.iloc[:, :-1], schema) \
+                .join(test_set.iloc[:, -1].reset_index(drop=True))
 
         # Handle Cart tests.
         # Cart needs to inspect the tree of the predictor.
@@ -92,12 +98,35 @@ def initialize(file: str) -> list[dict[str:Theory]]:
 
         extractor = get_extractor(row['extractor_type'], params)
         theory = extractor.extract(training_set)
+        pruned_theory = prune(theory)
+
+        # Compute predictions from rules
+        index = test_set.shape[1] - 1
+        solver = prolog_solver(static_kb=mutable_theory(theory).assertZ(get_in_rule()).assertZ(get_not_in_rule()))
+        solver2 = prolog_solver(static_kb=mutable_theory(pruned_theory).assertZ(get_in_rule()).assertZ(get_not_in_rule()))
+        substitutions = [solver.solveOnce(data_to_struct(data)) for _, data in test_set.iterrows()]
+        substitutions2 = [solver2.solveOnce(data_to_struct(data)) for _, data in test_set.iterrows()]
+        expected = [query.solved_query.get_arg_at(index) if query.is_yes else '-1' for query in substitutions]
+        expected2 = [query.solved_query.get_arg_at(index) if query.is_yes else '-1' for query in substitutions2]
+        # Handle both classification and regression.
+        y_element = test_set.iloc[0, -1]
+        expected = [str(x) for x in expected] if isinstance(y_element, str) else expected
+        expected2 = [str(x) for x in expected2] if isinstance(y_element, str) else expected2
+
+        predictions = extractor.predict(test_set_for_predictor.iloc[:, :-1])
+        # Handle both classification and regression.
+        if not isinstance(predictions[0], str):
+            predictions = np.array([round(x, get_int_precision()) for x in predictions])
 
         yield {
             'extractor': extractor,
             'extracted_theory': theory,
+            'extracted_pruned_theory': pruned_theory,
+            'extracted_test_y_from_theory': expected,
+            'extracted_test_y_from_pruned_theory': expected2,
+            'extracted_test_y_from_extractor': predictions,
             'test_set': test_set,
-            'expected_theory': parse_theory(row['theory'] + '.') if row['theory'] != '' else theory,
+            'expected_theory': parse_theory(row['theory'] + '.') if row['theory'] != '' else None,
             'discretization': schema
         }
 
