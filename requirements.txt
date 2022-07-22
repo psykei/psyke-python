@@ -7,6 +7,6 @@ scikit-learn==1.1.1
 skl2onnx==1.11.2
 onnxruntime==1.12.0
 parameterized==0.8.1
-protobuf==3.20.1
+protobuf==4.21.3
 setuptools==63.2.0
 kneed==0.7.0
