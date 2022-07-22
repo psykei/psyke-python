@@ -10,14 +10,14 @@ from psyke.cart import CartPredictor
 from psyke.regression import Grid, FixedStrategy, FeatureRanker
 from psyke.regression.strategy import AdaptiveStrategy
 from psyke.utils.dataframe import get_discrete_dataset
-from psyke.utils.logic import prune
+from psyke.utils.logic import prune, simplify
 from test import get_dataset, get_extractor, get_schema, get_model, get_in_rule, get_not_in_rule
 from test.resources.predictors import get_predictor_path
 from test.resources.tests import test_cases
 from tuprolog.core import var, struct, numeric, Real
 from tuprolog.theory import Theory, mutable_theory
 from tuprolog.theory.parsing import parse_theory
-from typing import Iterable
+from typing import Iterable, Callable
 import ast
 import numpy as np
 import onnxruntime as rt
@@ -27,6 +27,8 @@ import pandas as pd
 _DEFAULT_ACCURACY: float = 0.95
 
 _test_options: dict = {'accuracy': _DEFAULT_ACCURACY}
+
+ACCEPTABLE_FIDELITY = 0.999
 
 
 def get_default_accuracy() -> float:
@@ -38,6 +40,7 @@ def set_default_accuracy(value: float) -> None:
 
 
 def are_similar(a: Real, b: Real) -> bool:
+    # TODO: magic number
     return abs(a.value - b.value) < 0.01
 
 
@@ -98,20 +101,18 @@ def initialize(file: str) -> list[dict[str:Theory]]:
 
         extractor = get_extractor(row['extractor_type'], params)
         theory = extractor.extract(training_set)
-        pruned_theory = prune(theory)
+        pruned_theory = simplify(theory)
 
         # Compute predictions from rules
         index = test_set.shape[1] - 1
+        y_element = test_set.iloc[0, -1]
+        cast: Callable = lambda x: (str(x) if isinstance(y_element, str) else x)
         solver = prolog_solver(static_kb=mutable_theory(theory).assertZ(get_in_rule()).assertZ(get_not_in_rule()))
         solver2 = prolog_solver(static_kb=mutable_theory(pruned_theory).assertZ(get_in_rule()).assertZ(get_not_in_rule()))
         substitutions = [solver.solveOnce(data_to_struct(data)) for _, data in test_set.iterrows()]
         substitutions2 = [solver2.solveOnce(data_to_struct(data)) for _, data in test_set.iterrows()]
-        expected = [query.solved_query.get_arg_at(index) if query.is_yes else '-1' for query in substitutions]
-        expected2 = [query.solved_query.get_arg_at(index) if query.is_yes else '-1' for query in substitutions2]
-        # Handle both classification and regression.
-        y_element = test_set.iloc[0, -1]
-        expected = [str(x) for x in expected] if isinstance(y_element, str) else expected
-        expected2 = [str(x) for x in expected2] if isinstance(y_element, str) else expected2
+        expected = [cast(query.solved_query.get_arg_at(index)) if query.is_yes else -1 for query in substitutions]
+        expected2 = [cast(query.solved_query.get_arg_at(index)) if query.is_yes else -1 for query in substitutions2]
 
         predictions = extractor.predict(test_set_for_predictor.iloc[:, :-1])
         # Handle both classification and regression.

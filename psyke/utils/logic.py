@@ -1,6 +1,7 @@
+from cmath import isclose
 from typing import Iterable
 import pandas as pd
-from tuprolog.core import Var, Struct, Real, Term, Integer, Numeric
+from tuprolog.core import Var, Struct, Real, Term, Integer, Numeric, clause
 from tuprolog.core import struct, real, atom, var, numeric, logic_list, Clause
 from tuprolog.core.operators import DEFAULT_OPERATORS, operator, operator_set, XFX
 from tuprolog.core.formatters import TermFormatter
@@ -167,16 +168,54 @@ def linear_function_creator(features: list[Var], weights: Iterable[Real], interc
     return struct('is', features[-1], x)
 
 
+def is_term_redundant(t1, t2):
+    is_symbols_equal = {
+        '<': lambda x, y: x < y,
+        '=<': lambda x, y: x <= y,
+        '>': lambda x, y: x > y,
+        '>=': lambda x, y: x >= y,
+        '=': lambda x, y: isclose(x, y),
+    }
+
+    if t1.functor == t2.functor:
+        for i in range(t1.arity):
+            if t1.args[i].is_var and t2.args[i].is_var:
+                if t1.args[i].name != t2.args[i].name:
+                    return False
+            elif t1.args[i].is_number and t2.args[i].is_number:
+                if not is_symbols_equal[str(t1.functor)](t1.args[i], t2.args[i]):
+                    return False
+            else:
+                if t1.args[i] != t2.args[i]:
+                    return False
+        return True
+    else:
+        return False
+
+
 def prune(theory: Theory) -> Theory:
     """
     Prune unnecessary clauses from a logic theory T.
-    A clause c1 in T is removable when both conditions hold:
-        - there is a clause c2 in T that includes (attacks) c1
-          (same head, body terms of c2 are a subset of c1 ones);
-        - there is no clause c3 that defends c1
-          (same head except for the last argument, body terms of c3 are a subset of c1 ones)
-          or the maximum number of terms in the body of any clause defending c1
-          is less than the maximum number of terms of any clause attacking c1.
+    This is a work in progress because it is not a trivial problem.
+    Firstly, we remove redundant clauses that are easy to detect.
+    Then, we will continue with more complicated ones.
+
+    1. A clause c1 in T is removable when it is followed or preceded by a clause c2 that:
+        - has the same head of c1;
+        - the terms in the body of c2 are a subset of the ones of c1.
+    Examples:
+        c1(A, B, C, D, positive) :- A =< 1, B > 2, C = 0.
+        c2(A, B, C, D, positive) :- A =< 1, B > 2.
+        In this case c1 is redundant.
+    But also:
+        c1(A, B, C, D, positive) :- A =< 1, B > 2, C = 0.
+        c2(A, B, C, D, positive) :- A =< 1.3, B > 1.8.
+        c1 can be removed.
+    And also:
+        c2(A, B, C, D, positive) :- A =< 1.3, B > 1.8.
+        c1(A, B, C, D, positive) :- A =< 1, B > 2, C = 0.
+        c1 can be removed.
+
     :param theory: the logic theory
     :return: a new simplified theory
     """
@@ -185,53 +224,59 @@ def prune(theory: Theory) -> Theory:
 
         def is_term_included(term, terms):
 
-            def is_term_equal(t1, t2):
-                if t1.functor == t2.functor:
-                    for i in range(t1.arity):
-                        if t1.args[i].is_var and t2.args[i].is_var:
-                            if t1.args[i].name != t2.args[i].name:
-                                return False
-                        else:
-                            if t1.args[i] != t2.args[i]:
-                                return False
-                    return True
-            return any(is_term_equal(term, t2) for t2 in terms)
+            return any(is_term_redundant(term, t2) for t2 in terms)
 
         terms2 = clause.body.unfolded if clause.body.is_recursive else [clause.body]
         terms1 = other.body.unfolded if other.body.is_recursive else [other.body]
-        if clause != other \
-           and clause.head.args[-1] == other.head.args[-1] \
-                if last_arg_equal else clause.head.args[-1] != other.head.args[-1]:
-            if not clause.body.is_truth:
+        if clause != other and clause.head.args[-1] == other.head.args[-1] if last_arg_equal else clause.head.args[-1] != other.head.args[-1]:
+            if not other.body.is_truth:
                 return all(is_term_included(t1, terms2) for t1 in terms1)
             else:
                 return True
         else:
             return False
 
-    def evaluate(clause, clauses, index, side):
-        result = -1
-        for i in range(len(clauses)):
-            if index != i \
-                    and clause.body_size > 0 \
-                    and is_clause_included(clause, clauses[i], side):
-                tmp_result = clauses[i].body_size
-                if result < tmp_result:
-                    result = tmp_result
-        return result
-
-    def attack(clause, clauses, index):
-        return evaluate(clause, clauses, index, True)
-
-    def defense(clause, clauses, index):
-        return evaluate(clause, clauses, index, False)
+    def attack(clause, clauses, index, same_class=True):
+        after = index < len(clauses) - 1 and clause.body_size > 0 and is_clause_included(clause, clauses[index + 1], same_class)
+        before = index > 0 and clause.body_size > 0 and is_clause_included(clause, clauses[index - 1], same_class)
+        return after or before
 
     new_theory = mutable_theory()
     theory_copy = mutable_theory(theory)
     clauses_copy = theory_copy.clauses
     for i, clause in enumerate(theory.clauses):
-        a = attack(clause, clauses_copy, i)
-        d = defense(clause, clauses_copy, i)
-        if a < d or a == d == -1:
+        if not attack(clause, clauses_copy, i):
             new_theory.assertZ(clause)
+    return new_theory
+
+
+def simplify(theory: Theory) -> Theory:
+
+    def simplify_clause(c: Clause) -> Clause:
+
+        def insert(t: Struct, new_terms: list[Struct]):
+            if len(new_terms) == 0:
+                new_terms.append(t)
+            else:
+                match = None
+                for t2 in new_terms:
+                    if is_term_redundant(t, t2):
+                        match = t2
+                        break
+                if match is not None:
+                    new_terms.remove(match)
+                    new_terms.append(t)
+                else:
+                    new_terms.append(t)
+
+        terms = c.body.unfolded if c.body.is_recursive else [c.body]
+        new_terms = []
+        for t in terms:
+            insert(t, new_terms)
+        return clause(c.head, new_terms)
+
+    new_theory = mutable_theory()
+    for old_clause in theory.clauses:
+        new_clause = simplify_clause(old_clause)
+        new_theory.assertZ(new_clause)
     return new_theory

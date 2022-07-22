@@ -1,4 +1,3 @@
-from psyke.utils.dataframe import get_discrete_dataset
 from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
 from psyke.cart.predictor import CartPredictor, LeafConstraints, LeafSequence
 from psyke import Extractor, DiscreteFeature, get_default_random_seed
@@ -28,9 +27,9 @@ class Cart(Extractor):
             self._cart_predictor = CART_PREDICTORS[task if task is not None else CLASSIFICATION]
         else:
             raise Exception("Wrong argument for task type. Accepted values are: " + ' '.join(ADMISSIBLE_TASKS))
-        self.__simplify = simplify
+        self._simplify = simplify
 
-    def __create_body(self, variables: dict[str, Var], constraints: LeafConstraints) -> Iterable[Struct]:
+    def _create_body(self, variables: dict[str, Var], constraints: LeafConstraints) -> Iterable[Struct]:
         results = []
         for name, value in constraints:
             features = [d for d in self.discretization if name in d.admissible_values]
@@ -41,15 +40,15 @@ class Cart(Extractor):
                                        isinstance(value, GreaterThan)))
         return results
 
-    def __create_theory(self, data: pd.DataFrame) -> Theory:
+    def _create_theory(self, data: pd.DataFrame) -> Theory:
         new_theory = mutable_theory()
         for name, value in self._cart_predictor:
-            name = [(n[0], n[1]) for n in name if not self.__simplify or n[2]]
+            name = [(n[0], n[1]) for n in name if not self._simplify or n[2]]
             variables = create_variable_list(self.discretization, data)
             new_theory.assertZ(
                 clause(
                     create_head(data.columns[-1], list(variables.values()), value),
-                    self.__create_body(variables, name)
+                    self._create_body(variables, name)
                 )
             )
         return new_theory
@@ -62,7 +61,7 @@ class Cart(Extractor):
         # If for any reason the predictor was not able to predict a class, ignore that data.
         new_data = new_data[new_data[new_data.columns[-1]].notnull()]
         self._cart_predictor.predictor.fit(new_data.iloc[:, :-1], new_data.iloc[:, -1])
-        return self.__create_theory(new_data)
+        return self._create_theory(new_data)
 
     def predict(self, data) -> Iterable:
         return self._cart_predictor.predict(data)

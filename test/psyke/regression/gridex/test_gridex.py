@@ -12,6 +12,7 @@ import unittest
 @parameterized_class(initialize('gridex'))
 class TestGridEx(unittest.TestCase):
 
+    # TODO: refactor this test, it is not standard. Moreover extracted rule should be compliant with a precision value.
     def test_extract(self):
         logger.info(self.expected_theory)
         logger.info(self.extracted_theory)
