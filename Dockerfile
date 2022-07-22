@@ -1,4 +1,4 @@
-FROM python:3.9
+FROM python:3.10
 RUN pip install jupyter
 RUN pip install psyke
 RUN apt update; apt install -y -q openjdk-17-jdk
