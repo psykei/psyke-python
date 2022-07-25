@@ -101,7 +101,8 @@ def initialize(file: str) -> list[dict[str:Theory]]:
 
         extractor = get_extractor(row['extractor_type'], params)
         theory = extractor.extract(training_set)
-        pruned_theory = simplify(theory)
+        pruned_theory = theory
+        # pruned_theory = prune(simplify(theory))
 
         # Compute predictions from rules
         index = test_set.shape[1] - 1

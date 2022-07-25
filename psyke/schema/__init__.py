@@ -23,8 +23,30 @@ class Value:
     def __init__(self):
         pass
 
-    def is_in(self, other_value: float) -> bool:
+    def is_in(self, other: float) -> bool:
         return False
+
+    def is_boundary(self, other: float) -> bool:
+        if isinstance(self, Constant):
+            return self.value == other
+        elif isinstance(self, Interval):
+            return self.lower == other or self.upper == other
+        else:
+            return False
+
+    def is_in_or_is_boundary(self, other_value: float) -> bool:
+        return self.is_in(other_value) or self.is_boundary(other_value)
+
+    def __contains__(self, other: Value) -> bool:
+        if isinstance(other, Constant):
+            return self.is_in(other.value)
+        elif isinstance(other, Interval):
+            if type(self) is type(other):
+                return self.is_in_or_is_boundary(other.lower) and self.is_in_or_is_boundary(other.upper)
+            else:
+                return self.is_in(other.lower) and self.is_in(other.upper)
+        else:
+            return False
 
 
 class Interval(Value):
@@ -47,8 +69,8 @@ class LessThan(Interval):
         super().__init__(-math.inf, value)
         self.value = value
 
-    def is_in(self, other_value: float) -> bool:
-        return other_value <= self.value
+    def is_in(self, other: float) -> bool:
+        return other <= self.value
 
     def __str__(self):
         return f"]-∞, {self.value:.2f}["
@@ -63,8 +85,8 @@ class GreaterThan(Interval):
         super().__init__(value, math.inf)
         self.value = value
 
-    def is_in(self, other_value: float) -> bool:
-        return other_value > self.value
+    def is_in(self, other: float) -> bool:
+        return other > self.value
 
     def __str__(self):
         return f"]{self.value:.2f}, ∞["
@@ -78,8 +100,8 @@ class Between(Interval):
     def __init__(self, lowerbound: float, upperbound: float):
         super().__init__(lowerbound, upperbound)
 
-    def is_in(self, other_value: float) -> bool:
-        return self.lower < other_value <= self.upper
+    def is_in(self, other: float) -> bool:
+        return self.lower < other <= self.upper
 
     def __repr__(self):
         return f"Between({self.lower:.2f}, {self.upper:.2f})"
@@ -91,11 +113,27 @@ class Constant(Value):
         super().__init__()
         self.value = value
 
-    def is_in(self, other_value: float) -> bool:
-        return math.isclose(other_value, self.value)
+    def is_in(self, other: float) -> bool:
+        return math.isclose(other, self.value)
 
     def __str__(self):
         return "{" + str(self.value) + "}"
 
     def __repr__(self):
         return f"Constant({self.value})"
+
+
+def term_to_value(term) -> Value:
+
+    real_to_float: Callable = lambda x: float(str(x)) if not hasattr(x, 'len') else float(str(x[0]))
+
+    functor_to_value = {
+        '<': lambda x: LessThan(real_to_float(x)),
+        '=<': lambda x: LessThan(real_to_float(x)),
+        '>': lambda x: GreaterThan(real_to_float(x)),
+        '>=': lambda x: GreaterThan(real_to_float(x)),
+        '==': lambda x: Constant(real_to_float(x)),
+        'in': lambda x: Between(real_to_float(x[0]), real_to_float(x[1][0])),
+        'not_in': lambda x: Between(real_to_float(x[0]), real_to_float(x[1][0]))
+    }
+    return functor_to_value[term.functor](term.args[1])

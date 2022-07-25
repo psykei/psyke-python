@@ -7,7 +7,7 @@ from tuprolog.core.operators import DEFAULT_OPERATORS, operator, operator_set, X
 from tuprolog.core.formatters import TermFormatter
 from tuprolog.core.visitors import AbstractTermVisitor
 from tuprolog.theory import Theory, mutable_theory
-from psyke.schema import Value, LessThan, GreaterThan, Between, Constant
+from psyke.schema import Value, LessThan, GreaterThan, Between, Constant, term_to_value
 from psyke import DiscreteFeature
 from psyke.utils import get_int_precision
 
@@ -88,10 +88,7 @@ def create_functor(constraint: Value, positive: bool = True) -> str:
         return '=' if positive else '\\='
 
 
-def create_term(v: Var, constraint: Value, positive: bool = True) -> Struct:
-    if v is None:
-        raise Exception('IllegalArgumentException: None variable')
-    functor = create_functor(constraint, positive)
+def _create_term(v: Var, constraint: Value, functor: str) -> Struct:
     if isinstance(constraint, LessThan):
         return struct(functor, v, real(round(constraint.value, PRECISION)))
     if isinstance(constraint, GreaterThan):
@@ -101,6 +98,13 @@ def create_term(v: Var, constraint: Value, positive: bool = True) -> Struct:
                       logic_list(real(round(constraint.lower, PRECISION)), real(round(constraint.upper, PRECISION))))
     if isinstance(constraint, Constant):
         return struct(functor, v, atom(str(constraint.value)))
+
+
+def create_term(v: Var, constraint: Value, positive: bool = True) -> Struct:
+    if v is None:
+        raise Exception('IllegalArgumentException: None variable')
+    functor = create_functor(constraint, positive)
+    return _create_term(v, constraint, functor)
 
 
 def to_var(name: str) -> Var:
@@ -168,29 +172,44 @@ def linear_function_creator(features: list[Var], weights: Iterable[Real], interc
     return struct('is', features[-1], x)
 
 
-def is_term_redundant(t1, t2):
-    is_symbols_equal = {
-        '<': lambda x, y: x < y,
-        '=<': lambda x, y: x <= y,
-        '>': lambda x, y: x > y,
-        '>=': lambda x, y: x >= y,
-        '=': lambda x, y: isclose(x, y),
-    }
+def terms_to_intervals(terms) -> dict[str, Value]:
+    return {term.args[0].name: term_to_value(term) for term in terms if term.arity > 0}
 
-    if t1.functor == t2.functor:
-        for i in range(t1.arity):
-            if t1.args[i].is_var and t2.args[i].is_var:
-                if t1.args[i].name != t2.args[i].name:
-                    return False
-            elif t1.args[i].is_number and t2.args[i].is_number:
-                if not is_symbols_equal[str(t1.functor)](t1.args[i], t2.args[i]):
-                    return False
-            else:
-                if t1.args[i] != t2.args[i]:
-                    return False
-        return True
-    else:
-        return False
+
+def terms_to_minimal_intervals(terms) -> dict[Var, tuple[Value, str]]:
+    intervals = [(term.args[0], term_to_value(term), term.functor) for term in terms if term.arity > 0]
+    intervals_per_variable: dict[Var: list[tuple[Value, str]]] = {}
+    for v, value, functor in intervals:
+        if v in intervals_per_variable.keys():
+            intervals_per_variable[v].append((value, functor))
+        else:
+            intervals_per_variable[v] = [(value, functor)]
+
+    result: dict[Var, tuple[Value, str]] = {}
+    for v, values in intervals_per_variable.items():
+        if len(values) == 1:
+            result[v] = values[0]
+        else:
+            for value, functor in values:
+                if all(is_subset({'X': value}, {'X': other}) for other, _ in values if value != other):
+                    result[v] = (value, functor)
+            if v not in result.keys():
+                """
+                    TODO: handle the merging of different functors for the same variable.
+                    Example:
+                      - X =< 3, X > 1 -> in(X, [1, 3])
+                        Pay attention! Usually in is with the first arg included and the last excluded.
+                        Here it is the opposite!
+                """
+                pass
+    return result
+
+
+def is_subset(first_sets: dict[str, Value], second_sets: dict[str, Value]) -> bool:
+    def is_inside(first_value: Value, second_value: Value) -> bool:
+        return first_value in second_value
+
+    return all(is_inside(v, second_sets[k]) if k in second_sets.keys() else True for k, v in first_sets.items())
 
 
 def prune(theory: Theory) -> Theory:
@@ -202,7 +221,7 @@ def prune(theory: Theory) -> Theory:
 
     1. A clause c1 in T is removable when it is followed or preceded by a clause c2 that:
         - has the same head of c1;
-        - the terms in the body of c2 are a subset of the ones of c1.
+        - c2 is always true if c1 is true (c1 -> c2).
     Examples:
         c1(A, B, C, D, positive) :- A =< 1, B > 2, C = 0.
         c2(A, B, C, D, positive) :- A =< 1, B > 2.
@@ -220,25 +239,19 @@ def prune(theory: Theory) -> Theory:
     :return: a new simplified theory
     """
 
-    def is_clause_included(clause, other, last_arg_equal=True):
-
-        def is_term_included(term, terms):
-
-            return any(is_term_redundant(term, t2) for t2 in terms)
-
-        terms2 = clause.body.unfolded if clause.body.is_recursive else [clause.body]
-        terms1 = other.body.unfolded if other.body.is_recursive else [other.body]
-        if clause != other and clause.head.args[-1] == other.head.args[-1] if last_arg_equal else clause.head.args[-1] != other.head.args[-1]:
-            if not other.body.is_truth:
-                return all(is_term_included(t1, terms2) for t1 in terms1)
-            else:
-                return True
+    def is_clause_included(clause, other):
+        terms_clause = clause.body.unfolded if clause.body.is_recursive else [clause.body]
+        terms_other = other.body.unfolded if other.body.is_recursive else [other.body]
+        if clause != other and clause.head.args[-1] == other.head.args[-1]:
+            set_clause = terms_to_intervals(terms_clause)
+            set_other = terms_to_intervals(terms_other)
+            return is_subset(set_clause, set_other) and set(set_other.keys()).issubset(set(set_clause.keys()))
         else:
             return False
 
-    def attack(clause, clauses, index, same_class=True):
-        after = index < len(clauses) - 1 and clause.body_size > 0 and is_clause_included(clause, clauses[index + 1], same_class)
-        before = index > 0 and clause.body_size > 0 and is_clause_included(clause, clauses[index - 1], same_class)
+    def attack(clause, clauses, index):
+        after = index < len(clauses) - 1 and clause.body_size > 0 and is_clause_included(clause, clauses[index + 1])
+        before = index > 0 and clause.body_size > 0 and is_clause_included(clause, clauses[index - 1])
         return after or before
 
     new_theory = mutable_theory()
@@ -254,26 +267,10 @@ def simplify(theory: Theory) -> Theory:
 
     def simplify_clause(c: Clause) -> Clause:
 
-        def insert(t: Struct, new_terms: list[Struct]):
-            if len(new_terms) == 0:
-                new_terms.append(t)
-            else:
-                match = None
-                for t2 in new_terms:
-                    if is_term_redundant(t, t2):
-                        match = t2
-                        break
-                if match is not None:
-                    new_terms.remove(match)
-                    new_terms.append(t)
-                else:
-                    new_terms.append(t)
-
         terms = c.body.unfolded if c.body.is_recursive else [c.body]
-        new_terms = []
-        for t in terms:
-            insert(t, new_terms)
-        return clause(c.head, new_terms)
+        minimal_intervals = terms_to_minimal_intervals(terms)
+        minimal_terms = [_create_term(v, value[0], value[1]) for v, value in minimal_intervals.items()]
+        return clause(c.head, minimal_terms) if c.body.arity > 0 else c
 
     new_theory = mutable_theory()
     for old_clause in theory.clauses:
