@@ -48,7 +48,7 @@ def get_model(model_type: str, parameters: dict):
         raise NotImplementedError(model_type + ' not handled yet.')
 
 
-def get_in_rule(min_included: bool = True, max_included: bool = False) -> Clause:
+def get_in_rule(min_included: bool = False, max_included: bool = True) -> Clause:
     """
     Create the logic 'in' predicate in(X, [Min, Max]).
     The predicate is true if X is in between Min and Max.
@@ -71,7 +71,7 @@ def get_in_rule(min_included: bool = True, max_included: bool = False) -> Clause
     return theory[0]
 
 
-def get_not_in_rule(min_included: bool = False, max_included: bool = True) -> Clause:
+def get_not_in_rule(min_included: bool = True, max_included: bool = False) -> Clause:
     """
     Create the logic 'not_in' predicate not_in(X, [Min, Max]).
     The predicate is true if X is outside the range between Min and Max.

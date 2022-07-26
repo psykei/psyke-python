@@ -1,5 +1,7 @@
 from cmath import isclose
 from parameterized import parameterized_class
+from psyke.utils.logic import pretty_theory
+
 from psyke import logger
 from test.psyke import initialize, ACCEPTABLE_FIDELITY
 import unittest

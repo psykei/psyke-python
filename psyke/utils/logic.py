@@ -1,3 +1,4 @@
+import math
 from cmath import isclose
 from typing import Iterable
 import pandas as pd
@@ -7,7 +8,7 @@ from tuprolog.core.operators import DEFAULT_OPERATORS, operator, operator_set, X
 from tuprolog.core.formatters import TermFormatter
 from tuprolog.core.visitors import AbstractTermVisitor
 from tuprolog.theory import Theory, mutable_theory
-from psyke.schema import Value, LessThan, GreaterThan, Between, Constant, term_to_value
+from psyke.schema import Value, LessThan, GreaterThan, Between, Constant, term_to_value, Outside
 from psyke import DiscreteFeature
 from psyke.utils import get_int_precision
 
@@ -84,6 +85,8 @@ def create_functor(constraint: Value, positive: bool = True) -> str:
         return '>' if positive else '=<'
     if isinstance(constraint, Between):
         return 'in' if positive else 'not_in'
+    if isinstance(constraint, Outside):
+        return 'not_in' if positive else 'in'
     if isinstance(constraint, Constant):
         return '=' if positive else '\\='
 
@@ -94,6 +97,9 @@ def _create_term(v: Var, constraint: Value, functor: str) -> Struct:
     if isinstance(constraint, GreaterThan):
         return struct(functor, v, real(round(constraint.value, PRECISION)))
     if isinstance(constraint, Between):
+        return struct(functor, v,
+                      logic_list(real(round(constraint.lower, PRECISION)), real(round(constraint.upper, PRECISION))))
+    if isinstance(constraint, Outside):
         return struct(functor, v,
                       logic_list(real(round(constraint.lower, PRECISION)), real(round(constraint.upper, PRECISION))))
     if isinstance(constraint, Constant):
@@ -190,18 +196,10 @@ def terms_to_minimal_intervals(terms) -> dict[Var, tuple[Value, str]]:
         if len(values) == 1:
             result[v] = values[0]
         else:
+            minimal_interval = None
             for value, functor in values:
-                if all(is_subset({'X': value}, {'X': other}) for other, _ in values if value != other):
-                    result[v] = (value, functor)
-            if v not in result.keys():
-                """
-                    TODO: handle the merging of different functors for the same variable.
-                    Example:
-                      - X =< 3, X > 1 -> in(X, [1, 3])
-                        Pay attention! Usually in is with the first arg included and the last excluded.
-                        Here it is the opposite!
-                """
-                pass
+                minimal_interval = value * minimal_interval
+            result[v] = (minimal_interval, create_functor(minimal_interval))
     return result
 
 
