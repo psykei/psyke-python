@@ -1,8 +1,10 @@
+from __future__ import annotations
+
 import math
 from cmath import isclose
 from typing import Iterable
 import pandas as pd
-from tuprolog.core import Var, Struct, Real, Term, Integer, Numeric, clause
+from tuprolog.core import Var, Struct, Real, Term, Integer, Numeric, clause, numeric, var, struct
 from tuprolog.core import struct, real, atom, var, numeric, logic_list, Clause
 from tuprolog.core.operators import DEFAULT_OPERATORS, operator, operator_set, XFX
 from tuprolog.core.formatters import TermFormatter
@@ -275,3 +277,10 @@ def simplify(theory: Theory) -> Theory:
         new_clause = simplify_clause(old_clause)
         new_theory.assertZ(new_clause)
     return new_theory
+
+
+def data_to_struct(data: pd.Series):
+    head = data.keys()[-1]
+    terms = [numeric(item) for item in data.values[:-1]]
+    terms.append(var('X'))
+    return struct(head, terms)

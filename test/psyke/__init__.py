@@ -10,11 +10,11 @@ from psyke.cart import CartPredictor
 from psyke.regression import Grid, FixedStrategy, FeatureRanker
 from psyke.regression.strategy import AdaptiveStrategy
 from psyke.utils.dataframe import get_discrete_dataset
-from psyke.utils.logic import prune, simplify
+from psyke.utils.logic import prune, simplify, data_to_struct
 from test import get_dataset, get_extractor, get_schema, get_model, get_in_rule, get_not_in_rule
 from test.resources.predictors import get_predictor_path
 from test.resources.tests import test_cases
-from tuprolog.core import var, struct, numeric, Real
+from tuprolog.core import Real
 from tuprolog.theory import Theory, mutable_theory
 from tuprolog.theory.parsing import parse_theory
 from typing import Iterable, Callable
@@ -131,13 +131,6 @@ def initialize(file: str) -> list[dict[str:Theory]]:
             'expected_theory': parse_theory(row['theory'] + '.') if row['theory'] != '' else None,
             'discretization': schema
         }
-
-
-def data_to_struct(data: pd.Series):
-    head = data.keys()[-1]
-    terms = [numeric(item) for item in data.values[:-1]]
-    terms.append(var('X'))
-    return struct(head, terms)
 
 
 class Predictor:

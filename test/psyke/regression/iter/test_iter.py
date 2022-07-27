@@ -3,7 +3,8 @@ from psyke import logger
 from parameterized import parameterized_class
 from psyke.utils import get_default_precision
 from test import get_in_rule
-from test.psyke import initialize, data_to_struct, are_similar, are_equal
+from test.psyke import initialize, are_similar, are_equal
+from psyke.utils.logic import data_to_struct
 from tuprolog.solve.prolog import prolog_solver
 import numpy as np
 import unittest
