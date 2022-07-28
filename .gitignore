@@ -157,3 +157,6 @@ dmypy.json
 
 # File ONNX
 *.onnx
+
+# Local stuff
+dummy/

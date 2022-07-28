@@ -135,7 +135,7 @@ def create_head(functor: str, variables: Iterable[Var], output) -> Struct:
     return struct(functor, variables)
 
 
-def pretty_clause(clause: Clause) -> str:
+def pretty_clause(clause: Clause, new_line: bool = True) -> str:
     formatter = TermFormatter.prettyExpressions(True, RULES_OPERATORS)
     if clause.is_fact:
         return str(formatter.format(clause.head))
@@ -144,14 +144,14 @@ def pretty_clause(clause: Clause) -> str:
     else:
         head = str(formatter.format(clause.head))
         body = str(formatter.format(clause.body))
-        return f"{head} :-\n    {body}"
+        return f"{head} :-" + ("\n    " if new_line else " ") + f"{body}"
 
 
-def pretty_theory(theory: Theory) -> str:
+def pretty_theory(theory: Theory, new_line: bool = True) -> str:
     if len(str(theory)) == 0:
         return ""
     else:
-        clause = [pretty_clause(clause) for clause in theory]
+        clause = [pretty_clause(clause, new_line) for clause in theory]
         return ".\n".join(clause) + "."
 
 

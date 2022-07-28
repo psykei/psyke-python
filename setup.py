@@ -1,9 +1,14 @@
+import pandas as pd
 from setuptools import setup, find_packages
 import pathlib
 import subprocess
 import distutils.cmd
 
 # current directory
+from tuprolog.theory.parsing import parse_theory
+
+from psyke.utils.plot import plot_theory
+
 here = pathlib.Path(__file__).parent.resolve()
 
 version_file = here / 'VERSION'
@@ -105,6 +110,56 @@ class CreateTestPredictors(distutils.cmd.Command):
         print("Done")
 
 
+class CreateTheoryPlot(distutils.cmd.Command):
+    description = 'create a plot representing samples X and their class/regression value Y predicted by a theory'
+    user_options = [('theory=', 't', 'textual file of a Prolog theory'),
+                    ('dataset=', 'd', 'file of a dataset'),
+                    ('azimuth=', 'a', 'azimuth of the plot'),
+                    ('distance=', 'D', 'distance from the plot'),
+                    ('elevation=', 'e', 'elevation of the plot'),
+                    ('output=', 'o', 'output file name of the plot'),
+                    ('show=', 's', 'show theory in the plot ([y]/n)'),
+                    ]
+    default_output_file_name = 'dummy/plot'
+    default_theory_name = 'dummy/iris-theory'
+    default_dataset_name = 'dummy/iris'
+    default_azimuth = '45'
+    default_distance = '9'
+    default_elevation = '5'
+    csv_format = '.csv'
+    txt_format = '.txt'
+    pdf_format = '.pdf'
+
+    def initialize_options(self):
+        self.output = self.default_output_file_name
+        self.theory = self.default_theory_name
+        self.dataset = self.default_dataset_name
+        self.azimuth = self.default_azimuth
+        self.elevation = self.default_elevation
+        self.distance = self.default_distance
+        self.show = True
+
+    def finalize_options(self):
+        self.theory_file = str(self.theory)
+        self.data = str(self.dataset)
+        self.output = str(self.output)
+        self.a = float(self.azimuth)
+        self.e = float(self.elevation)
+        self.d = float(self.distance)
+        self.s = self.show in (True, 'y', 'Y', 'yes', 'YES', 'Yes')
+
+    def run(self):
+        if self.theory_file is None or self.theory_file == '':
+            raise Exception('Empty theory file name')
+        if self.data is None or self.data == '':
+            raise Exception('Empty dataset file name')
+        with open(self.theory_file + (self.txt_format if '.' not in self.theory_file else ''), 'r') as file:
+            textual_theory = file.read()
+        theory = parse_theory(textual_theory)
+        data = pd.read_csv(self.data + (self.csv_format if '.' not in self.data else ''))
+        plot_theory(theory, data, self.output + self.pdf_format, self.a, self.d, self.e, self.s)
+
+
 setup(
     name='psyke',  # Required
     version=version,
@@ -150,5 +205,6 @@ setup(
     cmdclass={
         'get_project_version': GetVersionCommand,
         'create_test_predictors': CreateTestPredictors,
+        'create_theory_plot': CreateTheoryPlot,
     },
 )
