@@ -110,7 +110,7 @@ and from the dataset used to train the predictor.
 
 #### End users
 
-A brief example is presented in `demo.py` script.
+A brief example is presented in `demo.py` script in the `demo` folder.
 Using sklearn iris dataset we train a K-Nearest Neighbor to predict the correct output class.
 Before training, we make the dataset discrete.
 After that we create two different extractors: REAL and Trepan.
