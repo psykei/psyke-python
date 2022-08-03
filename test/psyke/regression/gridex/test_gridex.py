@@ -34,29 +34,27 @@ class TestGridEx(unittest.TestCase):
 
     def test_predict(self):
         predictions = self.extractor.predict(self.test_set.iloc[:, :-1])
+        idx = [prediction is not None for prediction in predictions]
 
         # Handle both classification and regression.
         if not isinstance(predictions[0], str):
-            predictions = np.array([round(x, get_int_precision()) for x in predictions])
+            predictions[idx] = np.array([round(x, get_int_precision()) for x in predictions[idx]])
 
         solver = prolog_solver(static_kb=self.extracted_theory.assertZ(get_in_rule()))
         substitutions = [solver.solveOnce(data_to_struct(data)) for _, data in self.test_set.iterrows()]
         index = self.test_set.shape[1] - 1
-        expected = [query.solved_query.get_arg_at(index) if query.is_yes else '-1' for query in substitutions]
-        expected = [str(x) for x in expected] if isinstance(predictions[0], str) else \
-            [float(x) if isinstance(x, str) else float(x.value) for x in expected]
+        expected = np.array([query.solved_query.get_arg_at(index) if query.is_yes else '-1' for query in substitutions])
+        expected[idx] = [str(x) for x in expected[idx]] if isinstance(predictions[0], str) else \
+            [float(x) if isinstance(x, str) else float(x.value) for x in expected[idx]]
 
         '''
-        GridEx is not exhaustive so all entry's predictions that are not inside an hypercube are nan.
-        In python nan == nan is always False so for this test we do not consider them.
+        GridEx is not exhaustive so all entry's predictions that are not inside an hypercube are None.
+        In python None == None is always False so for this test we do not consider them.
         '''
         if isinstance(predictions[0], str):
-
-            self.assertTrue(all([pred == exp if exp != "-1" else True for (pred, exp) in zip(predictions, expected)]))
+            self.assertTrue(all([pred == exp for (pred, exp) in zip(predictions[idx], expected[idx])]))
         else:
-            # TODO: this test is not so much clear, should be refactored asap. For the time being it is disabled.
-            idx = np.isnan(predictions)
-            # self.assertTrue(max(abs(predictions[~idx] - np.array(expected)[~idx])) < get_default_precision())
+            self.assertTrue(max(abs(predictions[idx] - np.array(expected)[idx])) < get_default_precision())
 
 
 if __name__ == '__main__':
