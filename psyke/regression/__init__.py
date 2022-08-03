@@ -33,12 +33,12 @@ class HyperCubeExtractor(Extractor):
     def predict(self, dataframe: pd.DataFrame) -> Iterable:
         return np.array([self._predict(dict(row.to_dict())) for _, row in dataframe.iterrows()])
 
-    def _predict(self, data: dict[str, float]) -> float:
+    def _predict(self, data: dict[str, float]) -> float | None:
         data = {k: v for k, v in data.items()}
         for cube in self._hypercubes:
             if cube.__contains__(data):
                 return HyperCubeExtractor._get_cube_output(cube, data)
-        return np.nan
+        return None
 
     def _default_cube(self) -> HyperCube | RegressionCube | ClassificationCube:
         if self._output == HyperCubeExtractor.Target.CONSTANT:

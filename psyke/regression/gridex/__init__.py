@@ -45,6 +45,7 @@ class GridEx(HyperCubeExtractor):
         prev = [surrounding]
 
         for iteration in self.grid.iterate():
+            next = []
             for cube in prev:
                 to_split = []
                 if cube.count(dataframe) == 0:
@@ -73,9 +74,9 @@ class GridEx(HyperCubeExtractor):
                         cube.update(fake, self.predictor)
                         to_split += [cube]
                 to_split = self._merge(to_split, fake)
-                self._hypercubes += [cube for cube in to_split]
-
-            prev = self._hypercubes.copy()
+                next += [cube for cube in to_split]
+            prev = next.copy()
+        self._hypercubes += [cube for cube in next]
 
     @staticmethod
     def __find_couples(to_split: Iterable[HyperCube], not_in_cache: Iterable[HyperCube],

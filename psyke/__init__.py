@@ -57,7 +57,7 @@ class Extractor(object):
         :return: the mean absolute error (MAE) of the predictions.
         """
         predictions = np.array(self.predict(dataframe.iloc[:, :-1]))
-        idx = ~np.isnan(predictions)
+        idx = [prediction is not None for prediction in predictions]
         return mean_absolute_error(dataframe.iloc[idx, -1] if predictor is None else
                                    predictor.predict(dataframe.iloc[idx, :-1]).flatten(),
                                    predictions[idx])
@@ -71,7 +71,7 @@ class Extractor(object):
         :return: the mean squared error (MSE) of the predictions.
         """
         predictions = np.array(self.predict(dataframe.iloc[:, :-1]))
-        idx = ~np.isnan(predictions)
+        idx = [prediction is not None for prediction in predictions]
         return mean_squared_error(dataframe.iloc[idx, -1] if predictor is None else
                                   predictor.predict(dataframe.iloc[idx, :-1]).flatten(),
                                   predictions[idx])
@@ -85,7 +85,7 @@ class Extractor(object):
         :return: the R2 score of the predictions.
         """
         predictions = np.array(self.predict(dataframe.iloc[:, :-1]))
-        idx = ~np.isnan(predictions)
+        idx = [prediction is not None for prediction in predictions]
         return r2_score(dataframe.iloc[idx, -1] if predictor is None else
                         predictor.predict(dataframe.iloc[idx, :-1]).flatten(),
                         predictions[idx])
@@ -99,9 +99,10 @@ class Extractor(object):
         :return: the accuracy classification score of the predictions.
         """
         predictions = np.array(self.predict(dataframe.iloc[:, :-1]))
-        return accuracy_score(dataframe.iloc[:, -1] if predictor is None else
-                              predictor.predict(dataframe.iloc[:, :-1]).flatten(),
-                              predictions)
+        idx = [prediction is not None for prediction in predictions]
+        return accuracy_score(dataframe.iloc[idx, -1] if predictor is None else
+                              predictor.predict(dataframe.iloc[idx, :-1]).flatten(),
+                              predictions[idx])
 
     def f1(self, dataframe: pd.DataFrame, predictor=None) -> float:
         """
@@ -112,9 +113,10 @@ class Extractor(object):
         :return: the F1 score of the predictions.
         """
         predictions = np.array(self.predict(dataframe.iloc[:, :-1]))
-        return f1_score(dataframe.iloc[:, -1] if predictor is None else
-                        predictor.predict(dataframe.iloc[:, :-1]).flatten(),
-                        predictions)
+        idx = [prediction is not None for prediction in predictions]
+        return f1_score(dataframe.iloc[idx, -1] if predictor is None else
+                        predictor.predict(dataframe.iloc[idx, :-1]).flatten(),
+                        predictions[idx])
 
     @staticmethod
     def cart(predictor: psyke.cart.CartPredictor, discretization: Iterable[DiscreteFeature] = None,
