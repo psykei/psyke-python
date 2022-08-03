@@ -165,8 +165,11 @@ class HyperCube:
         return {k: generator.uniform(self.get_first(k), self.get_second(k)) for k in self._dimensions.keys()}
 
     @staticmethod
-    def cube_from_point(point: dict) -> HyperCube:
-        return HyperCube({k: (v, v) for k, v in list(point.items())[:-1]}, output=list(point.values())[-1])
+    def cube_from_point(point: dict, output=None) -> HyperCube | ClassificationCube:
+        if output is None:
+            return HyperCube({k: (v, v) for k, v in list(point.items())[:-1]}, output=list(point.values())[-1])
+        else:
+            return ClassificationCube({k: (v, v) for k, v in list(point.items())[:-1]})
 
     def equal(self, hypercubes: Iterable[HyperCube] | HyperCube) -> bool:
         if isinstance(hypercubes, Iterable):

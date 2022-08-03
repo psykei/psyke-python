@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 from tuprolog.theory import Theory
 from psyke.regression.hypercube import HyperCube
-from psyke.regression import HyperCubeExtractor
+from psyke.regression import HyperCubeExtractor, ClassificationCube
 from psyke.regression.utils import Expansion, MinUpdate
 from psyke.utils import get_default_random_seed
 
@@ -21,13 +21,13 @@ class ITER(HyperCubeExtractor):
                  seed=get_default_random_seed()):
         super().__init__(predictor)
         self.predictor = predictor
-        self.discretization = []
         self.min_update = min_update
         self.n_points = n_points
         self.max_iterations = max_iterations
         self.min_examples = min_examples
         self.threshold = threshold
         self.fill_gaps = fill_gaps
+        self.output = None
         self.__generator = Random(seed)
 
     def __best_cube(self, dataframe: pd.DataFrame, cube: HyperCube, cubes: Iterable[Expansion]) -> Expansion | None:
@@ -39,7 +39,9 @@ class ITER(HyperCubeExtractor):
             dataframe = dataframe.append(limit.cube.create_samples(self.min_examples - count, self.__generator))
             limit.cube.update(dataframe, self.predictor)
             expansions.append(Expansion(
-                limit.cube, limit.feature, limit.direction, abs(cube.output - limit.cube.output)
+                limit.cube, limit.feature, limit.direction,
+                abs(cube.output - limit.cube.output) if self.output is None else
+                1 - int(cube.output == limit.cube.output)
             ))
         if len(expansions) > 0:
             return sorted(expansions, key=lambda e: e.distance)[0]
@@ -97,23 +99,33 @@ class ITER(HyperCubeExtractor):
             cube.expand(expansion, hypercubes)
 
     @staticmethod
-    def __find_closer_sample(dataframe: pd.DataFrame, output: float) -> dict[str, tuple]:
-        difference = abs(dataframe.iloc[:, -1] - output)
-        close_sample = dataframe[difference == min(difference)].iloc[0].to_dict()
+    def __find_closer_sample(dataframe: pd.DataFrame, output: float | str) -> dict[str, tuple]:
+        if isinstance(output, str):
+            close_sample = dataframe[dataframe.iloc[:, -1] == output].iloc[0].to_dict()
+        else:
+            difference = abs(dataframe.iloc[:, -1] - output)
+            close_sample = dataframe[difference == min(difference)].iloc[0].to_dict()
         return close_sample
 
-    def __generate_starting_points(self, dataframe: pd.DataFrame) -> Iterable[HyperCube]:
-        desc = dataframe.iloc[:, -1].describe()
-        min_output, max_output = desc["min"], desc["max"]
+    def __generate_starting_points(self, dataframe: pd.DataFrame) -> Iterable[HyperCube | ClassificationCube]:
         if self.n_points <= 0:
             raise (Exception('InvalidAttributeValueException'))
-        points: Iterable[float] = [(max_output - min_output) / 2] if self.n_points == 1 else \
-            [min_output + (max_output - min_output) / (self.n_points - 1) * index for index in range(self.n_points)]
-        return [HyperCube.cube_from_point(ITER.__find_closer_sample(dataframe, point)) for point in points]
+        points: Iterable[float]
+        if isinstance(dataframe.iloc[0, -1], str):
+            self.output = HyperCubeExtractor.Target.CLASSIFICATION
+            classes = np.unique(dataframe.iloc[:, -1].values)
+            points = [classes[i] for i in range(min(self.n_points, len(classes)))]
+        else:
+            desc = dataframe.iloc[:, -1].describe()
+            min_output, max_output = desc["min"], desc["max"]
+            points = [(max_output - min_output) / 2] if self.n_points == 1 else \
+                [min_output + (max_output - min_output) / (self.n_points - 1) * index for index in range(self.n_points)]
+        return [HyperCube.cube_from_point(ITER.__find_closer_sample(dataframe, point), output=self.output)
+                for point in points]
 
     def __init(self, dataframe: pd.DataFrame) -> tuple[Iterable[HyperCube], DomainProperties]:
         self.__fake_dataframe = dataframe.copy()
-        surrounding = HyperCube.create_surrounding_cube(dataframe)
+        surrounding = HyperCube.create_surrounding_cube(dataframe, output=self.output)
         min_updates = self.__calculate_min_updates(surrounding)
         self._hypercubes = self.__init_hypercubes(dataframe, min_updates, surrounding)
         for hypercube in self._hypercubes:
@@ -125,7 +137,7 @@ class ITER(HyperCubeExtractor):
             dataframe: pd.DataFrame,
             min_updates: Iterable[MinUpdate],
             surrounding: HyperCube
-    ) -> Iterable[HyperCube]:
+    ) -> Iterable[HyperCube | ClassificationCube]:
         while True:
             hypercubes = self.__generate_starting_points(dataframe)
             for hypercube in hypercubes:
@@ -164,7 +176,7 @@ class ITER(HyperCubeExtractor):
             iterations += self.__iterate(fake, self._hypercubes, domain, self.max_iterations - iterations)
             if (iterations >= self.max_iterations) or (not self.fill_gaps):
                 break
-            temp_train = temp_train.iloc[np.isnan(self.predict(temp_train.iloc[:, :-1]))]
+            temp_train = temp_train.iloc[[p is None for p in self.predict(temp_train.iloc[:, :-1])]]
             if temp_train.shape[0] > 0:
                 point, ratio, overlap, new_cube = temp_train.iloc[0].to_dict(), 1.0, True, None
                 temp_train = temp_train.drop([temp_train.index[0]])
