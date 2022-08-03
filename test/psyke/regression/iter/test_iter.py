@@ -35,11 +35,11 @@ class TestIter(unittest.TestCase):
         expected = np.array([float(query.solved_query.get_arg_at(index).value)
                              if query.is_yes else 0 for query in substitutions])
         '''
-        ITER is not exhaustive so all entry's predictions that are not inside an hypercube are nan.
-        In python nan == nan is always False so for this test we do not consider them.
+        ITER is not exhaustive so all entry's predictions that are not inside an hypercube are None.
+        In python None == None is always False so for this test we do not consider them.
         '''
-        idx = np.isnan(predictions)
-        self.assertTrue(max(abs(predictions[~idx] - expected[~idx])) < get_default_precision())
+        idx = [prediction is not None for prediction in predictions]
+        self.assertTrue(max(abs(predictions[idx] - expected[idx])) < get_default_precision())
 
 
 if __name__ == '__main__':
