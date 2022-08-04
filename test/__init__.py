@@ -41,7 +41,7 @@ def get_model(model_type: str, parameters: dict):
     elif model_type.lower() == 'knnc':
         return KNeighborsClassifier(**parameters)  # It's deterministic, don't have a random_state
     elif model_type.lower() == 'dtc':
-        return DecisionTreeClassifier(random_state=np.random.seed(get_default_random_seed()))
+        return DecisionTreeClassifier(max_leaf_nodes=3, random_state=np.random.seed(get_default_random_seed()))
     elif model_type.lower() == 'dtr':
         return DecisionTreeRegressor(max_depth=3, random_state=np.random.seed(get_default_random_seed()))
     else:
