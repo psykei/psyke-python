@@ -17,20 +17,21 @@ class TestGridEx(unittest.TestCase):
     def test_extract(self):
         logger.info(self.expected_theory)
         logger.info(self.extracted_theory)
+        print(self.extracted_theory)
 
-        if isinstance(self.test_set.iloc[0, -1], str):
-            self.assertTrue(self.expected_theory.equals(self.extracted_theory, False))
-        else:
-            for exp, ext in zip(self.expected_theory, self.extracted_theory):
-                for v1, v2 in zip(exp.head.args, ext.head.args):
-                    if isinstance(v1, Var):
-                        self.assertTrue(isinstance(v2, Var))
-                        self.assertTrue(v1.equals(v2, False))
-                    elif isinstance(v1, Real):
-                        self.assertTrue(isinstance(v2, Real))
-                        self.assertTrue(are_similar(v1, v2))
-                for t1, t2 in zip(exp.body, ext.body):
-                    are_equal(self, t1, t2)
+        #if isinstance(self.test_set.iloc[0, -1], str):
+        self.assertTrue(self.expected_theory.equals(self.extracted_theory, False))
+        #else:
+        #    for exp, ext in zip(self.expected_theory, self.extracted_theory):
+        #        for v1, v2 in zip(exp.head.args, ext.head.args):
+        #            if isinstance(v1, Var):
+        #                self.assertTrue(isinstance(v2, Var))
+        #                self.assertTrue(v1.equals(v2, False))
+        #            elif isinstance(v1, Real):
+        #                self.assertTrue(isinstance(v2, Real))
+        #                self.assertTrue(are_similar(v1, v2))
+        #        for t1, t2 in zip(exp.body, ext.body):
+        #            are_equal(self, t1, t2)
 
     def test_predict(self):
         predictions = self.extractor.predict(self.test_set.iloc[:, :-1])
@@ -54,7 +55,8 @@ class TestGridEx(unittest.TestCase):
         if isinstance(predictions[idx][0], str):
             self.assertTrue(all([pred == exp for (pred, exp) in zip(predictions[idx], expected[idx])]))
         else:
-            self.assertTrue(max(abs(predictions[idx] - np.array(expected)[idx])) < get_default_precision())
+            print(abs(predictions[idx] - expected[idx]))
+            self.assertTrue(max(abs(predictions[idx] - expected[idx])) < get_default_precision())
 
 
 if __name__ == '__main__':

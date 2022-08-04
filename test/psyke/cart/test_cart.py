@@ -23,10 +23,6 @@ class TestCart(unittest.TestCase):
 
     def test_predict(self):
         self.assertEqual(self.extracted_test_y_from_theory, self.extracted_test_y_from_pruned_theory)
-        print(self.expected_theory)
-        print(self.extracted_theory)
-        print(self.extracted_test_y_from_theory)
-        print(self.extracted_test_y_from_extractor)
         if isinstance(self.extracted_test_y_from_theory[0], str):
             self.assertTrue(all(self.extracted_test_y_from_theory == self.extracted_test_y_from_extractor))
         else:
