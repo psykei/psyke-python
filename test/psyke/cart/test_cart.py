@@ -1,9 +1,8 @@
-from cmath import isclose
+import numpy as np
 from parameterized import parameterized_class
-from psyke.utils.logic import pretty_theory
-
+from psyke.utils import get_default_precision
 from psyke import logger
-from test.psyke import initialize, ACCEPTABLE_FIDELITY
+from test.psyke import initialize
 import unittest
 
 """ 
@@ -23,13 +22,12 @@ class TestCart(unittest.TestCase):
         self.assertTrue(self.expected_theory.equals(self.extracted_theory, False))
 
     def test_predict(self):
-        if not isinstance(self.extracted_test_y_from_theory[0], str) \
-                and self.extracted_test_y_from_theory[0].is_number:
-            matches = sum(isclose(self.extracted_test_y_from_theory[i].value, self.extracted_test_y_from_extractor[i])
-                          for i in range(len(self.extracted_test_y_from_theory)))
+        if isinstance(self.extracted_test_y_from_theory[0], str):
+            self.assertTrue(all(self.extracted_test_y_from_theory == self.extracted_test_y_from_extractor))
         else:
-            matches = sum(self.extracted_test_y_from_theory == self.extracted_test_y_from_extractor)
-        self.assertTrue(matches / self.test_set.shape[0] > ACCEPTABLE_FIDELITY)
+            array_from_theory = np.array([item if isinstance(item, float) else float(item.value) for item in self.extracted_test_y_from_theory])
+            array_from_exractor = np.array([item if isinstance(item, float) else float(item.value) for item in self.extracted_test_y_from_theory])
+            self.assertTrue(max(abs(array_from_theory - array_from_exractor) < get_default_precision()))
 
 
 if __name__ == '__main__':

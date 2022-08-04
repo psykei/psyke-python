@@ -36,6 +36,7 @@ class Cart(Extractor):
     def _create_theory(self, data: pd.DataFrame) -> Theory:
         new_theory = mutable_theory()
         for name, value in self._cart_predictor:
+            # TODO: probably there is a bug in simplify.
             name = [(n[0], n[1]) for n in name if not self._simplify or n[2]]
             variables = create_variable_list(self.discretization, data)
             new_theory.assertZ(
