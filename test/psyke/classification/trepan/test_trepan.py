@@ -15,7 +15,6 @@ class TestTrepan(unittest.TestCase):
         self.assertTrue(self.expected_theory.equals(self.extracted_theory, False))
 
     def test_predict(self):
-        self.assertEqual(self.extracted_test_y_from_theory, self.extracted_test_y_from_pruned_theory)
         if not isinstance(self.extracted_test_y_from_theory[0], str) \
                 and self.extracted_test_y_from_theory[0].is_number:
             matches = sum(isclose(self.extracted_test_y_from_theory[i].value, self.extracted_test_y_from_extractor[i])

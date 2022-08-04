@@ -101,19 +101,14 @@ def initialize(file: str) -> list[dict[str:Theory]]:
 
         extractor = get_extractor(row['extractor_type'], params)
         theory = extractor.extract(training_set)
-        # pruned_theory = theory
-        pruned_theory = prune(simplify(theory))
 
         # Compute predictions from rules
         index = test_set.shape[1] - 1
         y_element = test_set.iloc[0, -1]
         cast: Callable = lambda x: (str(x) if isinstance(y_element, str) else x)
         solver = prolog_solver(static_kb=mutable_theory(theory).assertZ(get_in_rule()).assertZ(get_not_in_rule()))
-        solver2 = prolog_solver(static_kb=mutable_theory(pruned_theory).assertZ(get_in_rule()).assertZ(get_not_in_rule()))
         substitutions = [solver.solveOnce(data_to_struct(data)) for _, data in test_set.iterrows()]
-        substitutions2 = [solver2.solveOnce(data_to_struct(data)) for _, data in test_set.iterrows()]
         expected = [cast(query.solved_query.get_arg_at(index)) if query.is_yes else -1 for query in substitutions]
-        expected2 = [cast(query.solved_query.get_arg_at(index)) if query.is_yes else -1 for query in substitutions2]
 
         predictions = extractor.predict(test_set_for_predictor.iloc[:, :-1])
         idx = [prediction is not None for prediction in predictions]
@@ -124,9 +119,7 @@ def initialize(file: str) -> list[dict[str:Theory]]:
         yield {
             'extractor': extractor,
             'extracted_theory': theory,
-            'extracted_pruned_theory': pruned_theory,
             'extracted_test_y_from_theory': expected,
-            'extracted_test_y_from_pruned_theory': expected2,
             'extracted_test_y_from_extractor': predictions,
             'test_set': test_set,
             'expected_theory': parse_theory(row['theory'] + '.') if row['theory'] != '' else None,
