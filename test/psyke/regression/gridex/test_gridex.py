@@ -44,14 +44,14 @@ class TestGridEx(unittest.TestCase):
         substitutions = [solver.solveOnce(data_to_struct(data)) for _, data in self.test_set.iterrows()]
         index = self.test_set.shape[1] - 1
         expected = np.array([query.solved_query.get_arg_at(index) if query.is_yes else '-1' for query in substitutions])
-        expected[idx] = [str(x) for x in expected[idx]] if isinstance(predictions[0], str) else \
-            [float(x) if isinstance(x, str) else float(x.value) for x in expected[idx]]
+        expected[idx] = [str(x) for x in expected[idx]] if isinstance(predictions[idx][0], str) else \
+            [float(x) if isinstance(x, int) or isinstance(x, float) else float(x.value) for x in expected[idx]]
 
         '''
         GridEx is not exhaustive so all entry's predictions that are not inside an hypercube are None.
         In python None == None is always False so for this test we do not consider them.
         '''
-        if isinstance(predictions[0], str):
+        if isinstance(predictions[idx][0], str):
             self.assertTrue(all([pred == exp for (pred, exp) in zip(predictions[idx], expected[idx])]))
         else:
             self.assertTrue(max(abs(predictions[idx] - np.array(expected)[idx])) < get_default_precision())

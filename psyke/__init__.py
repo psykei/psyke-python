@@ -117,13 +117,13 @@ class Extractor(object):
                         predictions[idx])
 
     @staticmethod
-    def cart(predictor, task: str = None, discretization: Iterable[DiscreteFeature] = None,
-             simplify: bool = True) -> Extractor:
+    def cart(predictor, max_depth: int = 3, max_leaves: int = 3,
+             discretization: Iterable[DiscreteFeature] = None, simplify: bool = True) -> Extractor:
         """
         Creates a new Cart extractor.
         """
         from psyke.cart import Cart
-        return Cart(predictor, task, discretization=discretization, simplify=simplify)
+        return Cart(predictor, max_depth, max_leaves, discretization=discretization, simplify=simplify)
 
     @staticmethod
     def iter(predictor, min_update: float = 0.1, n_points: int = 1, max_iterations: int = 600, min_examples: int = 250,

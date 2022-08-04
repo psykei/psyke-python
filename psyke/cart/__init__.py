@@ -9,24 +9,27 @@ from typing import Iterable
 import pandas as pd
 
 
-CLASSIFICATION = 'classification'
-REGRESSION = 'regression'
-ADMISSIBLE_TASKS = (CLASSIFICATION, REGRESSION)
-CART_PREDICTORS = {
-    CLASSIFICATION: CartPredictor(DecisionTreeClassifier(random_state=get_default_random_seed())),
-    REGRESSION: CartPredictor(DecisionTreeRegressor(max_depth=3, random_state=get_default_random_seed()))
-}
+# CLASSIFICATION = 'classification'
+# REGRESSION = 'regression'
+# ADMISSIBLE_TASKS = (CLASSIFICATION, REGRESSION)
+# CART_PREDICTORS = {
+#    CLASSIFICATION: CartPredictor(DecisionTreeClassifier(random_state=get_default_random_seed())),
+#    REGRESSION: CartPredictor(DecisionTreeRegressor(max_depth=3, random_state=get_default_random_seed()))
+# }
 
 
 class Cart(Extractor):
 
-    def __init__(self, predictor, task: str = CLASSIFICATION, discretization: Iterable[DiscreteFeature] = None,
-                 simplify: bool = True):
+    def __init__(self, predictor, max_depth: int = None, max_leaves: int = None,
+                 discretization: Iterable[DiscreteFeature] = None, simplify: bool = True):
         super().__init__(predictor, discretization)
-        if task in ADMISSIBLE_TASKS or task is None:
-            self._cart_predictor = CART_PREDICTORS[task if task is not None else CLASSIFICATION]
-        else:
-            raise Exception("Wrong argument for task type. Accepted values are: " + ' '.join(ADMISSIBLE_TASKS))
+        self._cart_predictor = CartPredictor()
+        self.depth = max_depth
+        self.leaves = max_leaves
+        # if task in ADMISSIBLE_TASKS or task is None:
+        #    self._cart_predictor = CART_PREDICTORS[task if task is not None else CLASSIFICATION]
+        # else:
+        #    raise Exception("Wrong argument for task type. Accepted values are: " + ' '.join(ADMISSIBLE_TASKS))
         self._simplify = simplify
 
     def _create_body(self, variables: dict[str, Var], constraints: LeafConstraints) -> Iterable[Struct]:
@@ -54,18 +57,16 @@ class Cart(Extractor):
         return new_theory
 
     def extract(self, data: pd.DataFrame) -> Theory:
-        predicted_classes = self.predictor.predict(data.iloc[:, :-1])
-        predicted_classes = pd.DataFrame(predicted_classes)
-        predicted_classes.columns = [data.columns[-1]]
-        new_data = data.iloc[:, :-1].join(predicted_classes)
-        # If for any reason the predictor was not able to predict a class, ignore that data.
-        new_data = new_data[new_data[new_data.columns[-1]].notnull()]
-        self._cart_predictor.predictor.fit(new_data.iloc[:, :-1], new_data.iloc[:, -1])
-        return self._create_theory(new_data)
+        self._cart_predictor.predictor = \
+            DecisionTreeClassifier() if isinstance(data.iloc[0, -1], str) else DecisionTreeClassifier()
+        self._cart_predictor.predictor.max_depth = self.depth
+        self._cart_predictor.predictor.max_leaf_nodes = self.leaves
+        self._cart_predictor.predictor.fit(data.iloc[:, :-1], self.predictor.predict(data.iloc[:, :-1]))
+        return self._create_theory(data)
 
     def predict(self, data) -> Iterable:
         return self._cart_predictor.predict(data)
 
     @property
     def n_rules(self) -> int:
-        return self.predictor.n_leaves
+        return self._cart_predictor.n_leaves

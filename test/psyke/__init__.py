@@ -116,9 +116,10 @@ def initialize(file: str) -> list[dict[str:Theory]]:
         expected2 = [cast(query.solved_query.get_arg_at(index)) if query.is_yes else -1 for query in substitutions2]
 
         predictions = extractor.predict(test_set_for_predictor.iloc[:, :-1])
+        idx = [prediction is not None for prediction in predictions]
         # Handle both classification and regression.
         if not isinstance(predictions[0], str):
-            predictions = np.array([round(x, get_int_precision()) for x in predictions])
+            predictions[idx] = np.array([round(x, get_int_precision()) for x in predictions[idx]])
 
         yield {
             'extractor': extractor,

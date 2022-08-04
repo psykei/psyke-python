@@ -13,7 +13,7 @@ class CartPredictor:
     A wrapper for decision and regression trees of sklearn.
     """
 
-    def __init__(self, predictor: Union[DecisionTreeClassifier, DecisionTreeRegressor]):
+    def __init__(self, predictor: Union[DecisionTreeClassifier, DecisionTreeRegressor] = DecisionTreeClassifier()):
         self._predictor = predictor
 
     def __get_constraints(self, nodes: Iterable[(int, bool)]) -> LeafConstraints:
