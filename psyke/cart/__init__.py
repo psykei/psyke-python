@@ -58,7 +58,7 @@ class Cart(Extractor):
 
     def extract(self, data: pd.DataFrame) -> Theory:
         self._cart_predictor.predictor = \
-            DecisionTreeClassifier() if isinstance(data.iloc[0, -1], str) else DecisionTreeClassifier()
+            DecisionTreeClassifier() if isinstance(data.iloc[0, -1], str) else DecisionTreeRegressor()
         self._cart_predictor.predictor.max_depth = self.depth
         self._cart_predictor.predictor.max_leaf_nodes = self.leaves
         self._cart_predictor.predictor.fit(data.iloc[:, :-1], self.predictor.predict(data.iloc[:, :-1]))

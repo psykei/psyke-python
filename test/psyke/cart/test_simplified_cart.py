@@ -1,7 +1,8 @@
+import numpy as np
 from parameterized import parameterized_class
 from sklearn.model_selection import train_test_split
 from psyke import Extractor
-from psyke.cart import CartPredictor
+from psyke.utils import get_default_precision
 from test import get_dataset, get_model
 import unittest
 
@@ -17,14 +18,17 @@ class TestSimplifiedCart(unittest.TestCase):
         train, test = train_test_split(dataset, test_size=0.5)
         tree = get_model(self.predictor, {})
         tree.fit(train.iloc[:, :-1], train.iloc[:, -1])
-        extractor = Extractor.cart(CartPredictor(tree), simplify=False, task=self.task)
+        extractor = Extractor.cart(tree, simplify=False)
         _ = extractor.extract(train)
-        simplified_extractor = Extractor.cart(CartPredictor(tree), task=self.task)
+        simplified_extractor = Extractor.cart(tree)
         _ = simplified_extractor.extract(train)
-        self.assertEqual(
-            list(extractor.predict(test.iloc[:, :-1])),
-            list(simplified_extractor.predict(test.iloc[:, :-1]))
-        )
+        if isinstance(test.iloc[0, -1], str):
+            self.assertTrue(all(np.array(extractor.predict(test.iloc[:, :-1])) ==
+                                np.array(simplified_extractor.predict(test.iloc[:, :-1]))))
+        else:
+            self.assertTrue(max(abs(np.array(extractor.predict(test.iloc[:, :-1])) -
+                                    np.array(simplified_extractor.predict(test.iloc[:, :-1])))
+                                ) < get_default_precision())
 
 
 if __name__ == '__main__':
