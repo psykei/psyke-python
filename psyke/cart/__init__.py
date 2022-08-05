@@ -14,7 +14,7 @@ TREE_SEED = get_default_random_seed()
 
 class Cart(Extractor):
 
-    def __init__(self, predictor, max_depth: int = None, max_leaves: int = None,
+    def __init__(self, predictor, max_depth: int = 3, max_leaves: int = None,
                  discretization: Iterable[DiscreteFeature] = None, simplify: bool = True):
         super().__init__(predictor, discretization)
         self._cart_predictor = CartPredictor()
@@ -27,10 +27,14 @@ class Cart(Extractor):
         for name, value in constraints:
             features = [d for d in self.discretization if name in d.admissible_values]
             feature: DiscreteFeature = features[0] if len(features) > 0 else None
-            results.append(create_term(variables[name], value) if feature is None else
-                           create_term(variables[feature.name],
-                                       feature.admissible_values[name],
-                                       isinstance(value, GreaterThan)))
+            if feature is None:
+                results.append(create_term(variables[name], value))
+            else:
+                results.append(create_term(
+                    variables[feature.name],
+                    feature.admissible_values[name],
+                    isinstance(value, GreaterThan))
+                )
         return results
 
     def _create_theory(self, data: pd.DataFrame) -> Theory:

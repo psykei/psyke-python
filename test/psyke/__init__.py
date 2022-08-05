@@ -104,11 +104,11 @@ def initialize(file: str) -> list[dict[str:Theory]]:
 
         # Compute predictions from rules
         index = test_set.shape[1] - 1
-        y_element = test_set.iloc[0, -1]
-        cast: Callable = lambda x: (str(x) if isinstance(y_element, str) else x)
+        is_classification = isinstance(test_set.iloc[0, -1], str)
+        cast: Callable = lambda x: (str(x) if is_classification else float(x.value))
         solver = prolog_solver(static_kb=mutable_theory(theory).assertZ(get_in_rule()).assertZ(get_not_in_rule()))
         substitutions = [solver.solveOnce(data_to_struct(data)) for _, data in test_set.iterrows()]
-        expected = [cast(query.solved_query.get_arg_at(index)) if query.is_yes else -1 for query in substitutions]
+        expected = [cast(query.solved_query.get_arg_at(index)) if query.is_yes else (-1 if is_classification else np.nan) for query in substitutions]
 
         predictions = extractor.predict(test_set_for_predictor.iloc[:, :-1])
         idx = [prediction is not None for prediction in predictions]

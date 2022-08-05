@@ -1,9 +1,9 @@
 from __future__ import annotations
-
 from enum import Enum
 from typing import Iterable
 import numpy as np
 import pandas as pd
+from psyke.utils import get_int_precision
 from sklearn.feature_selection import SelectKBest, f_regression, f_classif
 from sklearn.linear_model import LinearRegression
 from tuprolog.core import Var, Struct, clause
@@ -33,12 +33,15 @@ class HyperCubeExtractor(Extractor):
     def predict(self, dataframe: pd.DataFrame) -> Iterable:
         return np.array([self._predict(dict(row.to_dict())) for _, row in dataframe.iterrows()])
 
-    def _predict(self, data: dict[str, float]) -> float | None:
+    def _predict(self, data: dict[str, float]) -> float | np.nan:
         data = {k: v for k, v in data.items()}
         for cube in self._hypercubes:
             if cube.__contains__(data):
-                return HyperCubeExtractor._get_cube_output(cube, data)
-        return None
+                if self._output == self.Target.REGRESSION:
+                    return round(HyperCubeExtractor._get_cube_output(cube, data), get_int_precision())
+                else:
+                    return HyperCubeExtractor._get_cube_output(cube, data)
+        return np.nan if self._output == self.Target.REGRESSION else -1
 
     def _default_cube(self) -> HyperCube | RegressionCube | ClassificationCube:
         if self._output == HyperCubeExtractor.Target.CONSTANT:
@@ -53,7 +56,7 @@ class HyperCubeExtractor(Extractor):
             isinstance(cube, RegressionCube) else cube.output
 
     @staticmethod
-    def __create_head(dataframe: pd.DataFrame, variables: list[Var], output: float | LinearRegression) -> Struct:
+    def _create_head(dataframe: pd.DataFrame, variables: list[Var], output: float | LinearRegression) -> Struct:
         return create_head(dataframe.columns[-1], variables[:-1], output) \
             if not isinstance(output, LinearRegression) else \
             create_head(dataframe.columns[-1], variables[:-1], variables[-1])
@@ -69,7 +72,7 @@ class HyperCubeExtractor(Extractor):
             logger.info(cube.dimensions)
             variables = create_variable_list([], dataframe)
             variables[dataframe.columns[-1]] = to_var(dataframe.columns[-1])
-            head = HyperCubeExtractor.__create_head(dataframe, list(variables.values()), cube.output)
+            head = HyperCubeExtractor._create_head(dataframe, list(variables.values()), cube.output)
             body = cube.body(variables, ignore_dimensions)
             new_theory.assertZ(clause(head, body))
         return new_theory
