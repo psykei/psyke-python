@@ -28,15 +28,15 @@ class HyperCubeExtractor(Extractor):
     def predict(self, dataframe: pd.DataFrame) -> Iterable:
         return np.array([self._predict(dict(row.to_dict())) for _, row in dataframe.iterrows()])
 
-    def _predict(self, data: dict[str, float]) -> float | np.nan:
+    def _predict(self, data: dict[str, float]) -> float | None:
         data = {k: v for k, v in data.items()}
         for cube in self._hypercubes:
             if cube.__contains__(data):
-                if self._output == self.Target.REGRESSION:
-                    return round(HyperCubeExtractor._get_cube_output(cube, data), get_int_precision())
-                else:
+                if self._output == Target.CLASSIFICATION:
                     return HyperCubeExtractor._get_cube_output(cube, data)
-        return np.nan if self._output == self.Target.REGRESSION else -1
+                else:
+                    return round(HyperCubeExtractor._get_cube_output(cube, data), get_int_precision())
+        return None
 
     def _default_cube(self) -> HyperCube | RegressionCube | ClassificationCube:
         if self._output == Target.CONSTANT:

@@ -41,11 +41,11 @@ class HyperCube:
     def __contains__(self, point: dict[str, float]) -> bool:
         """
         Note that a point (dict[str, float]) is inside a hypercube if ALL its dimensions' values satisfy:
-            min_dim < value <= max_dim
+            min_dim <= value < max_dim
         :param point: an N-dimensional point
         :return: true if the point is inside the hypercube, false otherwise
         """
-        return all([(self.get_first(k) < v <= self.get_second(k)) for k, v in point.items()])
+        return all([(self.get_first(k) <= v < self.get_second(k)) for k, v in point.items()])
 
     def __eq__(self, other: HyperCube) -> bool:
         return all([(abs(dimension.this_dimension[0] - dimension.other_dimension[0]) < HyperCube.EPSILON)
