@@ -1,9 +1,7 @@
 import unittest
-from cmath import isclose
-
 from parameterized import parameterized_class
 from psyke import logger
-from test.psyke import initialize, ACCEPTABLE_FIDELITY
+from test.psyke import initialize
 
 
 @parameterized_class(initialize('real'))

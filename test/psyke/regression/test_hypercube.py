@@ -1,5 +1,6 @@
 import unittest
 import pandas as pd
+from psyke.utils import get_int_precision
 from sklearn.neighbors import KNeighborsRegressor
 from test.psyke import Predictor
 from psyke.regression.hypercube import FeatureNotFoundException, HyperCube
@@ -156,8 +157,8 @@ class TestHypercube(AbstractTestHypercube):
     def test_create_surrounding_cube(self):
         surrounding = HyperCube.create_surrounding_cube(self.dataset)
         for feature in self.dataset.columns[:-1]:
-            self.assertEqual((min(self.dataset[feature]) - HyperCube.EPSILON ** 2,
-                              max(self.dataset[feature]) + HyperCube.EPSILON ** 2),
+            self.assertEqual((round(min(self.dataset[feature]) - HyperCube.EPSILON ** 2, get_int_precision()),
+                              round(max(self.dataset[feature]) + HyperCube.EPSILON ** 2, get_int_precision())),
                              surrounding.dimensions[feature])
 
     def test_cube_from_point(self):

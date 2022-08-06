@@ -31,7 +31,7 @@ class ITER(HyperCubeExtractor):
         self.output = None
         self.__generator = Random(seed)
 
-    def __best_cube(self, dataframe: pd.DataFrame, cube: HyperCube, cubes: Iterable[Expansion]) -> Expansion | None:
+    def _best_cube(self, dataframe: pd.DataFrame, cube: HyperCube, cubes: Iterable[Expansion]) -> Expansion | None:
         expansions = []
         for limit in cubes:
             count = limit.cube.count(dataframe)
@@ -48,12 +48,12 @@ class ITER(HyperCubeExtractor):
             return sorted(expansions, key=lambda e: e.distance)[0]
         return None
 
-    def __calculate_min_updates(self, surrounding: HyperCube) -> Iterable[MinUpdate]:
+    def _calculate_min_updates(self, surrounding: HyperCube) -> Iterable[MinUpdate]:
         return [MinUpdate(name, (interval[1] - interval[0]) * self.min_update) for (name, interval) in
                 surrounding.dimensions.items()]
 
     @staticmethod
-    def __create_range(cube: HyperCube, domain: DomainProperties, feature: str, direction: str) \
+    def _create_range(cube: HyperCube, domain: DomainProperties, feature: str, direction: str)\
             -> tuple[HyperCube, tuple[float, float]]:
         min_updates, surrounding = domain
         a, b = cube[feature]
@@ -62,45 +62,45 @@ class ITER(HyperCubeExtractor):
                 if direction == '-' else (b, min(b + size, surrounding.get_second(feature))))
 
     @staticmethod
-    def __create_temp_cube(cube: HyperCube, domain: DomainProperties, hypercubes: Iterable[HyperCube], feature: str,
-                           direction: str) -> Iterable[Expansion]:
-        temp_cube, values = ITER.__create_range(cube, domain, feature, direction)
+    def _create_temp_cube(cube: HyperCube, domain: DomainProperties, hypercubes: Iterable[HyperCube], feature: str,
+                          direction: str) -> Iterable[Expansion]:
+        temp_cube, values = ITER._create_range(cube, domain, feature, direction)
         temp_cube.update_dimension(feature, values)
         overlap = temp_cube.overlap(hypercubes)
         while (overlap is not None) & (temp_cube.has_volume()):
-            overlap = ITER.__resolve_overlap(temp_cube, overlap, hypercubes, feature, direction)
+            overlap = ITER._resolve_overlap(temp_cube, overlap, hypercubes, feature, direction)
         if (temp_cube.has_volume() & (overlap is None)) & (all(temp_cube != cube for cube in hypercubes)):
             yield Expansion(temp_cube, feature, direction)
         else:
             cube.add_limit(feature, direction)
 
     @staticmethod
-    def __create_temp_cubes(cube: HyperCube, domain: DomainProperties,
-                            hypercubes: Iterable[HyperCube]) -> Iterable[Expansion]:
+    def _create_temp_cubes(cube: HyperCube, domain: DomainProperties,
+                           hypercubes: Iterable[HyperCube]) -> Iterable[Expansion]:
         tmp_cubes = []
         for feature in domain[1].dimensions.keys():
             limit = cube.check_limits(feature)
             if limit == '*':
                 continue
             for x in {'-', '+'} - {limit}:
-                tmp_cubes += ITER.__create_temp_cube(cube, domain, hypercubes, feature, x)
+                tmp_cubes += ITER._create_temp_cube(cube, domain, hypercubes, feature, x)
         return tmp_cubes
 
-    def __cubes_to_update(self, dataframe: pd.DataFrame, to_expand: Iterable[HyperCube],
-                          hypercubes: Iterable[HyperCube], domain: DomainProperties) \
+    def _cubes_to_update(self, dataframe: pd.DataFrame, to_expand: Iterable[HyperCube],
+                         hypercubes: Iterable[HyperCube], domain: DomainProperties) \
             -> Iterable[tuple[HyperCube, Expansion]]:
-        results = [(hypercube, self.__best_cube(dataframe, hypercube, self.__create_temp_cubes(
+        results = [(hypercube, self._best_cube(dataframe, hypercube, self._create_temp_cubes(
             hypercube, domain, hypercubes))) for hypercube in to_expand]
         return sorted([result for result in results if result[1] is not None], key=lambda x: x[1].distance)
 
-    def __expand_or_create(self, cube: HyperCube, expansion: Expansion, hypercubes: Iterable[HyperCube]) -> None:
+    def _expand_or_create(self, cube: HyperCube, expansion: Expansion, hypercubes: Iterable[HyperCube]) -> None:
         if expansion.distance > self.threshold:
             hypercubes += [expansion.cube]
         else:
             cube.expand(expansion, hypercubes)
 
     @staticmethod
-    def __find_closer_sample(dataframe: pd.DataFrame, output: float | str) -> dict[str, tuple]:
+    def _find_closer_sample(dataframe: pd.DataFrame, output: float | str) -> dict[str, tuple]:
         if isinstance(output, str):
             close_sample = dataframe[dataframe.iloc[:, -1] == output].iloc[0].to_dict()
         else:
@@ -108,7 +108,7 @@ class ITER(HyperCubeExtractor):
             close_sample = dataframe[difference == min(difference)].iloc[0].to_dict()
         return close_sample
 
-    def __generate_starting_points(self, dataframe: pd.DataFrame) -> Iterable[HyperCube | ClassificationCube]:
+    def _generate_starting_points(self, dataframe: pd.DataFrame) -> Iterable[HyperCube | ClassificationCube]:
         if self.n_points <= 0:
             raise (Exception('InvalidAttributeValueException'))
         points: Iterable[float]
@@ -121,26 +121,26 @@ class ITER(HyperCubeExtractor):
             min_output, max_output = desc["min"], desc["max"]
             points = [(max_output - min_output) / 2] if self.n_points == 1 else \
                 [min_output + (max_output - min_output) / (self.n_points - 1) * index for index in range(self.n_points)]
-        return [HyperCube.cube_from_point(ITER.__find_closer_sample(dataframe, point), output=self.output)
+        return [HyperCube.cube_from_point(ITER._find_closer_sample(dataframe, point), output=self.output)
                 for point in points]
 
-    def __init(self, dataframe: pd.DataFrame) -> tuple[Iterable[HyperCube], DomainProperties]:
+    def _initialize(self, dataframe: pd.DataFrame) -> tuple[Iterable[HyperCube], DomainProperties]:
         self.__fake_dataframe = dataframe.copy()
         surrounding = HyperCube.create_surrounding_cube(dataframe, output=self.output)
-        min_updates = self.__calculate_min_updates(surrounding)
-        self._hypercubes = self.__init_hypercubes(dataframe, min_updates, surrounding)
+        min_updates = self._calculate_min_updates(surrounding)
+        self._hypercubes = self._init_hypercubes(dataframe, min_updates, surrounding)
         for hypercube in self._hypercubes:
             hypercube.update(dataframe, self.predictor)
         return self._hypercubes, (min_updates, surrounding)
 
-    def __init_hypercubes(
+    def _init_hypercubes(
             self,
             dataframe: pd.DataFrame,
             min_updates: Iterable[MinUpdate],
             surrounding: HyperCube
     ) -> Iterable[HyperCube | ClassificationCube]:
         while True:
-            hypercubes = self.__generate_starting_points(dataframe)
+            hypercubes = self._generate_starting_points(dataframe)
             for hypercube in hypercubes:
                 hypercube.expand_all(min_updates, surrounding)
             self.n_points = self.n_points - 1
@@ -148,33 +148,33 @@ class ITER(HyperCubeExtractor):
                 break
         return hypercubes
 
-    def __iterate(self, dataframe: pd.DataFrame, hypercubes: Iterable[HyperCube], domain: DomainProperties,
-                  left_iteration: int) -> int:
+    def _iterate(self, dataframe: pd.DataFrame, hypercubes: Iterable[HyperCube], domain: DomainProperties,
+                 left_iteration: int) -> int:
         iterations = 0
         to_expand = [cube for cube in hypercubes if cube.limit_count < (len(dataframe.columns) - 1) * 2]
         while (len(to_expand) > 0) and (iterations < left_iteration):
-            updates = list(self.__cubes_to_update(dataframe, to_expand, hypercubes, domain))
+            updates = list(self._cubes_to_update(dataframe, to_expand, hypercubes, domain))
             if len(updates) > 0:
-                self.__expand_or_create(updates[0][0], updates[0][1], hypercubes)
+                self._expand_or_create(updates[0][0], updates[0][1], hypercubes)
             iterations += 1
             to_expand = [cube for cube in hypercubes if cube.limit_count < (len(dataframe.columns) - 1) * 2]
         return iterations
 
     @staticmethod
-    def __resolve_overlap(cube: HyperCube, overlapping_cube: HyperCube, hypercubes: Iterable[HyperCube], feature: str,
-                          direction: str) -> HyperCube:
+    def _resolve_overlap(cube: HyperCube, overlapping_cube: HyperCube, hypercubes: Iterable[HyperCube], feature: str,
+                         direction: str) -> HyperCube:
         a, b = cube[feature]
         cube.update_dimension(feature, max(overlapping_cube.get_second(feature), a) if direction == '-' else a,
                               min(overlapping_cube.get_first(feature), b) if direction == '+' else b)
         return cube.overlap(hypercubes)
 
     def extract(self, dataframe: pd.DataFrame) -> Theory:
-        self._hypercubes, domain = self.__init(dataframe)
+        self._hypercubes, domain = self._initialize(dataframe)
         temp_train = dataframe.copy()
         fake = dataframe.copy()
         iterations = 0
         while temp_train.shape[0] > 0:
-            iterations += self.__iterate(fake, self._hypercubes, domain, self.max_iterations - iterations)
+            iterations += self._iterate(fake, self._hypercubes, domain, self.max_iterations - iterations)
             if (iterations >= self.max_iterations) or (not self.fill_gaps):
                 break
             temp_train = temp_train.iloc[[p is None for p in self.predict(temp_train.iloc[:, :-1])]]

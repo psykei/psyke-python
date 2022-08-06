@@ -14,7 +14,7 @@ TREE_SEED = get_default_random_seed()
 
 class Cart(Extractor):
 
-    def __init__(self, predictor, max_depth: int = None, max_leaves: int = None,
+    def __init__(self, predictor, max_depth: int = 3, max_leaves: int = None,
                  discretization: Iterable[DiscreteFeature] = None, simplify: bool = True):
         super().__init__(predictor, discretization)
         self._cart_predictor = CartPredictor()
