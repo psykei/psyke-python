@@ -2,10 +2,7 @@ from tuprolog.core import Var, Real
 from psyke import logger
 from parameterized import parameterized_class
 from psyke.utils import get_default_precision
-from test import get_in_rule
 from test.psyke import initialize, are_similar, are_equal
-from psyke.utils.logic import data_to_struct
-from tuprolog.solve.prolog import prolog_solver
 import numpy as np
 import unittest
 
@@ -30,18 +27,12 @@ class TestIter(unittest.TestCase):
                 are_equal(self, t1, t2)
 
     def test_predict(self):
-        predictions = np.array(self.extractor.predict(self.test_set.iloc[:, :-1]))
-        solver = prolog_solver(static_kb=self.extracted_theory.assertZ(get_in_rule()))
-        substitutions = [solver.solveOnce(data_to_struct(data)) for _, data in self.test_set.iterrows()]
-        index = self.test_set.shape[1] - 1
-        expected = np.array([float(query.solved_query.get_arg_at(index).value)
-                             if query.is_yes else 0 for query in substitutions])
-        '''
-        ITER is not exhaustive so all entry's predictions that are not inside an hypercube are None.
-        In python None == None is always False so for this test we do not consider them.
-        '''
-        idx = [prediction is not None for prediction in predictions]
-        self.assertTrue(max(abs(predictions[idx] - expected[idx])) < get_default_precision())
+        if isinstance(self.extracted_test_y_from_theory[0], str):
+            self.assertTrue(all(self.extracted_test_y_from_theory == self.extracted_test_y_from_extractor))
+        else:
+            from_theory = np.array([float(str(item)) for item in self.extracted_test_y_from_theory])
+            from_exractor = np.array([float(str(item)) for item in self.extracted_test_y_from_extractor])
+            self.assertTrue(max(abs(from_theory - from_exractor)) < get_default_precision())
 
 
 if __name__ == '__main__':

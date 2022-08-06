@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from enum import Enum
 from typing import Iterable
 import numpy as np
 import pandas as pd
@@ -13,19 +12,15 @@ from psyke.regression.strategy import FixedStrategy, Strategy
 from psyke.regression.utils import Limit, MinUpdate, ZippedDimension, Expansion
 from psyke.utils.logic import create_variable_list, create_head, to_var
 from psyke.regression.hypercube import HyperCube, ClosedCube, RegressionCube, ClosedRegressionCube, ClassificationCube
+from psyke.utils import Target
 
 
 class HyperCubeExtractor(Extractor):
 
-    class Target(Enum):
-        CLASSIFICATION = 1,
-        CONSTANT = 2,
-        REGRESSION = 3
-
     def __init__(self, predictor):
         super().__init__(predictor)
         self._hypercubes = []
-        self._output = HyperCubeExtractor.Target.CONSTANT
+        self._output = Target.CONSTANT
 
     def extract(self, dataframe: pd.DataFrame) -> Theory:
         raise NotImplementedError('extract')
@@ -41,9 +36,9 @@ class HyperCubeExtractor(Extractor):
         return None
 
     def _default_cube(self) -> HyperCube | RegressionCube | ClassificationCube:
-        if self._output == HyperCubeExtractor.Target.CONSTANT:
+        if self._output == Target.CONSTANT:
             return HyperCube()
-        if self._output == HyperCubeExtractor.Target.REGRESSION:
+        if self._output == Target.REGRESSION:
             return RegressionCube()
         return ClassificationCube()
 
@@ -63,14 +58,13 @@ class HyperCubeExtractor(Extractor):
 
     def _create_theory(self, dataframe: pd.DataFrame) -> Theory:
         new_theory = mutable_theory()
-        ignore_dimensions = self._ignore_dimensions()
         for cube in self._hypercubes:
             logger.info(cube.output)
             logger.info(cube.dimensions)
             variables = create_variable_list([], dataframe)
             variables[dataframe.columns[-1]] = to_var(dataframe.columns[-1])
             head = HyperCubeExtractor.__create_head(dataframe, list(variables.values()), cube.output)
-            body = cube.body(variables, ignore_dimensions)
+            body = cube.body(variables, self._ignore_dimensions())
             new_theory.assertZ(clause(head, body))
         return new_theory
 

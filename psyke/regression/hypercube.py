@@ -7,6 +7,7 @@ from numpy import ndarray
 from sklearn.linear_model import LinearRegression
 from tuprolog.core import Var, Struct
 
+from psyke.utils import Target
 from psyke.regression import Limit, MinUpdate, ZippedDimension, Expansion
 from random import Random
 import numpy as np
@@ -146,18 +147,18 @@ class HyperCube:
                                 output=None) -> \
             HyperCube | ClassificationCube | ClosedCube | ClosedRegressionCube | ClosedClassificationCube:
         from psyke.regression import HyperCubeExtractor
-        output = HyperCubeExtractor.Target.CONSTANT if output is None else output
+        output = Target.CONSTANT if output is None else output
         dimensions = {
             column: (min(dataset[column]) - HyperCube.EPSILON ** 2, max(dataset[column]) + HyperCube.EPSILON ** 2)
             for column in dataset.columns[:-1]
         }
         if closed:
-            if output == HyperCubeExtractor.Target.CONSTANT:
+            if output == Target.CONSTANT:
                 return ClosedCube(dimensions)
-            if output == HyperCubeExtractor.Target.REGRESSION:
+            if output == Target.REGRESSION:
                 return ClosedRegressionCube(dimensions)
             return ClosedClassificationCube(dimensions)
-        if output == HyperCubeExtractor.Target.CLASSIFICATION:
+        if output == Target.CLASSIFICATION:
             return ClassificationCube(dimensions)
         return HyperCube(dimensions)
 

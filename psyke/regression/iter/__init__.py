@@ -4,10 +4,11 @@ from typing import Iterable
 import numpy as np
 import pandas as pd
 from tuprolog.theory import Theory
+
 from psyke.regression.hypercube import HyperCube
 from psyke.regression import HyperCubeExtractor, ClassificationCube
 from psyke.regression.utils import Expansion, MinUpdate
-from psyke.utils import get_default_random_seed
+from psyke.utils import get_default_random_seed, Target
 
 DomainProperties = (Iterable[MinUpdate], HyperCube)
 
@@ -52,13 +53,13 @@ class ITER(HyperCubeExtractor):
                 surrounding.dimensions.items()]
 
     @staticmethod
-    def __create_range(cube: HyperCube, domain: DomainProperties, feature: str, direction: str)\
+    def __create_range(cube: HyperCube, domain: DomainProperties, feature: str, direction: str) \
             -> tuple[HyperCube, tuple[float, float]]:
         min_updates, surrounding = domain
         a, b = cube[feature]
         size = [min_update for min_update in min_updates if min_update.name == feature][0].value
-        return (cube.copy(), (max(a - size, surrounding.get_first(feature)), a) if direction == '-' else
-        (b, min(b + size, surrounding.get_second(feature))))
+        return (cube.copy(), (max(a - size, surrounding.get_first(feature)), a)
+                if direction == '-' else (b, min(b + size, surrounding.get_second(feature))))
 
     @staticmethod
     def __create_temp_cube(cube: HyperCube, domain: DomainProperties, hypercubes: Iterable[HyperCube], feature: str,
@@ -112,7 +113,7 @@ class ITER(HyperCubeExtractor):
             raise (Exception('InvalidAttributeValueException'))
         points: Iterable[float]
         if isinstance(dataframe.iloc[0, -1], str):
-            self.output = HyperCubeExtractor.Target.CLASSIFICATION
+            self.output = Target.CLASSIFICATION
             classes = np.unique(dataframe.iloc[:, -1].values)
             points = [classes[i] for i in range(min(self.n_points, len(classes)))]
         else:

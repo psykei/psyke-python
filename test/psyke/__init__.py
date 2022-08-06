@@ -67,7 +67,8 @@ def initialize(file: str) -> list[dict[str:Theory]]:
         columns = sorted(dataset.columns[:-1]) + [dataset.columns[-1]]
         dataset = dataset.reindex(columns, axis=1)
 
-        training_set, test_set = train_test_split(dataset, test_size=0.5, random_state=get_default_random_seed())
+        training_set, test_set = train_test_split(dataset, test_size=0.05 if row['dataset'].lower() == 'house' else 0.5,
+                                                  random_state=get_default_random_seed())
 
         schema, test_set_for_predictor = None, test_set
         if 'disc' in row.keys() and bool(row['disc']):
@@ -108,19 +109,19 @@ def initialize(file: str) -> list[dict[str:Theory]]:
         cast: Callable = lambda x: (str(x) if isinstance(y_element, str) else x)
         solver = prolog_solver(static_kb=mutable_theory(theory).assertZ(get_in_rule()).assertZ(get_not_in_rule()))
         substitutions = [solver.solveOnce(data_to_struct(data)) for _, data in test_set.iterrows()]
-        expected = [cast(query.solved_query.get_arg_at(index)) if query.is_yes else -1 for query in substitutions]
+        expected = [cast(query.solved_query.get_arg_at(index)) for query in substitutions if query.is_yes]
 
         predictions = extractor.predict(test_set_for_predictor.iloc[:, :-1])
-        idx = [prediction is not None for prediction in predictions]
+        predictions = [prediction for prediction in predictions if prediction is not None]
         # Handle both classification and regression.
         if not isinstance(predictions[0], str):
-            predictions[idx] = np.array([round(x, get_int_precision()) for x in predictions[idx]])
+            predictions = [round(prediction, get_int_precision()) for prediction in predictions]
 
         yield {
             'extractor': extractor,
             'extracted_theory': theory,
-            'extracted_test_y_from_theory': expected,
-            'extracted_test_y_from_extractor': predictions,
+            'extracted_test_y_from_theory': np.array(expected),
+            'extracted_test_y_from_extractor': np.array(predictions),
             'test_set': test_set,
             'expected_theory': parse_theory(row['theory'] + '.') if row['theory'] != '' else None,
             'discretization': schema

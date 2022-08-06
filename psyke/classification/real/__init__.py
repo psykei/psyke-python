@@ -25,7 +25,7 @@ class REAL(Extractor):
 
     @property
     def n_rules(self):
-        return len(self.__ruleset)
+        return len(self.__ruleset.flatten())
 
     def __covers(self, sample: pd.Series, rules: list[Rule]) -> bool:
         new_rule = self.__rule_from_example(sample)
@@ -94,7 +94,7 @@ class REAL(Extractor):
     def __predict(self, sample: pd.Series):
         x = [index for index, rule in self.__ruleset.flatten() if self.__rule_from_example(sample) in rule]
         reverse_mapping = dict((v, k) for k, v in self.__output_mapping.items())
-        return reverse_mapping[x[0]] if len(x) > 0 else -1
+        return reverse_mapping[x[0]] if len(x) > 0 else None
 
     def __rule_from_example(self, sample: pd.Series) -> Rule:
         true_predicates, false_predicates = [], []

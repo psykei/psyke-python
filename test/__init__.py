@@ -48,7 +48,7 @@ def get_model(model_type: str, parameters: dict):
         raise NotImplementedError(model_type + ' not handled yet.')
 
 
-def get_in_rule(min_included: bool = False, max_included: bool = True) -> Clause:
+def get_in_rule(min_included: bool = True, max_included: bool = False) -> Clause:
     """
     Create the logic 'in' predicate in(X, [Min, Max]).
     The predicate is true if X is in between Min and Max.
@@ -58,16 +58,7 @@ def get_in_rule(min_included: bool = False, max_included: bool = True) -> Clause
     """
     in_textual_rule: Callable = lambda x, y: "in(X, [Min, Max]) :- !, X " + x + " Min, X " + y + " Max."
     parser = DEFAULT_CLAUSES_PARSER
-    if min_included:
-        if max_included:
-            theory = parser.parse_clauses(in_textual_rule(GE, LE), operators=None)
-        else:
-            theory = parser.parse_clauses(in_textual_rule(GE, L), operators=None)
-    else:
-        if max_included:
-            theory = parser.parse_clauses(in_textual_rule(G, LE), operators=None)
-        else:
-            theory = parser.parse_clauses(in_textual_rule(G, L), operators=None)
+    theory = parser.parse_clauses(in_textual_rule(GE if min_included else G, LE if max_included else L), operators=None)
     return theory[0]
 
 
@@ -81,16 +72,8 @@ def get_not_in_rule(min_included: bool = True, max_included: bool = False) -> Cl
     """
     not_in_textual_rule: Callable = lambda x, y: "not_in(X, [Min, Max]) :- X " + x + " Min; X " + y + " Max."
     parser = DEFAULT_CLAUSES_PARSER
-    if min_included:
-        if max_included:
-            theory = parser.parse_clauses(not_in_textual_rule(LE, GE), operators=None)
-        else:
-            theory = parser.parse_clauses(not_in_textual_rule(LE, G), operators=None)
-    else:
-        if max_included:
-            theory = parser.parse_clauses(not_in_textual_rule(L, GE), operators=None)
-        else:
-            theory = parser.parse_clauses(not_in_textual_rule(L, G), operators=None)
+    theory = parser.parse_clauses(not_in_textual_rule(LE if min_included else L, GE if max_included else G),
+                                  operators=None)
     return theory[0]
 
 

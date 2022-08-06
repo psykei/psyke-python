@@ -2,6 +2,7 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score, f1_score, accuracy_score
+
 from psyke.schema import DiscreteFeature
 from psyke.utils import get_default_random_seed
 from tuprolog.theory import Theory
@@ -117,6 +118,14 @@ class Extractor(object):
                         predictions[idx])
 
     @staticmethod
+    def exact(depth: int, error_threshold: float, output, gauss_components: int = 2):
+        """
+        Creates a new ExACT instance.
+        """
+        from psyke.clustering.exact import ExACT
+        return ExACT(depth, error_threshold, output, gauss_components)
+
+    @staticmethod
     def cart(predictor, max_depth: int = 3, max_leaves: int = 3,
              discretization: Iterable[DiscreteFeature] = None, simplify: bool = True) -> Extractor:
         """
@@ -161,12 +170,13 @@ class Extractor(object):
         return CREAM(predictor, depth, error_threshold, output, gauss_components)
 
     @staticmethod
-    def creepy(predictor, depth: int, error_threshold: float, output, gauss_components: int = 2) -> Extractor:
+    def creepy(predictor, depth: int, error_threshold: float, output, gauss_components: int = 2,
+               ranks: [(str, float)] = [], ignore_threshold: float = 0.0) -> Extractor:
         """
         Creates a new CReEPy extractor.
         """
         from psyke.clustering.creepy import CReEPy
-        return CReEPy(predictor, depth, error_threshold, output, gauss_components)
+        return CReEPy(predictor, depth, error_threshold, output, gauss_components, ranks, ignore_threshold)
 
     @staticmethod
     def real(predictor, discretization=None) -> Extractor:

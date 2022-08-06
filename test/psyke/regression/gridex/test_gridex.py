@@ -12,7 +12,6 @@ class TestGridEx(unittest.TestCase):
     def test_extract(self):
         logger.info(self.expected_theory)
         logger.info(self.extracted_theory)
-        print(self.extracted_theory)
 
         self.assertTrue(self.expected_theory.equals(self.extracted_theory, False))
 
@@ -20,11 +19,9 @@ class TestGridEx(unittest.TestCase):
         if isinstance(self.extracted_test_y_from_theory[0], str):
             self.assertTrue(all(self.extracted_test_y_from_theory == self.extracted_test_y_from_extractor))
         else:
-            array_from_theory = np.array(
-                [item if isinstance(item, float) else float(item.value) for item in self.extracted_test_y_from_theory])
-            array_from_exractor = np.array(
-                [item if isinstance(item, float) else float(item.value) for item in self.extracted_test_y_from_theory])
-            self.assertTrue(max(abs(array_from_theory - array_from_exractor) < get_default_precision()))
+            from_theory = np.array([float(str(item)) for item in self.extracted_test_y_from_theory])
+            from_exractor = np.array([float(str(item)) for item in self.extracted_test_y_from_extractor])
+            self.assertTrue(max(abs(from_theory - from_exractor)) < get_default_precision())
 
 
 if __name__ == '__main__':

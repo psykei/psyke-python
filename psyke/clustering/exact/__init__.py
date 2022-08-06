@@ -6,20 +6,23 @@ from typing import Iterable
 import numpy as np
 import pandas as pd
 from sklearn.cluster import DBSCAN
-from tuprolog.theory import Theory
-from psyke.clustering import ClusterExtractor
+from sklearn.neighbors import KNeighborsClassifier, KNeighborsRegressor
+
+from psyke.clustering import InterpretableClustering
 from psyke.regression import Node, ClosedCube, HyperCube
 from psyke.clustering.utils import select_gaussian_mixture, select_dbscan_epsilon
+from psyke.utils import Target
 
 
-class CReEPy(ClusterExtractor):
+class ExACT(InterpretableClustering):
     """
-    Explanator implementing CReEPy algorithm.
+    Explanator implementing ExACT algorithm.
     """
 
-    def __init__(self, predictor, depth: int, error_threshold: float,
-                 output: ClusterExtractor.Target = ClusterExtractor.Target.CONSTANT, gauss_components: int = 5):
-        super().__init__(predictor, depth, error_threshold, output, gauss_components)
+    def __init__(self, depth: int, error_threshold: float, output: Target = Target.CONSTANT, gauss_components: int = 5):
+        super().__init__(depth, error_threshold, output, gauss_components)
+        self.predictor = KNeighborsClassifier() if output == Target.CLASSIFICATION else KNeighborsRegressor()
+        self.predictor.n_neighbors = 1
 
     def _split(self, right: ClosedCube, outer_cube: ClosedCube, data: pd.DataFrame, indices: np.ndarray):
         right.update(data.iloc[indices], self.predictor)
@@ -45,17 +48,18 @@ class CReEPy(ClusterExtractor):
         return indices
 
     def _create_cube(self, dataframe: pd.DataFrame, clusters: int) -> ClosedCube:
-        data = CReEPy._remove_string_label(dataframe)
+        data = ExACT._remove_string_label(dataframe)
         dbscan_pred = DBSCAN(eps=select_dbscan_epsilon(data, clusters)).fit_predict(data.iloc[:, :-1])
         return HyperCube.create_surrounding_cube(
             dataframe.iloc[np.where(dbscan_pred == Counter(dbscan_pred).most_common(1)[0][0])],
             True, self._output
         )
 
-    def extract(self, dataframe: pd.DataFrame) -> Theory:
+    def extract(self, dataframe: pd.DataFrame) -> Iterable[HyperCube]:
+        self.predictor.fit(dataframe.iloc[:, :-1], dataframe.iloc[:, -1])
         self._hypercubes = \
             self._iterate(Node(dataframe, HyperCube.create_surrounding_cube(dataframe, True, self._output)))
-        return self._create_theory(dataframe)
+        return list(self._hypercubes)
 
     @staticmethod
     def _remove_string_label(dataframe: pd.DataFrame):
@@ -68,7 +72,7 @@ class CReEPy(ClusterExtractor):
         while len(to_split) > 0:
             to_split.sort(reverse=True)
             (_, depth, _, node) = to_split.pop()
-            data = CReEPy._remove_string_label(node.dataframe)
+            data = ExACT._remove_string_label(node.dataframe)
             gauss_params = select_gaussian_mixture(data, self.gauss_components)
             gauss_pred = gauss_params[2].predict(data)
             cubes, indices = self.__eligible_cubes(gauss_pred, node, gauss_params[1])
