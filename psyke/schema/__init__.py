@@ -245,6 +245,9 @@ class Interval(Value):
     def __repr__(self):
         return f"Interval({self.lower:.2f}, {self.upper:.2f})"
 
+    def __eq__(self, other: Between) -> bool:
+        return (self.upper == other.upper) and (self.lower == other.lower) and (self.standard == other.standard)
+
 
 class LessThan(Interval):
 
@@ -261,6 +264,9 @@ class LessThan(Interval):
     def __repr__(self):
         return f"LessThan({self.value:.2f})"
 
+    def __eq__(self, other: LessThan) -> bool:
+        return (self.upper == other.upper) and (self.value == other.value) and (self.standard == other.standard)
+
 
 class GreaterThan(Interval):
 
@@ -276,6 +282,9 @@ class GreaterThan(Interval):
 
     def __repr__(self):
         return f"GreaterThan({self.value:.2f})"
+
+    def __eq__(self, other: GreaterThan) -> bool:
+        return (self.lower == other.lower) and (self.value == other.value) and (self.standard == other.standard)
 
 
 class Between(Interval):

@@ -24,25 +24,36 @@ class Cart(Extractor):
 
     def _create_body(self, variables: dict[str, Var], constraints: LeafConstraints) -> Iterable[Struct]:
         results = []
-        for name, value in constraints:
-            features = [d for d in self.discretization if name in d.admissible_values]
+        for feature_name, constraint, value in constraints:
+            features = [d for d in self.discretization if feature_name in d.admissible_values]
             feature: DiscreteFeature = features[0] if len(features) > 0 else None
-            results.append(create_term(variables[name], value) if feature is None else
+            results.append(create_term(variables[feature_name], constraint) if feature is None else
                            create_term(variables[feature.name],
-                                       feature.admissible_values[name],
-                                       isinstance(value, GreaterThan)))
+                                       feature.admissible_values[feature_name],
+                                       isinstance(constraint, GreaterThan)))
         return results
+
+    @staticmethod
+    def _simplify_nodes(nodes: list) -> Iterable:
+        simplified = [nodes.pop(0)]
+        while len(nodes) > 0:
+            first_node = nodes[0][0]
+            for condition in first_node:
+                if all([condition in [node[0] for node in nodes][i] for i in range(len(nodes))]):
+                    [node[0].remove(condition) for node in nodes]
+            simplified.append(nodes.pop(0))
+        return simplified
 
     def _create_theory(self, data: pd.DataFrame) -> Theory:
         new_theory = mutable_theory()
-        for name, value in self._cart_predictor:
-            # TODO: probably there is a bug in simplify.
-            name = [(n[0], n[1]) for n in name if not self._simplify or n[2]]
+        nodes = [node for node in self._cart_predictor]
+        nodes = Cart._simplify_nodes(nodes) if self._simplify else nodes
+        for (constraints, prediction) in nodes:
             variables = create_variable_list(self.discretization, data)
             new_theory.assertZ(
                 clause(
-                    create_head(data.columns[-1], list(variables.values()), value),
-                    self._create_body(variables, name)
+                    create_head(data.columns[-1], list(variables.values()), prediction),
+                    self._create_body(variables, constraints)
                 )
             )
         return new_theory

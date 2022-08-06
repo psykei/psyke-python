@@ -17,14 +17,14 @@ class CartPredictor:
         self._predictor = predictor
 
     def __get_constraints(self, nodes: Iterable[(int, bool)]) -> LeafConstraints:
+        thresholds = [self._predictor.tree_.threshold[i[0]] for i in nodes]
         return [(self._predictor.feature_names_in_[self._predictor.tree_.feature[i[0]]],
-                 LessThan(self._predictor.tree_.threshold[i[0]]) if i[1] else
-                 GreaterThan(self._predictor.tree_.threshold[i[0]]), i[1]) for i in nodes]
+                 LessThan(th) if i[1] else GreaterThan(th), i[1]) for i, th in zip(nodes, thresholds)]
 
     def __get_leaves(self) -> Iterable[int]:
-        left_orphan = [i for i, v in enumerate(self._predictor.tree_.children_left) if v == -1]
-        right_orphan = [i for i, v in enumerate(self._predictor.tree_.children_right) if v == -1]
-        return [v for v in left_orphan if v in left_orphan and v in right_orphan]
+        return [i for i, (left_child, right_child) in enumerate(zip(
+            self._left_children, self._right_children
+        )) if left_child == -1 and right_child == -1]
 
     def __get_prediction(self, node: int) -> Any:
         if hasattr(self._predictor, 'classes_'):
@@ -35,11 +35,8 @@ class CartPredictor:
     def __path(self, node: int, path=[]) -> Iterable[(int, bool)]:
         if node == 0:
             return path
-        else:
-            father_left = [(i, True) for i, v in enumerate(self._predictor.tree_.children_left) if v == node]
-            father_right = [(i, False) for i, v in enumerate(self._predictor.tree_.children_right) if v == node]
-            father: (int, bool) = (father_left + father_right)[0]
-            return self.__path(father[0], [father] + path)
+        father = list(self._left_children if node in self._left_children else self._right_children).index(node)
+        return self.__path(father, [(father, node in self._left_children)] + path)
 
     def __iter__(self) -> LeafSequence:
         leaves = self.__get_leaves()
@@ -55,6 +52,14 @@ class CartPredictor:
     @property
     def n_leaves(self) -> int:
         return len(list(self.__get_leaves()))
+
+    @property
+    def _left_children(self) -> list[int]:
+        return self._predictor.tree_.children_left
+
+    @property
+    def _right_children(self) -> list[int]:
+        return self._predictor.tree_.children_right
 
     @predictor.setter
     def predictor(self, predictor: Union[DecisionTreeClassifier, DecisionTreeRegressor]):
