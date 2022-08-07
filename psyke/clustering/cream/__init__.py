@@ -3,21 +3,22 @@ from __future__ import annotations
 from typing import Iterable
 
 import numpy as np
+import pandas as pd
 
 import psyke.utils
-from psyke.regression import Node, HyperCube
-from psyke.clustering.creepy import CReEPy
+from psyke.clustering.exact import ExACT
+from psyke.regression import Node, HyperCube, ClosedCube
 from psyke.clustering.utils import select_gaussian_mixture
 
 
-class CREAM(CReEPy):
+class CREAM(ExACT):
     """
     Explanator implementing CREAM algorithm.
     """
 
-    def __init__(self, predictor, depth: int, error_threshold: float,
+    def __init__(self, depth: int, error_threshold: float,
                  output: psyke.utils.Target = psyke.utils.Target.CONSTANT, gauss_components: int = 5):
-        super().__init__(predictor, depth, error_threshold, output, gauss_components)
+        super().__init__(depth, error_threshold, output, gauss_components)
 
     def __eligible_cubes(self, gauss_pred: np.ndarray, node: Node, clusters: int):
         cubes = []
@@ -36,12 +37,18 @@ class CREAM(CReEPy):
             ))
         return cubes
 
+    def _split(self, right: ClosedCube, outer_cube: ClosedCube, data: pd.DataFrame, indices: np.ndarray):
+        right.update(data.iloc[indices], self.predictor)
+        left = outer_cube.copy()
+        left.update(data.iloc[~indices], self.predictor)
+        return right, left
+
     def _iterate(self, surrounding: Node) -> Iterable[HyperCube]:
         to_split = [(self.error_threshold * 10, 1, 1, surrounding)]
         while len(to_split) > 0:
             to_split.sort(reverse=True)
             (_, depth, _, node) = to_split.pop()
-            data = CReEPy._remove_string_label(node.dataframe)
+            data = ExACT._remove_string_label(node.dataframe)
             gauss_params = select_gaussian_mixture(data, self.gauss_components)
             gauss_pred = gauss_params[2].predict(data)
             cubes = self.__eligible_cubes(gauss_pred, node, gauss_params[1])

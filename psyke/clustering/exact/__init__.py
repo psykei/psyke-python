@@ -24,12 +24,6 @@ class ExACT(InterpretableClustering):
         self.predictor = KNeighborsClassifier() if output == Target.CLASSIFICATION else KNeighborsRegressor()
         self.predictor.n_neighbors = 1
 
-    def _split(self, right: ClosedCube, outer_cube: ClosedCube, data: pd.DataFrame, indices: np.ndarray):
-        right.update(data.iloc[indices], self.predictor)
-        left = outer_cube.copy()
-        left.update(data.iloc[~indices], self.predictor)
-        return right, left
-
     def __eligible_cubes(self, gauss_pred: np.ndarray, node: Node, clusters: int):
         cubes = []
         for i in range(len(np.unique(gauss_pred))):
