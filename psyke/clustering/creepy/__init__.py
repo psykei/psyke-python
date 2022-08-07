@@ -5,7 +5,6 @@ from collections import Iterable
 import numpy as np
 import pandas as pd
 from sklearn.base import ClassifierMixin
-from tuprolog.core import struct
 from tuprolog.theory import Theory
 
 from psyke import Extractor
@@ -23,6 +22,7 @@ class CReEPy(HyperCubeExtractor):
         super().__init__(predictor)
         self.exact = Extractor.exact(depth, error_threshold, Target.CLASSIFICATION if
                                      isinstance(predictor, ClassifierMixin) else output, gauss_components)
+        self._output = output
         self.ranks = ranks
         self.ignore_threshold = ignore_threshold
 

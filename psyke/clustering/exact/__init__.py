@@ -61,6 +61,13 @@ class ExACT(InterpretableClustering):
             self._iterate(Node(dataframe, HyperCube.create_surrounding_cube(dataframe, True, self._output)))
         return list(self._hypercubes)
 
+    def print(self):
+        for cube in self._hypercubes:
+            print(f'Output is {cube.output} if:')
+            for feature in cube.dimensions:
+                lower, upper = cube[feature]
+                print(f'    {feature} is in [{lower:.2f}, {upper:.2f}]')
+
     @staticmethod
     def _remove_string_label(dataframe: pd.DataFrame):
         return dataframe.replace({dataframe.columns[-1]: {v: k for k, v in dict(
