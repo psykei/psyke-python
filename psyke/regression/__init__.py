@@ -2,7 +2,6 @@ from __future__ import annotations
 from typing import Iterable
 import numpy as np
 import pandas as pd
-from psyke.utils import get_int_precision
 from sklearn.feature_selection import SelectKBest, f_regression, f_classif
 from sklearn.linear_model import LinearRegression
 from tuprolog.core import Var, Struct, clause
@@ -12,7 +11,7 @@ from psyke.regression.strategy import FixedStrategy, Strategy
 from psyke.regression.utils import Limit, MinUpdate, ZippedDimension, Expansion
 from psyke.utils.logic import create_variable_list, create_head, to_var
 from psyke.regression.hypercube import HyperCube, ClosedCube, RegressionCube, ClosedRegressionCube, ClassificationCube
-from psyke.utils import Target
+from psyke.utils import Target, get_int_precision
 
 
 class HyperCubeExtractor(Extractor):

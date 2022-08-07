@@ -1,4 +1,3 @@
-import numpy as np
 from parameterized import parameterized_class
 from psyke.utils import get_default_precision
 from psyke import logger
@@ -26,11 +25,8 @@ class TestCart(unittest.TestCase):
         if isinstance(self.extracted_test_y_from_theory[0], str):
             self.assertTrue(all(self.extracted_test_y_from_theory == self.extracted_test_y_from_extractor))
         else:
-            array_from_theory = np.array([item if isinstance(item, float) else float(item.value)
-                                          for item in self.extracted_test_y_from_theory])
-            array_from_exractor = np.array([item if isinstance(item, float) else float(item.value)
-                                            for item in self.extracted_test_y_from_theory])
-            self.assertTrue(max(abs(array_from_theory - array_from_exractor)) < get_default_precision())
+            self.assertTrue(max(abs(self.extracted_test_y_from_theory - self.extracted_test_y_from_extractor)) <
+                            get_default_precision())
 
 
 if __name__ == '__main__':

@@ -28,7 +28,7 @@ class ITER(HyperCubeExtractor):
         self.min_examples = min_examples
         self.threshold = threshold
         self.fill_gaps = fill_gaps
-        self.output = None
+        self._output = None
         self.__generator = Random(seed)
 
     def _best_cube(self, dataframe: pd.DataFrame, cube: HyperCube, cubes: Iterable[Expansion]) -> Expansion | None:
@@ -41,7 +41,7 @@ class ITER(HyperCubeExtractor):
             limit.cube.update(dataframe, self.predictor)
             expansions.append(Expansion(
                 limit.cube, limit.feature, limit.direction,
-                abs(cube.output - limit.cube.output) if self.output is None else
+                abs(cube.output - limit.cube.output) if self._output == Target.CONSTANT else
                 1 - int(cube.output == limit.cube.output)
             ))
         if len(expansions) > 0:
@@ -62,7 +62,8 @@ class ITER(HyperCubeExtractor):
                 if direction == '-' else (b, min(b + size, surrounding.get_second(feature))))
 
     @staticmethod
-    def _create_temp_cube(cube: HyperCube, domain: DomainProperties, hypercubes: Iterable[HyperCube], feature: str,
+    def _create_temp_cube(cube: HyperCube | ClassificationCube, domain: DomainProperties,
+                          hypercubes: Iterable[HyperCube | ClassificationCube], feature: str,
                           direction: str) -> Iterable[Expansion]:
         temp_cube, values = ITER._create_range(cube, domain, feature, direction)
         temp_cube.update_dimension(feature, values)
@@ -86,7 +87,7 @@ class ITER(HyperCubeExtractor):
                 tmp_cubes += ITER._create_temp_cube(cube, domain, hypercubes, feature, x)
         return tmp_cubes
 
-    def _cubes_to_update(self, dataframe: pd.DataFrame, to_expand: Iterable[HyperCube],
+    def _cubes_to_update(self, dataframe: pd.DataFrame, to_expand: Iterable[HyperCube | ClassificationCube],
                          hypercubes: Iterable[HyperCube], domain: DomainProperties) \
             -> Iterable[tuple[HyperCube, Expansion]]:
         results = [(hypercube, self._best_cube(dataframe, hypercube, self._create_temp_cubes(
@@ -113,7 +114,6 @@ class ITER(HyperCubeExtractor):
             raise (Exception('InvalidAttributeValueException'))
         points: Iterable[float]
         if isinstance(dataframe.iloc[0, -1], str):
-            self.output = Target.CLASSIFICATION
             classes = np.unique(dataframe.iloc[:, -1].values)
             points = [classes[i] for i in range(min(self.n_points, len(classes)))]
         else:
@@ -121,12 +121,13 @@ class ITER(HyperCubeExtractor):
             min_output, max_output = desc["min"], desc["max"]
             points = [(max_output - min_output) / 2] if self.n_points == 1 else \
                 [min_output + (max_output - min_output) / (self.n_points - 1) * index for index in range(self.n_points)]
-        return [HyperCube.cube_from_point(ITER._find_closer_sample(dataframe, point), output=self.output)
+        return [HyperCube.cube_from_point(ITER._find_closer_sample(dataframe, point), output=self._output)
                 for point in points]
 
     def _initialize(self, dataframe: pd.DataFrame) -> tuple[Iterable[HyperCube], DomainProperties]:
+        self._output = Target.CLASSIFICATION if isinstance(dataframe.iloc[0, -1], str) else Target.CONSTANT
         self.__fake_dataframe = dataframe.copy()
-        surrounding = HyperCube.create_surrounding_cube(dataframe, output=self.output)
+        surrounding = HyperCube.create_surrounding_cube(dataframe, output=self._output)
         min_updates = self._calculate_min_updates(surrounding)
         self._hypercubes = self._init_hypercubes(dataframe, min_updates, surrounding)
         for hypercube in self._hypercubes:
@@ -185,7 +186,7 @@ class ITER(HyperCubeExtractor):
                     if new_cube is not None:
                         if not new_cube.has_volume():
                             break
-                    new_cube = HyperCube.cube_from_point(point)
+                    new_cube = HyperCube.cube_from_point(point, self._output)
                     new_cube.expand_all(domain[0], domain[1], ratio)
                     overlap = new_cube.overlap(self._hypercubes)
                     ratio *= 2

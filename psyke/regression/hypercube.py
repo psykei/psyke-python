@@ -96,7 +96,7 @@ class HyperCube:
     def filter_indices(self, dataset: pd.DataFrame) -> ndarray:
         v = np.array([v for _, v in self._dimensions.items()])
         ds = dataset.to_numpy(copy=True)
-        return np.all((v[:, 0] < ds) & (ds <= v[:, 1]), axis=1)
+        return np.all((v[:, 0] <= ds) & (ds < v[:, 1]), axis=1)
 
     def _filter_dataframe(self, dataset: pd.DataFrame) -> pd.DataFrame:
         return dataset[self.filter_indices(dataset)]
@@ -152,10 +152,9 @@ class HyperCube:
     def create_surrounding_cube(dataset: pd.DataFrame, closed: bool = False,
                                 output=None) -> \
             HyperCube | ClassificationCube | ClosedCube | ClosedRegressionCube | ClosedClassificationCube:
-        from psyke.regression import HyperCubeExtractor
         output = Target.CONSTANT if output is None else output
         dimensions = {
-            column: (min(dataset[column]) - HyperCube.EPSILON ** 2, max(dataset[column]) + HyperCube.EPSILON ** 2)
+            column: (min(dataset[column]) - HyperCube.EPSILON * 2, max(dataset[column]) + HyperCube.EPSILON * 2)
             for column in dataset.columns[:-1]
         }
         if closed:
@@ -173,10 +172,9 @@ class HyperCube:
 
     @staticmethod
     def cube_from_point(point: dict, output=None) -> HyperCube | ClassificationCube:
-        if output is None:
-            return HyperCube({k: (v, v) for k, v in list(point.items())[:-1]}, output=list(point.values())[-1])
-        else:
-            return ClassificationCube({k: (v, v) for k, v in list(point.items())[:-1]})
+        return ClassificationCube({k: (v, v) for k, v in list(point.items())[:-1]}) \
+            if output is Target.CLASSIFICATION \
+            else HyperCube({k: (v, v) for k, v in list(point.items())[:-1]}, output=list(point.values())[-1])
 
     def equal(self, hypercubes: Iterable[HyperCube] | HyperCube) -> bool:
         if isinstance(hypercubes, Iterable):
@@ -193,7 +191,7 @@ class HyperCube:
         other_cube = self.overlap(hypercubes)
         if isinstance(other_cube, HyperCube):
             self.update_dimension(feature, (other_cube.get_second(feature), b)
-                                  if expansion.direction == '-' else (a, other_cube.get_first(feature)))
+            if expansion.direction == '-' else (a, other_cube.get_first(feature)))
         if isinstance(self.overlap(hypercubes), HyperCube):
             raise Exception('Overlapping not handled')
 
@@ -215,8 +213,8 @@ class HyperCube:
 
     def diagonal(self) -> float:
         return reduce(
-            lambda a, b: a + b, [(dimension[1] - dimension[0])**2 for dimension in self._dimensions.values()], 0
-        )**0.5
+            lambda a, b: a + b, [(dimension[1] - dimension[0]) ** 2 for dimension in self._dimensions.values()], 0
+        ) ** 0.5
 
     def is_adjacent(self, cube: HyperCube) -> str | None:
         adjacent = None
@@ -284,7 +282,8 @@ class RegressionCube(HyperCube):
 
     def body(self, variables: dict[str, Var], ignore: list[str]) -> Iterable[Struct]:
         return list(super().body(variables, ignore)) + [linear_function_creator(
-            list(variables.values()), [to_rounded_real(v) for v in self.output.coef_], to_rounded_real(self.output.intercept_)
+            list(variables.values()), [to_rounded_real(v) for v in self.output.coef_],
+            to_rounded_real(self.output.intercept_)
         )]
 
 
