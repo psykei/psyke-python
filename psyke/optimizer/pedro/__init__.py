@@ -29,7 +29,7 @@ class PEDRO(Optimizer):
 
     def __search_threshold(self, grid, critical, max_partitions):
         step = self.model_mae / 2.0
-        threshold = self.model_mae * 0.9
+        threshold = self.model_mae * 0.5
         params = []
         patience = self.patience
         while patience > 0:
@@ -128,9 +128,9 @@ class PEDRO(Optimizer):
 
     def _print_params(self, name, params):
         print("**********************")
-        print("*Best {}*".format(name))
+        print(f"Best {name}")
         print("**********************")
-        print("MAE = {:.2f}, {} rules".format(params[0], params[1]))
-        print("Threshold = {:.2f}".format(params[2]))
-        print("Iterations = {}".format(params[3].iterations))
-        print("Strategy = {}".format(params[3].strategy))
+        print(f"MAE = {params[0]:.2f}, {params[1]} rules")
+        print(f"Threshold = {params[2]:.2f}")
+        print(f"Iterations = {params[3].iterations}")
+        print(f"Strategy = {params[3].strategy}")

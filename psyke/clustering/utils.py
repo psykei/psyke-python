@@ -18,19 +18,22 @@ def select_gaussian_mixture(data: pd.DataFrame, max_components) -> tuple[float, 
 
 def select_dbscan_epsilon(data: pd.DataFrame, clusters: int) -> float:
     neighbors = NearestNeighbors(n_neighbors=min(len(data.columns) * 2, len(data))).fit(data)
-    distances = sorted(np.mean(neighbors.kneighbors(data)[0], axis=1), reverse=True)
+    distances = sorted(np.mean(neighbors.kneighbors(data)[1], axis=1), reverse=True)
     try:
-        kn = KneeLocator([d for d in range(len(distances))], distances, curve='convex', direction='decreasing')
+        kn = KneeLocator([d for d in range(len(distances))], distances,
+                         curve='convex', direction='decreasing', online=True)
         if kn.knee is None:
             epsilon = max(distances[-1], 1e-3)
         else:
-            epsilon = distances[kn.knee] * .9
+            epsilon = kn.knee_y
     except (RuntimeWarning, UserWarning, ValueError):
         epsilon = max(distances[-1], 1e-3)
     k = 1.
     dbscan_pred = DBSCAN(eps=epsilon * k).fit_predict(data.iloc[:, :-1])
     # while Counter(dbscan_pred).most_common(1)[0][0] == -1:
-    while len(np.unique(dbscan_pred)) > clusters + 1:
+    for i in range(1000):
+        if len(np.unique(dbscan_pred)) < clusters + 1:
+            break
         k += .1
         dbscan_pred = DBSCAN(eps=epsilon * k).fit_predict(data.iloc[:, :-1])
     return epsilon * k

@@ -87,7 +87,7 @@ class CRASH(Optimizer):
 
     def _print_params(self, name, params):
         print("**********************")
-        print(f"*Best {name}*")
+        print(f"Best {name}")
         print("**********************")
         print(f"MAE = {params[0]:.2f}, {params[1]} rules")
         print(f"Threshold = {params[3]:.2f}")
