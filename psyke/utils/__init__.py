@@ -1,3 +1,4 @@
+from enum import Enum
 from math import log10
 from random import Random
 
@@ -69,3 +70,9 @@ def get_int_precision() -> int:
 
 def set_default_precision(value: float):
     _precision_options['precision'] = value
+
+
+class Target(Enum):
+    CLASSIFICATION = 1,
+    CONSTANT = 2,
+    REGRESSION = 3

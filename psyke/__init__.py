@@ -2,6 +2,7 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score, f1_score, accuracy_score
+
 from psyke.schema import DiscreteFeature
 from psyke.utils import get_default_random_seed
 from tuprolog.theory import Theory
@@ -55,7 +56,7 @@ class Extractor(object):
         :return: the mean absolute error (MAE) of the predictions.
         """
         predictions = np.array(self.predict(dataframe.iloc[:, :-1]))
-        idx = ~np.isnan(predictions)
+        idx = [prediction is not None for prediction in predictions]
         return mean_absolute_error(dataframe.iloc[idx, -1] if predictor is None else
                                    predictor.predict(dataframe.iloc[idx, :-1]).flatten(),
                                    predictions[idx])
@@ -69,7 +70,7 @@ class Extractor(object):
         :return: the mean squared error (MSE) of the predictions.
         """
         predictions = np.array(self.predict(dataframe.iloc[:, :-1]))
-        idx = ~np.isnan(predictions)
+        idx = [prediction is not None for prediction in predictions]
         return mean_squared_error(dataframe.iloc[idx, -1] if predictor is None else
                                   predictor.predict(dataframe.iloc[idx, :-1]).flatten(),
                                   predictions[idx])
@@ -83,7 +84,7 @@ class Extractor(object):
         :return: the R2 score of the predictions.
         """
         predictions = np.array(self.predict(dataframe.iloc[:, :-1]))
-        idx = ~np.isnan(predictions)
+        idx = [prediction is not None for prediction in predictions]
         return r2_score(dataframe.iloc[idx, -1] if predictor is None else
                         predictor.predict(dataframe.iloc[idx, :-1]).flatten(),
                         predictions[idx])
@@ -97,9 +98,10 @@ class Extractor(object):
         :return: the accuracy classification score of the predictions.
         """
         predictions = np.array(self.predict(dataframe.iloc[:, :-1]))
-        return accuracy_score(dataframe.iloc[:, -1] if predictor is None else
-                              predictor.predict(dataframe.iloc[:, :-1]).flatten(),
-                              predictions)
+        idx = [prediction is not None for prediction in predictions]
+        return accuracy_score(dataframe.iloc[idx, -1] if predictor is None else
+                              predictor.predict(dataframe.iloc[idx, :-1]).flatten(),
+                              predictions[idx])
 
     def f1(self, dataframe: pd.DataFrame, predictor=None) -> float:
         """
@@ -110,18 +112,27 @@ class Extractor(object):
         :return: the F1 score of the predictions.
         """
         predictions = np.array(self.predict(dataframe.iloc[:, :-1]))
-        return f1_score(dataframe.iloc[:, -1] if predictor is None else
-                        predictor.predict(dataframe.iloc[:, :-1]).flatten(),
-                        predictions)
+        idx = [prediction is not None for prediction in predictions]
+        return f1_score(dataframe.iloc[idx, -1] if predictor is None else
+                        predictor.predict(dataframe.iloc[idx, :-1]).flatten(),
+                        predictions[idx])
 
     @staticmethod
-    def cart(predictor, task: str = None, discretization: Iterable[DiscreteFeature] = None,
-             simplify: bool = True) -> Extractor:
+    def exact(depth: int, error_threshold: float, output, gauss_components: int = 2):
+        """
+        Creates a new ExACT instance.
+        """
+        from psyke.clustering.exact import ExACT
+        return ExACT(depth, error_threshold, output, gauss_components)
+
+    @staticmethod
+    def cart(predictor, max_depth: int = 3, max_leaves: int = 3,
+             discretization: Iterable[DiscreteFeature] = None, simplify: bool = True) -> Extractor:
         """
         Creates a new Cart extractor.
         """
         from psyke.cart import Cart
-        return Cart(predictor, task, discretization=discretization, simplify=simplify)
+        return Cart(predictor, max_depth, max_leaves, discretization=discretization, simplify=simplify)
 
     @staticmethod
     def iter(predictor, min_update: float = 0.1, n_points: int = 1, max_iterations: int = 600, min_examples: int = 250,
@@ -159,12 +170,13 @@ class Extractor(object):
         return CREAM(predictor, depth, error_threshold, output, gauss_components)
 
     @staticmethod
-    def creepy(predictor, depth: int, error_threshold: float, output, gauss_components: int = 2) -> Extractor:
+    def creepy(predictor, depth: int, error_threshold: float, output, gauss_components: int = 2,
+               ranks: [(str, float)] = [], ignore_threshold: float = 0.0) -> Extractor:
         """
         Creates a new CReEPy extractor.
         """
         from psyke.clustering.creepy import CReEPy
-        return CReEPy(predictor, depth, error_threshold, output, gauss_components)
+        return CReEPy(predictor, depth, error_threshold, output, gauss_components, ranks, ignore_threshold)
 
     @staticmethod
     def real(predictor, discretization=None) -> Extractor:

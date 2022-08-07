@@ -1,14 +1,12 @@
 from __future__ import annotations
-
 import random as rnd
 from itertools import product
 from typing import Iterable
-
 import numpy as np
 import pandas as pd
 from tuprolog.theory import Theory
-
 from psyke import get_default_random_seed
+from psyke.utils import Target
 from psyke.regression import HyperCubeExtractor, Grid
 from psyke.regression.hypercube import HyperCube
 
@@ -28,7 +26,7 @@ class GridEx(HyperCubeExtractor):
 
     def extract(self, dataframe: pd.DataFrame) -> Theory:
         if isinstance(np.array(self.predictor.predict(dataframe.iloc[0:1, :-1])).flatten()[0], str):
-            self._output = HyperCubeExtractor.Target.CLASSIFICATION
+            self._output = Target.CLASSIFICATION
         surrounding = HyperCube.create_surrounding_cube(dataframe, output=self._output)
         surrounding.init_std(2 * self.threshold)
         self._iterate(surrounding, dataframe)
@@ -36,24 +34,22 @@ class GridEx(HyperCubeExtractor):
 
     def _ignore_dimensions(self) -> Iterable[str]:
         cube = self._hypercubes[0]
-        return [
-            dimension for dimension in cube.dimensions if all(c[dimension] == cube[dimension] for c in self._hypercubes)
-        ]
+        return [d for d in cube.dimensions if all(c[d] == cube[d] for c in self._hypercubes)]
 
     def _iterate(self, surrounding: HyperCube, dataframe: pd.DataFrame):
         fake = dataframe.copy()
         prev = [surrounding]
+        next_iteration = []
 
         for iteration in self.grid.iterate():
+            next_iteration = []
             for cube in prev:
                 to_split = []
                 if cube.count(dataframe) == 0:
                     continue
-
                 if cube.diversity < self.threshold:
                     self._hypercubes += [cube]
                     continue
-
                 ranges = {}
                 for (feature, (a, b)) in cube.dimensions.items():
                     bins = []
@@ -62,7 +58,6 @@ class GridEx(HyperCubeExtractor):
                     for i in range(n_bins):
                         bins.append((a + size * i, a + size * (i + 1)))
                     ranges[feature] = bins
-
                 for (pn, p) in enumerate(list(product(*ranges.values()))):
                     cube = self._default_cube()
                     for i, f in enumerate(dataframe.columns[:-1]):
@@ -73,13 +68,13 @@ class GridEx(HyperCubeExtractor):
                         cube.update(fake, self.predictor)
                         to_split += [cube]
                 to_split = self._merge(to_split, fake)
-                self._hypercubes += [cube for cube in to_split]
-
-            prev = self._hypercubes.copy()
+                next_iteration += [cube for cube in to_split]
+            prev = next_iteration.copy()
+        self._hypercubes += [cube for cube in next_iteration]
 
     @staticmethod
-    def __find_couples(to_split: Iterable[HyperCube], not_in_cache: Iterable[HyperCube],
-                       adjacent_cache: dict[(HyperCube, HyperCube), str | None]) -> \
+    def _find_couples(to_split: Iterable[HyperCube], not_in_cache: Iterable[HyperCube],
+                      adjacent_cache: dict[tuple[HyperCube, HyperCube], str | None]) -> \
             Iterable[tuple[HyperCube, HyperCube, str]]:
         checked = []
         eligible = []
@@ -92,25 +87,26 @@ class GridEx(HyperCubeExtractor):
                 eligible.append((cube, other_cube, adjacent_feature))
         return [couple for couple in eligible if couple[2] is not None]
 
-    def __evaluate_merge(self, not_in_cache: Iterable[HyperCube],
-                         dataframe: pd.DataFrame, feature: str,
-                         cube: HyperCube, other_cube: HyperCube,
-                         merge_cache: dict[(HyperCube, HyperCube), HyperCube | None]) -> bool:
+    def _evaluate_merge(self, not_in_cache: Iterable[HyperCube],
+                        dataframe: pd.DataFrame, feature: str,
+                        cube: HyperCube, other_cube: HyperCube,
+                        merge_cache: dict[(HyperCube, HyperCube), HyperCube | None]) -> bool:
         if (cube in not_in_cache) or (other_cube in not_in_cache):
             merged_cube = cube.merge_along_dimension(other_cube, feature)
             merged_cube.update(dataframe, self.predictor)
             merge_cache[(cube, other_cube)] = merged_cube
-        return cube.output == other_cube.output if self._output == HyperCubeExtractor.Target.CLASSIFICATION else \
+        return cube.output == other_cube.output if self._output == Target.CLASSIFICATION else \
             merge_cache[(cube, other_cube)].diversity < self.threshold
 
     def _merge(self, to_split: Iterable[HyperCube], dataframe: pd.DataFrame) -> Iterable[HyperCube]:
         not_in_cache = [cube for cube in to_split]
         adjacent_cache = {}
         merge_cache = {}
+        # TODO: refactor this. A while true with a break is as ugly as hunger.
         while True:
             to_merge = [([cube, other_cube], merge_cache[(cube, other_cube)]) for cube, other_cube, feature in
-                        GridEx.__find_couples(to_split, not_in_cache, adjacent_cache) if
-                        self.__evaluate_merge(not_in_cache, dataframe, feature, cube, other_cube, merge_cache)]
+                        GridEx._find_couples(to_split, not_in_cache, adjacent_cache) if
+                        self._evaluate_merge(not_in_cache, dataframe, feature, cube, other_cube, merge_cache)]
             if len(to_merge) == 0:
                 break
             sorted(to_merge, key=lambda c: c[1].diversity)

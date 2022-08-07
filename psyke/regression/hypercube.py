@@ -4,9 +4,10 @@ from functools import reduce
 from typing import Iterable
 import pandas as pd
 from numpy import ndarray
+from psyke.utils import get_default_precision, get_int_precision
 from sklearn.linear_model import LinearRegression
 from tuprolog.core import Var, Struct
-
+from psyke.utils import Target
 from psyke.regression import Limit, MinUpdate, ZippedDimension, Expansion
 from random import Random
 import numpy as np
@@ -27,13 +28,13 @@ class HyperCube:
     A N-dimensional cube holding a numeric value.
     """
 
-    # TODO: this should be configurable by the designer
-    EPSILON = 1.0 / 1000  # Precision used when comparing two hypercubes
+    EPSILON = get_default_precision()  # Precision used when comparing two hypercubes
+    INT_PRECISION = get_int_precision()
 
-    def __init__(self, dimension: dict[str, tuple] = None, limits: set[Limit] = None,
+    def __init__(self, dimension: dict[str, tuple[float, float]] = None, limits: set[Limit] = None,
                  output: float | LinearRegression = 0.0):
-        self._dimensions = dimension if dimension is not None else {}
-        self.__limits = limits if limits is not None else set()
+        self._dimensions = self._fit_dimension(dimension) if dimension is not None else {}
+        self._limits = limits if limits is not None else set()
         self._output = output
         self._diversity = 0.0
 
@@ -49,7 +50,7 @@ class HyperCube:
     def __eq__(self, other: HyperCube) -> bool:
         return all([(abs(dimension.this_dimension[0] - dimension.other_dimension[0]) < HyperCube.EPSILON)
                     & (abs(dimension.this_dimension[1] - dimension.other_dimension[1]) < HyperCube.EPSILON)
-                    for dimension in self.__zip_dimensions(other)])
+                    for dimension in self._zip_dimensions(other)])
 
     def __getitem__(self, feature: str) -> Dimension:
         if feature in self._dimensions.keys():
@@ -70,7 +71,7 @@ class HyperCube:
 
     @property
     def limit_count(self) -> int:
-        return len(self.__limits)
+        return len(self._limits)
 
     @property
     def output(self) -> float | LinearRegression:
@@ -80,7 +81,13 @@ class HyperCube:
     def diversity(self) -> float:
         return self._diversity
 
-    def __expand_one(self, update: MinUpdate, surrounding: HyperCube, ratio: float = 1.0) -> None:
+    def _fit_dimension(self, dimension: dict[str, tuple[float, float]]) -> dict[str, tuple[float, float]]:
+        new_dimension: dict[str, tuple[float, float]] = {}
+        for key, value in dimension.items():
+            new_dimension[key] = (round(value[0], self.INT_PRECISION), round(value[1], self.INT_PRECISION))
+        return new_dimension
+
+    def _expand_one(self, update: MinUpdate, surrounding: HyperCube, ratio: float = 1.0) -> None:
         self.update_dimension(update.name, (
             max(self.get_first(update.name) - update.value / ratio, surrounding.get_first(update.name)),
             min(self.get_second(update.name) + update.value / ratio, surrounding.get_second(update.name))
@@ -94,18 +101,18 @@ class HyperCube:
     def _filter_dataframe(self, dataset: pd.DataFrame) -> pd.DataFrame:
         return dataset[self.filter_indices(dataset)]
 
-    def __zip_dimensions(self, hypercube: HyperCube) -> list[ZippedDimension]:
+    def _zip_dimensions(self, hypercube: HyperCube) -> list[ZippedDimension]:
         return [ZippedDimension(dimension, self[dimension], hypercube[dimension])
                 for dimension in self._dimensions.keys()]
 
     def add_limit(self, limit_or_feature: Limit | str, direction: str = None) -> None:
         if isinstance(limit_or_feature, Limit):
-            self.__limits.add(limit_or_feature)
+            self._limits.add(limit_or_feature)
         else:
             self.add_limit(Limit(limit_or_feature, direction))
 
     def check_limits(self, feature: str) -> str | None:
-        filtered = [limit for limit in self.__limits if limit.feature == feature]
+        filtered = [limit for limit in self._limits if limit.feature == feature]
         if len(filtered) == 0:
             return None
         if len(filtered) == 1:
@@ -115,7 +122,7 @@ class HyperCube:
         raise Exception('Too many limits for this feature')
 
     def create_samples(self, n: int = 1, generator: Random = Random(get_default_random_seed())) -> pd.DataFrame:
-        return pd.DataFrame([self.__create_tuple(generator) for _ in range(n)])
+        return pd.DataFrame([self._create_tuple(generator) for _ in range(n)])
 
     @staticmethod
     def check_overlap(to_check: Iterable[HyperCube], hypercubes: Iterable[HyperCube]) -> bool:
@@ -130,7 +137,7 @@ class HyperCube:
         return False
 
     def copy(self) -> HyperCube:
-        return HyperCube(self.dimensions.copy(), self.__limits.copy(), self.output)
+        return HyperCube(self.dimensions.copy(), self._limits.copy(), self.output)
 
     def count(self, dataset: pd.DataFrame) -> int:
         return self._filter_dataframe(dataset.iloc[:, :-1]).shape[0]
@@ -145,28 +152,29 @@ class HyperCube:
     def create_surrounding_cube(dataset: pd.DataFrame, closed: bool = False,
                                 output=None) -> \
             HyperCube | ClassificationCube | ClosedCube | ClosedRegressionCube | ClosedClassificationCube:
-        from psyke.regression import HyperCubeExtractor
-        output = HyperCubeExtractor.Target.CONSTANT if output is None else output
+        output = Target.CONSTANT if output is None else output
         dimensions = {
-            column: (min(dataset[column]) - HyperCube.EPSILON ** 2, max(dataset[column]) + HyperCube.EPSILON ** 2)
+            column: (min(dataset[column]) - HyperCube.EPSILON * 2, max(dataset[column]) + HyperCube.EPSILON * 2)
             for column in dataset.columns[:-1]
         }
         if closed:
-            if output == HyperCubeExtractor.Target.CONSTANT:
+            if output == Target.CONSTANT:
                 return ClosedCube(dimensions)
-            if output == HyperCubeExtractor.Target.REGRESSION:
+            if output == Target.REGRESSION:
                 return ClosedRegressionCube(dimensions)
             return ClosedClassificationCube(dimensions)
-        if output == HyperCubeExtractor.Target.CLASSIFICATION:
+        if output == Target.CLASSIFICATION:
             return ClassificationCube(dimensions)
         return HyperCube(dimensions)
 
-    def __create_tuple(self, generator: Random) -> dict:
+    def _create_tuple(self, generator: Random) -> dict:
         return {k: generator.uniform(self.get_first(k), self.get_second(k)) for k in self._dimensions.keys()}
 
     @staticmethod
-    def cube_from_point(point: dict) -> HyperCube:
-        return HyperCube({k: (v, v) for k, v in list(point.items())[:-1]}, output=list(point.values())[-1])
+    def cube_from_point(point: dict, output=None) -> HyperCube | ClassificationCube:
+        return ClassificationCube({k: (v, v) for k, v in list(point.items())[:-1]}) \
+            if output is Target.CLASSIFICATION \
+            else HyperCube({k: (v, v) for k, v in list(point.items())[:-1]}, output=list(point.values())[-1])
 
     def equal(self, hypercubes: Iterable[HyperCube] | HyperCube) -> bool:
         if isinstance(hypercubes, Iterable):
@@ -174,7 +182,7 @@ class HyperCube:
         else:
             return all([(abs(dimension.this_dimension[0] - dimension.other_dimension[0]) < HyperCube.EPSILON)
                         & (abs(dimension.this_dimension[1] - dimension.other_dimension[1]) < HyperCube.EPSILON)
-                        for dimension in self.__zip_dimensions(hypercubes)])
+                        for dimension in self._zip_dimensions(hypercubes)])
 
     def expand(self, expansion: Expansion, hypercubes: Iterable[HyperCube]) -> None:
         feature = expansion.feature
@@ -183,13 +191,13 @@ class HyperCube:
         other_cube = self.overlap(hypercubes)
         if isinstance(other_cube, HyperCube):
             self.update_dimension(feature, (other_cube.get_second(feature), b)
-                                  if expansion.direction == '-' else (a, other_cube.get_first(feature)))
+            if expansion.direction == '-' else (a, other_cube.get_first(feature)))
         if isinstance(self.overlap(hypercubes), HyperCube):
             raise Exception('Overlapping not handled')
 
     def expand_all(self, updates: Iterable[MinUpdate], surrounding: HyperCube, ratio: float = 1.0) -> None:
         for update in updates:
-            self.__expand_one(update, surrounding, ratio)
+            self._expand_one(update, surrounding, ratio)
 
     def get_first(self, feature: str) -> float:
         return self[feature][0]
@@ -205,8 +213,8 @@ class HyperCube:
 
     def diagonal(self) -> float:
         return reduce(
-            lambda a, b: a + b, [(dimension[1] - dimension[0])**2 for dimension in self._dimensions.values()], 0
-        )**0.5
+            lambda a, b: a + b, [(dimension[1] - dimension[0]) ** 2 for dimension in self._dimensions.values()], 0
+        ) ** 0.5
 
     def is_adjacent(self, cube: HyperCube) -> str | None:
         adjacent = None
@@ -238,7 +246,7 @@ class HyperCube:
         else:
             return all([not ((dimension.other_dimension[0] >= dimension.this_dimension[1]) |
                              (dimension.this_dimension[0] >= dimension.other_dimension[1]))
-                        for dimension in self.__zip_dimensions(hypercubes)])
+                        for dimension in self._zip_dimensions(hypercubes)])
 
     # TODO: maybe two different methods are more readable and easier to debug
     def update_dimension(self, feature: str, lower: float | tuple[float, float], upper: float | None = None) -> None:
@@ -274,7 +282,8 @@ class RegressionCube(HyperCube):
 
     def body(self, variables: dict[str, Var], ignore: list[str]) -> Iterable[Struct]:
         return list(super().body(variables, ignore)) + [linear_function_creator(
-            list(variables.values()), [to_rounded_real(v) for v in self.output.coef_], to_rounded_real(self.output.intercept_)
+            list(variables.values()), [to_rounded_real(v) for v in self.output.coef_],
+            to_rounded_real(self.output.intercept_)
         )]
 
 

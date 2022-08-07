@@ -1,15 +1,14 @@
 from __future__ import annotations
 
-import math
-from cmath import isclose
 from typing import Iterable
 import pandas as pd
-from tuprolog.core import Var, Struct, Real, Term, Integer, Numeric, clause, numeric, var, struct
+from tuprolog.core import Var, Struct, Real, Term, Integer, Numeric, clause
+import re
 from tuprolog.core import struct, real, atom, var, numeric, logic_list, Clause
 from tuprolog.core.operators import DEFAULT_OPERATORS, operator, operator_set, XFX
 from tuprolog.core.formatters import TermFormatter
 from tuprolog.core.visitors import AbstractTermVisitor
-from tuprolog.theory import Theory, mutable_theory
+from tuprolog.theory import mutable_theory, Theory
 from psyke.schema import Value, LessThan, GreaterThan, Between, Constant, term_to_value, Outside
 from psyke import DiscreteFeature
 from psyke.utils import get_int_precision
@@ -21,6 +20,8 @@ OP_IN = operator('in', XFX, 700)
 OP_NOT = operator('not_in', XFX, 700)
 
 RULES_OPERATORS = DEFAULT_OPERATORS + operator_set(OP_IN, OP_NOT)
+
+REGEX = r'(?<=\.\d\d)\d*(?=(\D|\b))'
 
 
 def is_sum(term: Struct) -> bool:
@@ -144,7 +145,7 @@ def pretty_clause(clause: Clause, new_line: bool = True) -> str:
     else:
         head = str(formatter.format(clause.head))
         body = str(formatter.format(clause.body))
-        return f"{head} :-" + ("\n    " if new_line else " ") + f"{body}"
+        return f"{re.sub(REGEX, '', head)} :-\n    {re.sub(REGEX, '', body)}"
 
 
 def pretty_theory(theory: Theory, new_line: bool = True) -> str:

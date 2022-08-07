@@ -9,63 +9,66 @@ from typing import Iterable
 import pandas as pd
 
 
-CLASSIFICATION = 'classification'
-REGRESSION = 'regression'
-ADMISSIBLE_TASKS = (CLASSIFICATION, REGRESSION)
-CART_PREDICTORS = {
-    CLASSIFICATION: CartPredictor(DecisionTreeClassifier(random_state=get_default_random_seed())),
-    REGRESSION: CartPredictor(DecisionTreeRegressor(max_depth=3, random_state=get_default_random_seed()))
-}
+TREE_SEED = get_default_random_seed()
 
 
 class Cart(Extractor):
 
-    def __init__(self, predictor, task: str = CLASSIFICATION, discretization: Iterable[DiscreteFeature] = None,
-                 simplify: bool = True):
+    def __init__(self, predictor, max_depth: int = 3, max_leaves: int = None,
+                 discretization: Iterable[DiscreteFeature] = None, simplify: bool = True):
         super().__init__(predictor, discretization)
-        if task in ADMISSIBLE_TASKS or task is None:
-            self._cart_predictor = CART_PREDICTORS[task if task is not None else CLASSIFICATION]
-        else:
-            raise Exception("Wrong argument for task type. Accepted values are: " + ' '.join(ADMISSIBLE_TASKS))
+        self._cart_predictor = CartPredictor()
+        self.depth = max_depth
+        self.leaves = max_leaves
         self._simplify = simplify
 
     def _create_body(self, variables: dict[str, Var], constraints: LeafConstraints) -> Iterable[Struct]:
         results = []
-        for name, value in constraints:
-            features = [d for d in self.discretization if name in d.admissible_values]
+        for feature_name, constraint, value in constraints:
+            features = [d for d in self.discretization if feature_name in d.admissible_values]
             feature: DiscreteFeature = features[0] if len(features) > 0 else None
-            results.append(create_term(variables[name], value) if feature is None else
+            results.append(create_term(variables[feature_name], constraint) if feature is None else
                            create_term(variables[feature.name],
-                                       feature.admissible_values[name],
-                                       isinstance(value, GreaterThan)))
+                                       feature.admissible_values[feature_name],
+                                       isinstance(constraint, GreaterThan)))
         return results
+
+    @staticmethod
+    def _simplify_nodes(nodes: list) -> Iterable:
+        simplified = [nodes.pop(0)]
+        while len(nodes) > 0:
+            first_node = nodes[0][0]
+            for condition in first_node:
+                if all([condition in [node[0] for node in nodes][i] for i in range(len(nodes))]):
+                    [node[0].remove(condition) for node in nodes]
+            simplified.append(nodes.pop(0))
+        return simplified
 
     def _create_theory(self, data: pd.DataFrame) -> Theory:
         new_theory = mutable_theory()
-        for name, value in self._cart_predictor:
-            name = [(n[0], n[1]) for n in name if not self._simplify or n[2]]
+        nodes = [node for node in self._cart_predictor]
+        nodes = Cart._simplify_nodes(nodes) if self._simplify else nodes
+        for (constraints, prediction) in nodes:
             variables = create_variable_list(self.discretization, data)
             new_theory.assertZ(
                 clause(
-                    create_head(data.columns[-1], list(variables.values()), value),
-                    self._create_body(variables, name)
+                    create_head(data.columns[-1], list(variables.values()), prediction),
+                    self._create_body(variables, constraints)
                 )
             )
         return new_theory
 
     def extract(self, data: pd.DataFrame) -> Theory:
-        predicted_classes = self.predictor.predict(data.iloc[:, :-1])
-        predicted_classes = pd.DataFrame(predicted_classes)
-        predicted_classes.columns = [data.columns[-1]]
-        new_data = data.iloc[:, :-1].join(predicted_classes)
-        # If for any reason the predictor was not able to predict a class, ignore that data.
-        new_data = new_data[new_data[new_data.columns[-1]].notnull()]
-        self._cart_predictor.predictor.fit(new_data.iloc[:, :-1], new_data.iloc[:, -1])
-        return self._create_theory(new_data)
+        self._cart_predictor.predictor = DecisionTreeClassifier(random_state=TREE_SEED) \
+            if isinstance(data.iloc[0, -1], str) else DecisionTreeRegressor(random_state=TREE_SEED)
+        self._cart_predictor.predictor.max_depth = self.depth
+        self._cart_predictor.predictor.max_leaf_nodes = self.leaves
+        self._cart_predictor.predictor.fit(data.iloc[:, :-1], self.predictor.predict(data.iloc[:, :-1]))
+        return self._create_theory(data)
 
     def predict(self, data) -> Iterable:
         return self._cart_predictor.predict(data)
 
     @property
     def n_rules(self) -> int:
-        return self.predictor.n_leaves
+        return self._cart_predictor.n_leaves

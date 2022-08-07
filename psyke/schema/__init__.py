@@ -1,7 +1,7 @@
 from __future__ import annotations
 import math
 from typing import Callable
-
+from psyke.utils import get_int_precision
 
 _EMPTY_INTERSECTION_EXCEPTION: Callable = lambda x, y: \
     Exception("Empty intersection between two Value: " + str(x) + ' and ' + str(y))
@@ -11,6 +11,9 @@ _NOT_IMPLEMENTED_INTERSECTION: Callable = lambda x, y: \
 
 _INTERSECTION_WITH_WRONG_TYPE: Callable = lambda x, y: \
     Exception("Calling method with wrong type argument: " + str(x) + ' and ' + str(y))
+
+PRECISION = get_int_precision()
+STRING_PRECISION = str(PRECISION)
 
 
 class DiscreteFeature:
@@ -236,8 +239,8 @@ class Interval(Value):
     def __init__(self, lower: float, upper: float, standard: bool = True):
         super().__init__()
         self.standard = standard
-        self.lower = lower
-        self.upper = upper
+        self.lower = round(lower, PRECISION)
+        self.upper = round(upper, PRECISION)
 
     def __str__(self):
         return f"[{self.lower:.2f}, {self.upper:.2f}]"
@@ -245,37 +248,52 @@ class Interval(Value):
     def __repr__(self):
         return f"Interval({self.lower:.2f}, {self.upper:.2f})"
 
+    def __eq__(self, other: Between) -> bool:
+        return (self.upper == other.upper) and (self.lower == other.lower) and (self.standard == other.standard)
+
 
 class LessThan(Interval):
 
     def __init__(self, value: float, standard: bool = True):
         super().__init__(-math.inf, value, standard)
-        self.value = value
 
     def is_in(self, other: float) -> bool:
-        return other <= self.value if self.standard else other < self.value
+        return other <= self.upper if self.standard else other < self.upper
+
+    @property
+    def value(self) -> float:
+        return self.upper
 
     def __str__(self):
-        return f"]-∞, {self.value:.2f}" + ("]" if self.standard else "[")
+        return f"]-∞, {self.upper:.2f}" + ("]" if self.standard else "[")
 
     def __repr__(self):
-        return f"LessThan({self.value:.2f})"
+        return f"LessThan({self.upper:.2f})"
+
+    def __eq__(self, other: LessThan) -> bool:
+        return (self.upper == other.upper) and (self.value == other.value) and (self.standard == other.standard)
 
 
 class GreaterThan(Interval):
 
     def __init__(self, value: float, standard: bool = True):
         super().__init__(value, math.inf, standard)
-        self.value = value
 
     def is_in(self, other: float) -> bool:
-        return other > self.value if self.standard else other >= self.value
+        return other > self.lower if self.standard else other >= self.lower
+
+    @property
+    def value(self) -> float:
+        return self.lower
 
     def __str__(self):
-        return ("]" if self.standard else "[") + f"{self.value:.2f}, ∞["
+        return ("]" if self.standard else "[") + f"{self.lower:.2f}, ∞["
 
     def __repr__(self):
-        return f"GreaterThan({self.value:.2f})"
+        return f"GreaterThan({self.lower:.2f})"
+
+    def __eq__(self, other: GreaterThan) -> bool:
+        return (self.lower == other.lower) and (self.value == other.value) and (self.standard == other.standard)
 
 
 class Between(Interval):
@@ -313,7 +331,7 @@ class Constant(Value):
 
     def __init__(self, value: float):
         super().__init__()
-        self.value = value
+        self.value = round(value, get_int_precision())
 
     def is_in(self, other: float) -> bool:
         return math.isclose(other, self.value)

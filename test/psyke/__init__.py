@@ -1,20 +1,16 @@
 from __future__ import annotations
 from onnxconverter_common import DataType, FloatTensorType, Int64TensorType, StringTensorType
-from psyke.utils import get_int_precision
 from skl2onnx import convert_sklearn
 from sklearn.model_selection import train_test_split
 from tuprolog.solve.prolog import prolog_solver
 
-from psyke import get_default_random_seed
-from psyke.cart import CartPredictor
-from psyke.regression import Grid, FixedStrategy, FeatureRanker
+from psyke.regression import FixedStrategy, FeatureRanker, Grid
 from psyke.regression.strategy import AdaptiveStrategy
 from psyke.utils.dataframe import get_discrete_dataset
 from psyke.utils.logic import prune, simplify, data_to_struct
 from test import get_dataset, get_extractor, get_schema, get_model, get_in_rule, get_not_in_rule
 from test.resources.predictors import get_predictor_path
 from test.resources.tests import test_cases
-from tuprolog.core import Real
 from tuprolog.theory import Theory, mutable_theory
 from tuprolog.theory.parsing import parse_theory
 from typing import Iterable, Callable
@@ -23,39 +19,7 @@ import numpy as np
 import onnxruntime as rt
 import os
 import pandas as pd
-
-_DEFAULT_ACCURACY: float = 0.95
-
-_test_options: dict = {'accuracy': _DEFAULT_ACCURACY}
-
-ACCEPTABLE_FIDELITY = 0.999
-
-
-def get_default_accuracy() -> float:
-    return _test_options['accuracy']
-
-
-def set_default_accuracy(value: float) -> None:
-    _test_options['accuracy'] = value
-
-
-def are_similar(a: Real, b: Real) -> bool:
-    # TODO: magic number
-    return abs(a.value - b.value) < 0.01
-
-
-def are_equal(instance, expected, actual):
-    if expected.is_functor_well_formed:
-        instance.assertTrue(actual.is_functor_well_formed)
-        instance.assertEqual(expected.functor, actual.functor)
-        instance.assertTrue(expected.args[0].equals(actual.args[0], False))
-        instance.assertTrue(are_similar(expected.args[1][0], actual.args[1][0]))
-        instance.assertTrue(are_similar(expected.args[1][1].head, actual.args[1][1].head))
-    elif expected.is_recursive:
-        instance.assertTrue(actual.is_recursive)
-        instance.assertEqual(expected.arity, actual.arity)
-        for i in range(expected.arity):
-            are_equal(instance, expected.args[i], actual.args[i])
+from psyke import get_default_random_seed
 
 
 def initialize(file: str) -> list[dict[str:Theory]]:
@@ -67,7 +31,8 @@ def initialize(file: str) -> list[dict[str:Theory]]:
         columns = sorted(dataset.columns[:-1]) + [dataset.columns[-1]]
         dataset = dataset.reindex(columns, axis=1)
 
-        training_set, test_set = train_test_split(dataset, test_size=0.5, random_state=get_default_random_seed())
+        training_set, test_set = train_test_split(dataset, test_size=0.05 if row['dataset'].lower() == 'house' else 0.5,
+                                                  random_state=get_default_random_seed())
 
         schema, test_set_for_predictor = None, test_set
         if 'disc' in row.keys() and bool(row['disc']):
@@ -86,7 +51,7 @@ def initialize(file: str) -> list[dict[str:Theory]]:
         else:
             tree = get_model(row['predictor'], {})
             tree.fit(training_set.iloc[:, :-1], training_set.iloc[:, -1])
-            params['predictor'] = CartPredictor(tree)
+            params['predictor'] = tree
 
         # Handle GridEx tests
         # TODO: this is algorithm specific therefore it should be handled inside the algorithm itself.
@@ -101,32 +66,23 @@ def initialize(file: str) -> list[dict[str:Theory]]:
 
         extractor = get_extractor(row['extractor_type'], params)
         theory = extractor.extract(training_set)
-        # pruned_theory = theory
-        pruned_theory = prune(simplify(theory))
 
         # Compute predictions from rules
         index = test_set.shape[1] - 1
-        y_element = test_set.iloc[0, -1]
-        cast: Callable = lambda x: (str(x) if isinstance(y_element, str) else x)
+        is_classification = isinstance(test_set.iloc[0, -1], str)
+        cast: Callable = lambda x: (str(x) if is_classification else float(x.value))
         solver = prolog_solver(static_kb=mutable_theory(theory).assertZ(get_in_rule()).assertZ(get_not_in_rule()))
-        solver2 = prolog_solver(static_kb=mutable_theory(pruned_theory).assertZ(get_in_rule()).assertZ(get_not_in_rule()))
         substitutions = [solver.solveOnce(data_to_struct(data)) for _, data in test_set.iterrows()]
-        substitutions2 = [solver2.solveOnce(data_to_struct(data)) for _, data in test_set.iterrows()]
-        expected = [cast(query.solved_query.get_arg_at(index)) if query.is_yes else -1 for query in substitutions]
-        expected2 = [cast(query.solved_query.get_arg_at(index)) if query.is_yes else -1 for query in substitutions2]
+        expected = [cast(query.solved_query.get_arg_at(index)) for query in substitutions if query.is_yes]
 
-        predictions = extractor.predict(test_set_for_predictor.iloc[:, :-1])
-        # Handle both classification and regression.
-        if not isinstance(predictions[0], str):
-            predictions = np.array([round(x, get_int_precision()) for x in predictions])
+        predictions = [prediction for prediction in extractor.predict(test_set_for_predictor.iloc[:, :-1])
+                       if prediction is not None]
 
         yield {
             'extractor': extractor,
             'extracted_theory': theory,
-            'extracted_pruned_theory': pruned_theory,
-            'extracted_test_y_from_theory': expected,
-            'extracted_test_y_from_pruned_theory': expected2,
-            'extracted_test_y_from_extractor': predictions,
+            'extracted_test_y_from_theory': np.array(expected),
+            'extracted_test_y_from_extractor': np.array(predictions),
             'test_set': test_set,
             'expected_theory': parse_theory(row['theory'] + '.') if row['theory'] != '' else None,
             'discretization': schema
