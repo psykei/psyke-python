@@ -10,7 +10,7 @@ LeafSequence = Iterable[tuple[LeafConstraints, Any]]
 
 class CartPredictor:
     """
-    A wrapper for decision and regression trees of sklearn.
+    A wrapper for decision and hypercubic trees of sklearn.
     """
 
     def __init__(self, predictor: Union[DecisionTreeClassifier, DecisionTreeRegressor] = DecisionTreeClassifier()):

@@ -1,11 +1,12 @@
 import unittest
 import pandas as pd
+
+from psyke.extraction.hypercubic.hypercube import FeatureNotFoundException
+from psyke.extraction.hypercubic.utils import MinUpdate, Expansion
 from psyke.utils import get_int_precision
 from sklearn.neighbors import KNeighborsRegressor
 from test.psyke import Predictor
-from psyke.regression.hypercube import FeatureNotFoundException, HyperCube
-from psyke.regression.utils import Expansion
-from psyke.regression.iter import MinUpdate
+from psyke.extraction.hypercubic import HyperCube
 from test.resources.datasets import get_dataset_path
 
 

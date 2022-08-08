@@ -1,20 +1,18 @@
 from __future__ import annotations
 from statistics import mode
 from functools import reduce
-from typing import Iterable
+from typing import Iterable, Union
 import pandas as pd
 from numpy import ndarray
-from psyke.utils import get_default_precision, get_int_precision
+
+from psyke.extraction.hypercubic.utils import Dimension, Dimensions, MinUpdate, ZippedDimension, Limit, Expansion
+from psyke.schema import Between
+from psyke.utils import get_default_precision, get_int_precision, Target, get_default_random_seed
+from psyke.utils.logic import create_term, to_rounded_real, linear_function_creator
 from sklearn.linear_model import LinearRegression
 from tuprolog.core import Var, Struct
-from psyke.utils import Target
-from psyke.regression import Limit, MinUpdate, ZippedDimension, Expansion
 from random import Random
 import numpy as np
-from psyke import get_default_random_seed
-from psyke.regression.utils import Dimension, Dimensions
-from psyke.schema import Between
-from psyke.utils.logic import create_term, to_rounded_real, linear_function_creator
 
 
 class FeatureNotFoundException(Exception):
@@ -40,10 +38,10 @@ class HyperCube:
 
     def __contains__(self, point: dict[str, float]) -> bool:
         """
-        Note that a point (dict[str, float]) is inside a hypercube if ALL its dimensions' values satisfy:
+        Note that a point (dict[str, float]) is inside a hypercubic if ALL its dimensions' values satisfy:
             min_dim <= value < max_dim
         :param point: an N-dimensional point
-        :return: true if the point is inside the hypercube, false otherwise
+        :return: true if the point is inside the hypercubic, false otherwise
         """
         return all([(self.get_first(k) <= v < self.get_second(k)) for k, v in point.items()])
 
@@ -150,8 +148,7 @@ class HyperCube:
 
     @staticmethod
     def create_surrounding_cube(dataset: pd.DataFrame, closed: bool = False,
-                                output=None) -> \
-            HyperCube | ClassificationCube | ClosedCube | ClosedRegressionCube | ClosedClassificationCube:
+                                output=None) -> GenericCube:
         output = Target.CONSTANT if output is None else output
         dimensions = {
             column: (min(dataset[column]) - HyperCube.EPSILON * 2, max(dataset[column]) + HyperCube.EPSILON * 2)
@@ -171,7 +168,7 @@ class HyperCube:
         return {k: generator.uniform(self.get_first(k), self.get_second(k)) for k in self._dimensions.keys()}
 
     @staticmethod
-    def cube_from_point(point: dict, output=None) -> HyperCube | ClassificationCube:
+    def cube_from_point(point: dict, output=None) -> GenericCube:
         return ClassificationCube({k: (v, v) for k, v in list(point.items())[:-1]}) \
             if output is Target.CLASSIFICATION \
             else HyperCube({k: (v, v) for k, v in list(point.items())[:-1]}, output=list(point.values())[-1])
@@ -332,3 +329,7 @@ class ClosedClassificationCube(ClosedCube, ClassificationCube):
 
     def copy(self) -> ClosedClassificationCube:
         return ClosedClassificationCube(self.dimensions.copy())
+
+
+GenericCube = Union[HyperCube, ClassificationCube, RegressionCube,
+                    ClosedCube, ClosedRegressionCube, ClosedClassificationCube]

@@ -9,7 +9,7 @@ from tuprolog.core import struct
 from tuprolog.theory import Theory
 
 from psyke import Extractor
-from psyke.regression import HyperCubeExtractor
+from psyke.extraction.hypercubic import HyperCubeExtractor
 from psyke.utils import Target
 
 

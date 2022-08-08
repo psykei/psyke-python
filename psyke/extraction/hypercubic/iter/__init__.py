@@ -5,9 +5,8 @@ import numpy as np
 import pandas as pd
 from tuprolog.theory import Theory
 
-from psyke.regression.hypercube import HyperCube
-from psyke.regression import HyperCubeExtractor, ClassificationCube
-from psyke.regression.utils import Expansion, MinUpdate
+from psyke.extraction.hypercubic import HyperCube, HyperCubeExtractor, ClassificationCube
+from psyke.extraction.hypercubic.utils import MinUpdate, Expansion
 from psyke.utils import get_default_random_seed, Target
 
 DomainProperties = (Iterable[MinUpdate], HyperCube)

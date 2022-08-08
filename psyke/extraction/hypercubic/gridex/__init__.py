@@ -7,8 +7,7 @@ import pandas as pd
 from tuprolog.theory import Theory
 from psyke import get_default_random_seed
 from psyke.utils import Target
-from psyke.regression import HyperCubeExtractor, Grid
-from psyke.regression.hypercube import HyperCube
+from psyke.extraction.hypercubic import HyperCubeExtractor, Grid, HyperCube
 
 
 class GridEx(HyperCubeExtractor):

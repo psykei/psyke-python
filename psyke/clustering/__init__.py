@@ -2,8 +2,9 @@ from typing import Union
 
 import pandas as pd
 from tuprolog.theory import Theory
+
+from psyke.extraction.hypercubic.hypercube import ClosedRegressionCube, ClosedClassificationCube, ClosedCube
 from psyke.utils import Target
-from psyke.regression.hypercube import ClosedClassificationCube, ClosedCube, ClosedRegressionCube
 
 
 class InterpretableClustering:

@@ -1,5 +1,5 @@
 from functools import lru_cache
-from psyke.classification.real.utils import Rule, IndexedRuleSet
+from psyke.extraction.real.utils import Rule, IndexedRuleSet
 from psyke import Extractor
 from psyke.schema import DiscreteFeature
 from psyke.utils.dataframe import HashableDataFrame

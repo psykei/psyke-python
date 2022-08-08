@@ -5,7 +5,7 @@ from typing import Iterable
 import numpy as np
 
 import psyke.utils
-from psyke.regression import Node, HyperCube
+from psyke.extraction.hypercubic import Node, HyperCube
 from psyke.clustering.creepy import CReEPy
 from psyke.clustering.utils import select_gaussian_mixture
 

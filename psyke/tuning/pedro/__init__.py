@@ -2,9 +2,9 @@ import numpy as np
 import pandas as pd
 from enum import Enum
 from psyke import Extractor
-from psyke.regression import FixedStrategy, Grid, FeatureRanker
-from psyke.optimizer import Objective, Optimizer
-from psyke.regression.strategy import AdaptiveStrategy
+from psyke.extraction.hypercubic import Grid, FeatureRanker
+from psyke.extraction.hypercubic.strategy import AdaptiveStrategy, FixedStrategy
+from psyke.tuning import Objective, Optimizer
 
 
 class PEDRO(Optimizer):

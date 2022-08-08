@@ -91,11 +91,11 @@ class Extractor(object):
 
     def accuracy(self, dataframe: pd.DataFrame, predictor=None) -> float:
         """
-        Calculates the predictions' accuracy classification score w.r.t. the instances given as input.
+        Calculates the predictions' accuracy extraction score w.r.t. the instances given as input.
 
-        :param dataframe: is the set of instances to be used to calculate the accuracy classification score.
+        :param dataframe: is the set of instances to be used to calculate the accuracy extraction score.
         :param predictor: if provided, its predictions on the dataframe are taken instead of the dataframe instances.
-        :return: the accuracy classification score of the predictions.
+        :return: the accuracy extraction score of the predictions.
         """
         predictions = np.array(self.predict(dataframe.iloc[:, :-1]))
         idx = [prediction is not None for prediction in predictions]
@@ -140,7 +140,7 @@ class Extractor(object):
         """
         Creates a new ITER extractor.
         """
-        from psyke.regression.iter import ITER
+        from psyke.extraction.hypercubic.iter import ITER
         return ITER(predictor, min_update, n_points, max_iterations, min_examples, threshold, fill_gaps, seed)
 
     @staticmethod
@@ -149,7 +149,7 @@ class Extractor(object):
         """
         Creates a new GridEx extractor.
         """
-        from psyke.regression.gridex import GridEx
+        from psyke.extraction.hypercubic.gridex import GridEx
         return GridEx(predictor, grid, min_examples, threshold, seed)
 
     @staticmethod
@@ -158,7 +158,7 @@ class Extractor(object):
         """
         Creates a new GridREx extractor.
         """
-        from psyke.regression.gridrex import GridREx
+        from psyke.extraction.hypercubic.gridrex import GridREx
         return GridREx(predictor, grid, min_examples, threshold, seed)
 
     @staticmethod
@@ -183,7 +183,7 @@ class Extractor(object):
         """
         Creates a new REAL extractor.
         """
-        from psyke.classification.real import REAL
+        from psyke.extraction.real import REAL
         return REAL(predictor, [] if discretization is None else discretization)
 
     @staticmethod
@@ -192,7 +192,7 @@ class Extractor(object):
         """
         Creates a new Trepan extractor.
         """
-        from psyke.classification.trepan import Trepan, SplitLogic
+        from psyke.extraction.trepan import Trepan, SplitLogic
         if split_logic is None:
             split_logic = SplitLogic.DEFAULT
         return Trepan(predictor, [] if discretization is None else discretization, min_examples, max_depth, split_logic)

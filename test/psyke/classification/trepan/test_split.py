@@ -1,4 +1,4 @@
-from psyke.classification.trepan import Node, Split
+from psyke.extraction.trepan import Node, Split
 from test import get_dataset
 import math
 import pandas as pd
