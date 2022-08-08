@@ -21,8 +21,8 @@ class ExACT(InterpretableClustering):
 
     def __init__(self, depth: int, error_threshold: float, output: Target = Target.CONSTANT, gauss_components: int = 5):
         super().__init__(depth, error_threshold, output, gauss_components)
-        self.predictor = KNeighborsClassifier() if output == Target.CLASSIFICATION else KNeighborsRegressor()
-        self.predictor.n_neighbors = 1
+        self._predictor = KNeighborsClassifier() if output == Target.CLASSIFICATION else KNeighborsRegressor()
+        self._predictor.n_neighbors = 1
 
     def __eligible_cubes(self, gauss_pred: np.ndarray, node: Node, clusters: int):
         cubes = []
@@ -50,7 +50,7 @@ class ExACT(InterpretableClustering):
         )
 
     def extract(self, dataframe: pd.DataFrame) -> Iterable[HyperCube]:
-        self.predictor.fit(dataframe.iloc[:, :-1], dataframe.iloc[:, -1])
+        self._predictor.fit(dataframe.iloc[:, :-1], dataframe.iloc[:, -1])
         self._hypercubes = \
             self._iterate(Node(dataframe, HyperCube.create_surrounding_cube(dataframe, True, self._output)))
         return list(self._hypercubes)
@@ -83,9 +83,9 @@ class ExACT(InterpretableClustering):
                 continue
             _, _, _, indices, cube = max(cubes)
 
-            cube.update(node.dataframe[indices], self.predictor)
+            cube.update(node.dataframe[indices], self._predictor)
             node.right = Node(node.dataframe[indices], cube)
-            node.cube.update(node.dataframe[~indices], self.predictor)
+            node.cube.update(node.dataframe[~indices], self._predictor)
             node.left = Node(node.dataframe[~indices], node.cube)
 
             if depth < self.depth and cube.diversity > self.error_threshold:

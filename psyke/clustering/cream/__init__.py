@@ -38,9 +38,9 @@ class CREAM(ExACT):
         return cubes
 
     def _split(self, right: ClosedCube, outer_cube: ClosedCube, data: pd.DataFrame, indices: np.ndarray):
-        right.update(data.iloc[indices], self.predictor)
+        right.update(data.iloc[indices], self._predictor)
         left = outer_cube.copy()
-        left.update(data.iloc[~indices], self.predictor)
+        left.update(data.iloc[~indices], self._predictor)
         return right, left
 
     def _iterate(self, surrounding: Node) -> Iterable[HyperCube]:
@@ -56,7 +56,7 @@ class CREAM(ExACT):
                 continue
             _, right, left = min(cubes)
             node.right = Node(node.dataframe[right[1]], right[0])
-            node.cube.update(node.dataframe[left[1]], self.predictor)
+            node.cube.update(node.dataframe[left[1]], self._predictor)
             node.left = Node(node.dataframe[left[1]], left[0])
 
             if depth < self.depth:

@@ -1,5 +1,8 @@
 from enum import Enum
 import numpy as np
+import pandas as pd
+
+from psyke.utils import Target
 
 
 class Objective(Enum):
@@ -8,10 +11,21 @@ class Objective(Enum):
 
 
 class Optimizer:
-    def __init__(self, readability_tradeoff, algorithm, params=None):
-        self.readability_tradeoff = readability_tradeoff
+    def __init__(self, predictor, algorithm, dataframe: pd.DataFrame, max_mae_increase: float = 1.2,
+                 min_rule_decrease: float = 0.9, readability_tradeoff: float = 0.1, max_depth: int = 10,
+                 patience: int = 5, objective: Objective = Objective.MODEL):
+        self.predictor = predictor
         self.algorithm = algorithm
-        self.params = params
+        self.dataframe = dataframe
+        self.max_mae_increase = max_mae_increase
+        self.min_rule_decrease = min_rule_decrease
+        self.readability_tradeoff = readability_tradeoff
+        self.patience = patience
+        self.max_depth = max_depth
+        self.objective = objective
+        self.model_mae = abs(self.predictor.predict(dataframe.iloc[:, :-1]).flatten() -
+                             self.dataframe.iloc[:, -1].values).mean()
+        self.params = None
 
     def _depth_improvement(self, first, second):
         if second[0] == first[0]:

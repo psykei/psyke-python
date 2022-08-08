@@ -5,26 +5,21 @@ import pandas as pd
 
 from psyke import Extractor
 from psyke.optimizer import Objective, Optimizer
+from psyke.utils import Target
 
 
 class CRASH(Optimizer):
     class Algorithm(Enum):
         CReEPy = 1,
-        CREAM = 2
+        ORCHiD = 2
 
     def __init__(self, predictor, dataframe: pd.DataFrame, max_mae_increase: float = 1.2,
                  min_rule_decrease: float = 0.9, readability_tradeoff: float = 0.1, max_depth: int = 10,
-                 patience: int = 5, algorithm: Algorithm = Algorithm.CREAM, objective: Objective = Objective.MODEL):
-        super().__init__(readability_tradeoff, algorithm)
-        self.predictor = predictor
-        self.dataframe = dataframe
-        self.max_mae_increase = max_mae_increase
-        self.min_rule_decrease = min_rule_decrease
-        self.patience = patience
-        self.max_depth = max_depth
-        self.objective = objective
-        self.model_mae = abs(self.predictor.predict(dataframe.iloc[:, :-1]).flatten() -
-                             dataframe.iloc[:, -1].values).mean()
+                 patience: int = 5, algorithm: Algorithm = Algorithm.ORCHiD, output: Target = Target.CONSTANT,
+                 objective: Objective = Objective.MODEL):
+        super().__init__(predictor, algorithm, dataframe, max_mae_increase, min_rule_decrease, readability_tradeoff,
+                         max_depth, patience, objective)
+        self.output = output
 
     def search(self):
         self.params = self.__search_depth()
@@ -55,9 +50,9 @@ class CRASH(Optimizer):
         patience = self.patience
         while patience > 0:
             print(f"{self.algorithm}. Depth: {depth}. Threshold = {threshold:.2f}. ", end="")
-            extractor = Extractor.creepy(self.predictor, depth, threshold, False, 10) \
+            extractor = Extractor.creepy(self.predictor, depth, threshold, self.output, 10) \
                 if self.algorithm == CRASH.Algorithm.CReEPy \
-                else Extractor.cream(self.predictor, depth, threshold, False, 10)
+                else Extractor.orchid(self.predictor, depth, threshold, self.output, 10)
             _ = extractor.extract(self.dataframe)
             mae, n = (extractor.mae(self.dataframe, self.predictor) if self.objective == Objective.MODEL else
                       extractor.mae(self.dataframe)), extractor.n_rules

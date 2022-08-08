@@ -126,6 +126,14 @@ class Extractor(object):
         return ExACT(depth, error_threshold, output, gauss_components)
 
     @staticmethod
+    def cream(depth: int, error_threshold: float, output, gauss_components: int = 2):
+        """
+        Creates a new CREAM instance.
+        """
+        from psyke.clustering.cream import CREAM
+        return CREAM(depth, error_threshold, output, gauss_components)
+
+    @staticmethod
     def cart(predictor, max_depth: int = 3, max_leaves: int = 3,
              discretization: Iterable[DiscreteFeature] = None, simplify: bool = True) -> Extractor:
         """
@@ -162,14 +170,6 @@ class Extractor(object):
         return GridREx(predictor, grid, min_examples, threshold, seed)
 
     @staticmethod
-    def cream(predictor, depth: int, error_threshold: float, output, gauss_components: int = 2) -> Extractor:
-        """
-        Creates a new CREAM extractor.
-        """
-        from psyke.clustering.cream import CREAM
-        return CREAM(predictor, depth, error_threshold, output, gauss_components)
-
-    @staticmethod
     def creepy(predictor, depth: int, error_threshold: float, output, gauss_components: int = 2,
                ranks: [(str, float)] = [], ignore_threshold: float = 0.0) -> Extractor:
         """
@@ -177,6 +177,15 @@ class Extractor(object):
         """
         from psyke.clustering.creepy import CReEPy
         return CReEPy(predictor, depth, error_threshold, output, gauss_components, ranks, ignore_threshold)
+
+    @staticmethod
+    def orchid(predictor, depth: int, error_threshold: float, output, gauss_components: int = 2,
+               ranks: [(str, float)] = [], ignore_threshold: float = 0.0) -> Extractor:
+        """
+        Creates a new ORCHiD extractor.
+        """
+        from psyke.clustering.orchid import ORCHiD
+        return ORCHiD(predictor, depth, error_threshold, output, gauss_components, ranks, ignore_threshold)
 
     @staticmethod
     def real(predictor, discretization=None) -> Extractor:

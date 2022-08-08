@@ -15,17 +15,9 @@ class PEDRO(Optimizer):
     def __init__(self, predictor, dataframe: pd.DataFrame, max_mae_increase: float = 1.2,
                  min_rule_decrease: float = 0.9, readability_tradeoff: float = 0.1, max_depth: int = 3,
                  patience: int = 3, algorithm: Algorithm = Algorithm.GRIDREX, objective: Objective = Objective.MODEL):
-        super().__init__(readability_tradeoff, algorithm)
-        self.predictor = predictor
-        self.dataframe = dataframe
+        super().__init__(predictor, algorithm, dataframe, max_mae_increase, min_rule_decrease, readability_tradeoff,
+                         max_depth, patience, objective)
         self.ranked = FeatureRanker(dataframe.columns[:-1]).fit(predictor, dataframe.iloc[:, :-1]).rankings()
-        self.max_mae_increase = max_mae_increase
-        self.min_rule_decrease = min_rule_decrease
-        self.patience = patience
-        self.max_depth = max_depth
-        self.objective = objective
-        self.model_mae = abs(self.predictor.predict(dataframe.iloc[:, :-1]).flatten() -
-                             dataframe.iloc[:, -1].values).mean()
 
     def __search_threshold(self, grid, critical, max_partitions):
         step = self.model_mae / 2.0
