@@ -91,11 +91,11 @@ class Extractor(object):
 
     def accuracy(self, dataframe: pd.DataFrame, predictor=None) -> float:
         """
-        Calculates the predictions' accuracy extraction score w.r.t. the instances given as input.
+        Calculates the predictions' accuracy classification score w.r.t. the instances given as input.
 
-        :param dataframe: is the set of instances to be used to calculate the accuracy extraction score.
+        :param dataframe: is the set of instances to be used to calculate the accuracy classification score.
         :param predictor: if provided, its predictions on the dataframe are taken instead of the dataframe instances.
-        :return: the accuracy extraction score of the predictions.
+        :return: the accuracy classification score of the predictions.
         """
         predictions = np.array(self.predict(dataframe.iloc[:, :-1]))
         idx = [prediction is not None for prediction in predictions]
