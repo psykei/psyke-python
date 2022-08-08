@@ -6,7 +6,7 @@ import numpy as np
 
 import psyke.utils
 from psyke.extraction.hypercubic import Node, HyperCube
-from psyke.clustering.creepy import CReEPy
+from psyke.extraction.hypercubic.creepy import CReEPy
 from psyke.clustering.utils import select_gaussian_mixture
 
 

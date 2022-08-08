@@ -1,5 +1,5 @@
 from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
-from psyke.cart.predictor import CartPredictor, LeafConstraints, LeafSequence
+from psyke.extraction.cart.predictor import CartPredictor, LeafConstraints, LeafSequence
 from psyke import Extractor, get_default_random_seed
 from psyke.schema import GreaterThan, DiscreteFeature
 from psyke.utils.logic import create_variable_list, create_head, create_term

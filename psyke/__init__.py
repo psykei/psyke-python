@@ -131,7 +131,7 @@ class Extractor(object):
         """
         Creates a new Cart extractor.
         """
-        from psyke.cart import Cart
+        from psyke.extraction.cart import Cart
         return Cart(predictor, max_depth, max_leaves, discretization=discretization, simplify=simplify)
 
     @staticmethod
@@ -175,7 +175,7 @@ class Extractor(object):
         """
         Creates a new CReEPy extractor.
         """
-        from psyke.clustering.creepy import CReEPy
+        from psyke.extraction.hypercubic.creepy import CReEPy
         return CReEPy(predictor, depth, error_threshold, output, gauss_components, ranks, ignore_threshold)
 
     @staticmethod
