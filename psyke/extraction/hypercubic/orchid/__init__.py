@@ -1,14 +1,8 @@
 from __future__ import annotations
-
-from collections import Iterable
-
-import numpy as np
-import pandas as pd
 from sklearn.base import ClassifierMixin
-from tuprolog.theory import Theory
 
 from psyke import Extractor
-from psyke.clustering.creepy import CReEPy
+from psyke.extraction.hypercubic.creepy import CReEPy
 from psyke.utils import Target
 
 

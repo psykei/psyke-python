@@ -184,7 +184,7 @@ class Extractor(object):
         """
         Creates a new ORCHiD extractor.
         """
-        from psyke.clustering.orchid import ORCHiD
+        from psyke.extraction.hypercubic.orchid import ORCHiD
         return ORCHiD(predictor, depth, error_threshold, output, gauss_components, ranks, ignore_threshold)
 
     @staticmethod
