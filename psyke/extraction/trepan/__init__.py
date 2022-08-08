@@ -1,4 +1,4 @@
-from psyke.classification.trepan.utils import Node, Split, SplitLogic
+from psyke.extraction.trepan.utils import Node, Split, SplitLogic
 from psyke import Extractor, DiscreteFeature
 from psyke.utils.logic import create_term, create_variable_list, create_head
 from psyke.utils.sorted import SortedList

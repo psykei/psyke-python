@@ -7,11 +7,10 @@ from sklearn.linear_model import LinearRegression
 from tuprolog.core import Var, Struct, clause
 from tuprolog.theory import Theory, mutable_theory
 from psyke import Extractor, logger
-from psyke.regression.strategy import FixedStrategy, Strategy
-from psyke.regression.utils import Limit, MinUpdate, ZippedDimension, Expansion
+from psyke.extraction.hypercubic.hypercube import HyperCube, RegressionCube, ClassificationCube, ClosedCube
 from psyke.utils.logic import create_variable_list, create_head, to_var
-from psyke.regression.hypercube import HyperCube, ClosedCube, RegressionCube, ClosedRegressionCube, ClassificationCube
 from psyke.utils import Target, get_int_precision
+from psyke.extraction.hypercubic.strategy import Strategy, FixedStrategy
 
 
 class HyperCubeExtractor(Extractor):

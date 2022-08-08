@@ -7,7 +7,7 @@ import pandas as pd
 
 import psyke.utils
 from psyke.clustering.exact import ExACT
-from psyke.regression import Node, HyperCube, ClosedCube
+from psyke.extraction.hypercubic import Node, HyperCube, ClosedCube
 from psyke.clustering.utils import select_gaussian_mixture
 
 

@@ -4,10 +4,10 @@ from skl2onnx import convert_sklearn
 from sklearn.model_selection import train_test_split
 from tuprolog.solve.prolog import prolog_solver
 
-from psyke.regression import FixedStrategy, FeatureRanker, Grid
-from psyke.regression.strategy import AdaptiveStrategy
+from psyke.extraction.hypercubic import Grid, FeatureRanker
 from psyke.utils.dataframe import get_discrete_dataset
-from psyke.utils.logic import prune, simplify, data_to_struct
+from psyke.utils.logic import data_to_struct
+from psyke.extraction.hypercubic.strategy import AdaptiveStrategy, FixedStrategy
 from test import get_dataset, get_extractor, get_schema, get_model, get_in_rule, get_not_in_rule
 from test.resources.predictors import get_predictor_path
 from test.resources.tests import test_cases

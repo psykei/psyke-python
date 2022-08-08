@@ -9,7 +9,7 @@ from sklearn.cluster import DBSCAN
 from sklearn.neighbors import KNeighborsClassifier, KNeighborsRegressor
 
 from psyke.clustering import InterpretableClustering
-from psyke.regression import Node, ClosedCube, HyperCube
+from psyke.extraction.hypercubic import Node, ClosedCube, HyperCube
 from psyke.clustering.utils import select_gaussian_mixture, select_dbscan_epsilon
 from psyke.utils import Target
 

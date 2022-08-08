@@ -14,8 +14,8 @@ import unittest
 
 
 # TODO: should be refactored using the a .csv file
-@parameterized_class([{"dataset": "iris", "predictor": "DTC", "task": "classification"},
-                      {"dataset": "house", "predictor": "DTR", "task": "regression"}])
+@parameterized_class([{"dataset": "iris", "predictor": "DTC", "task": "extraction"},
+                      {"dataset": "house", "predictor": "DTR", "task": "hypercubic"}])
 class TestSimplifiedCart(unittest.TestCase):
 
     def test_equality(self):

@@ -1,5 +1,5 @@
 import unittest
-from psyke.classification.real.utils import Rule
+from psyke.extraction.real.utils import Rule
 from psyke.utils.dataframe import split_features
 from test import get_dataset
 

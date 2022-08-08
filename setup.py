@@ -111,7 +111,7 @@ class CreateTestPredictors(distutils.cmd.Command):
 
 
 class CreateTheoryPlot(distutils.cmd.Command):
-    description = 'create a plot representing samples X and their class/regression value Y predicted by a theory'
+    description = 'create a plot representing samples X and their class/hypercubic value Y predicted by a theory'
     user_options = [('theory=', 't', 'textual file of a Prolog theory'),
                     ('dataset=', 'd', 'file of a dataset'),
                     ('azimuth=', 'a', 'azimuth of the plot'),

@@ -1,7 +1,6 @@
 from psyke import get_default_random_seed
-from psyke.regression import Grid
-from psyke.regression.gridex import GridEx
-from psyke.regression.hypercube import RegressionCube
+from psyke.extraction.hypercubic import Grid, RegressionCube
+from psyke.extraction.hypercubic.gridex import GridEx
 
 
 class GridREx(GridEx):
