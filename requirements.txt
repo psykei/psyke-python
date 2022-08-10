@@ -10,3 +10,5 @@ parameterized==0.8.1
 protobuf==3.20.1
 setuptools==63.4.2
 kneed==0.7.0
+Kivy>=2.1.0
+matplotlib>=3.5.1
