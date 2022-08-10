@@ -6,8 +6,9 @@ scikit-learn==1.1.2
 2ppy==0.4.0
 skl2onnx==1.12
 onnxruntime==1.12.1
-tensorflow~=2.7.0
 parameterized==0.8.1
 protobuf==3.20.1
-setuptools==65.1.1
+setuptools==65.1.0
 kneed==0.7.0
+Kivy>=2.1.0
+matplotlib>=3.5.1
