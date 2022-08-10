@@ -111,11 +111,11 @@ class Extractor(object):
         :param predictor: if provided, its predictions on the dataframe are taken instead of the dataframe instances.
         :return: the F1 score of the predictions.
         """
-        predictions = np.array(self.predict(dataframe.iloc[:, :-1]))
+        predictions = np.array(self.predict(dataframe.iloc[:, :-1])[:])
         idx = [prediction is not None for prediction in predictions]
         return f1_score(dataframe.iloc[idx, -1] if predictor is None else
                         predictor.predict(dataframe.iloc[idx, :-1]).flatten(),
-                        predictions[idx])
+                        predictions[idx], average='weighted')
 
     @staticmethod
     def exact(depth: int, error_threshold: float, output, gauss_components: int = 2):
