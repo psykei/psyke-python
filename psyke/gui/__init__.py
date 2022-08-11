@@ -20,6 +20,7 @@ from psyke.extraction.hypercubic.creepy import CReEPy
 from psyke.extraction.hypercubic.gridex import GridEx
 from psyke.extraction.hypercubic.gridrex import GridREx
 from psyke.extraction.hypercubic.iter import ITER
+from psyke.gui.layout import VerticalBoxLayout, HorizontalBoxLayout
 from psyke.utils import Target
 
 
@@ -57,18 +58,7 @@ def text_with_label(label: str, text: str, filter: str, action) -> BoxLayout:
     return box
 
 
-class VerticalBoxLayout(BoxLayout):
 
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.orientation = 'vertical'
-
-
-class HorizontalBoxLayout(BoxLayout):
-
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.orientation = 'horizontal'
 
 
 class TitleBox(HorizontalBoxLayout):
