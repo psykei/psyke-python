@@ -40,7 +40,7 @@ CLASSIFICATION_EXTRACTORS = ['REAL', 'Trepan', 'CART', 'GridEx', 'CReEPy', 'CREA
 REGRESSION_EXTRACTORS = ['Iter', 'CART', 'GridEx', 'GridREx', 'CReEPy', 'CREAM']
 
 
-class PSyKEApp(App):
+class PSyKEApp1(App):
 
     def build(self):
         return PSyKEScreenManager()
@@ -247,4 +247,4 @@ class PSyKEMainScreen(GridLayout):
 
 
 if __name__ == '__main__':
-    PSyKEApp().run()
+    PSyKEApp1().run()
