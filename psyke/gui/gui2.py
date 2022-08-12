@@ -4,8 +4,10 @@ from kivy.lang import Builder
 from kivy.uix.screenmanager import ScreenManager, Screen
 
 from psyke.gui import VerticalBoxLayout
+from psyke.gui.Controller import Controller
+from psyke.gui.PredictorPanel import PredictorPanel
 from psyke.gui.layout import HorizontalBoxLayout
-from psyke.gui.panels import DataPanel
+from psyke.gui.DataPanel import DataPanel
 
 Window.top = 50
 Window.left = 10
@@ -18,9 +20,10 @@ class MainScreen(Screen):
 
     def __init__(self, **kw):
         super().__init__(**kw)
+        controller = Controller()
         body = VerticalBoxLayout()
-        body.add_widget(DataPanel())
-        body.add_widget(HorizontalBoxLayout())
+        body.add_widget(DataPanel(controller))
+        body.add_widget(PredictorPanel(controller))
         body.add_widget(HorizontalBoxLayout())
         self.add_widget(body)
 
