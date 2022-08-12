@@ -58,10 +58,10 @@ def checkbox_with_label(color: list[int, int, int], active: bool, label: str, ac
     return box
 
 
-def text_with_label(label: str, text: str, filter: str, action) -> BoxLayout:
-    box = HorizontalBoxLayout(size_hint_y=None, height=30)
-    box.add_widget(Label(text=label))
-    text = TextInput(text=text, input_filter=filter, multiline=False, size_hint_y=None, height=30)
+def text_with_label(label: str, text: str, filter: str, action) -> HorizontalBoxLayout:
+    box = HorizontalBoxLayout(size_hint=(None, None), width=260, height=40)
+    box.add_widget(Label(text=label, size_hint=(None, None), width=130, height=30))
+    text = TextInput(text=text, input_filter=filter)
     text.bind(text=action)
     box.add_widget(text)
     return box
