@@ -28,6 +28,15 @@ def default_action(widget=None, value=None):
     pass
 
 
+def radio_with_label(group: str, active: bool, label: str, action=default_action) -> GridLayout:
+    box = GridLayout(cols=2, padding=0)
+    button = CheckBox(group=group, size_hint_x=.047, size_hint_y=.047, active=active)
+    box.add_widget(button)
+    button.bind(active=action)
+    box.add_widget(Label(text=label))
+    return box
+
+
 def button_with_label(group: str, color: list[int, int, int], active: bool,
                       label: str, action=default_action) -> BoxLayout:
     box = GridLayout(cols=2, padding=0)
