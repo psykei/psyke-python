@@ -1,6 +1,6 @@
 from kivy.uix.label import Label
-from psyke.gui.layout import PanelBoxLayout
-from psyke.gui.model import INFO_EXTRACTOR_MESSAGE
+from psyke.gui.view.layout import PanelBoxLayout
+from psyke.gui.view import INFO_EXTRACTOR_MESSAGE
 
 
 class ExtractorPanel(PanelBoxLayout):

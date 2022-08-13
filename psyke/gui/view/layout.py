@@ -20,11 +20,10 @@ class HorizontalBoxLayout(BoxLayout):
 
 class PanelBoxLayout(HorizontalBoxLayout):
 
-    def __init__(self, controller, button_text, label_text, **kwargs):
+    def __init__(self, controller, button_text, label_text, label_height=250, **kwargs):
         super().__init__(spacing=10, **kwargs)
         self.controller = controller
-        self.info_label = Label()
-        self.info_label = Label(text=label_text, size_hint_x=None, width=220)
+        self.info_label = Label(text=label_text, size_hint=(None, None), height=label_height, width=220)
 
         self.spinner_options = Spinner(
             size_hint_x=None, width=130, pos_hint={'center_x': .5, 'center_y': .5}
@@ -36,11 +35,12 @@ class PanelBoxLayout(HorizontalBoxLayout):
         self.main_panel.add_widget(self.spinner_options)
         self.main_panel.add_widget(self.go_button)
 
-    def select(self):
+    def select(self, spinner, text):
         pass
 
-    def go_action(self):
+    def go_action(self, button):
         pass
+
 
 class SidebarBoxLayout(VerticalBoxLayout):
 
