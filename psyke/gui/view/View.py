@@ -1,6 +1,6 @@
 from kivy.graphics import Color, Rectangle, Line
 from kivy.uix.gridlayout import GridLayout
-from kivy.uix.screenmanager import ScreenManager, Screen
+from kivy.uix.screenmanager import Screen
 from kivy.core.window import Window
 
 from psyke.gui.view.DataPanel import DataPanel
@@ -26,13 +26,13 @@ class MainScreen(View):
             Color(1, 1, 1)
             Rectangle(pos=[0, 0], size=Window.size)
             Color(0, 0, 0)
-            Rectangle(pos=[4, 4], size=[Window.width - 8, 244])
-            Rectangle(pos=[4, 252], size=[Window.width - 8, 296])
-            Rectangle(pos=[4, 552], size=[Window.width - 8, 196])
+            Rectangle(pos=[4, 4], size=[Window.width - 8, 294])
+            Rectangle(pos=[4, 302], size=[Window.width - 8, 276])
+            Rectangle(pos=[4, 582], size=[Window.width - 8, 184])
             Color(1, 1, 1)
             Line(points=[300, 0, 300, Window.height])
             Line(points=[520, 0, 520, Window.height])
-            Line(points=[800, 0, 800, Window.height])
+            # Line(points=[800, 0, 800, Window.height])
 
     def init(self, controller):
         self.data_panel = DataPanel(controller)
@@ -43,7 +43,7 @@ class MainScreen(View):
         self.predictor_panel.init()
         self.extractor_panel.init()
 
-        layout = GridLayout(cols=1, spacing=0, rows_minimum={0: 200, 1: 300, 2: 250})
+        layout = GridLayout(cols=1, spacing=0, rows_minimum={0: 200, 1: 270, 2: 285})
         layout.add_widget(self.data_panel)
         layout.add_widget(self.predictor_panel)
         layout.add_widget(self.extractor_panel)
