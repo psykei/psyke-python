@@ -4,13 +4,12 @@ from kivy.lang import Builder
 
 from psyke.gui.controller.Controller import Controller
 from psyke.gui.model.Model import Model
-from psyke.gui.view.View import View
 
 Window.top = 50
 Window.left = 10
 Window.size = (1400, 750)
 
-Builder.load_file('view/panels.kv')
+Builder.load_file('view/style.kv')
 
 
 class PSyKEApp(App):
