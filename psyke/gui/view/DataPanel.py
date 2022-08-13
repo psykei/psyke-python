@@ -1,18 +1,16 @@
 import numpy as np
-from kivy.uix.button import Button
 from kivy.uix.label import Label
-from kivy.uix.spinner import Spinner
 from kivy.uix.togglebutton import ToggleButton
 
-from psyke.gui.layout import PanelBoxLayout, SidebarBoxLayout, HorizontalBoxLayout
-from psyke.gui.model import TASKS, DATASET_MESSAGE, DATASETS, INFO_DATASET_MESSAGE, INFO_DATASET_PREFIX
+from psyke.gui.view.layout import PanelBoxLayout, SidebarBoxLayout, HorizontalBoxLayout
+from psyke.gui.model import TASKS, DATASETS
+from psyke.gui.view import DATASET_MESSAGE, INFO_DATASET_MESSAGE, INFO_DATASET_PREFIX
 
 
 class DataPanel(PanelBoxLayout):
 
     def __init__(self, controller, **kwargs):
         super().__init__(controller, 'Load', INFO_DATASET_MESSAGE, **kwargs)
-        self.controller.set_data_panel(self)
 
         self.task = TASKS[0]
         self.dataset = None
@@ -41,7 +39,6 @@ class DataPanel(PanelBoxLayout):
 
         self.add_widget(left_sidebar)
         self.add_widget(self.info_label)
-
         self.init_datasets()
 
     def select(self, spinner, text):
@@ -56,13 +53,12 @@ class DataPanel(PanelBoxLayout):
             self.scale_button.disabled = False
 
     def set_dataset_info(self):
-        data = self.controller.data
+        data = self.controller.get_data_from_model()
         self.info_label.text = INFO_DATASET_MESSAGE if data is None else \
             INFO_DATASET_PREFIX + \
             f'Dataset: {self.dataset}\nInput variables: {len(data.columns) - 1}\nInstances: {len(data)}'
         if data is not None and isinstance(data.iloc[0, -1], str):
             self.info_label.text += f'\nClasses: {len(np.unique(data.iloc[:, -1]))}'
-        self.info_label.text += '\n'
 
     def init_datasets(self):
         self.spinner_options.text = DATASET_MESSAGE

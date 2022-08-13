@@ -20,7 +20,7 @@ from psyke.extraction.hypercubic.creepy import CReEPy
 from psyke.extraction.hypercubic.gridex import GridEx
 from psyke.extraction.hypercubic.gridrex import GridREx
 from psyke.extraction.hypercubic.iter import ITER
-from psyke.gui.layout import VerticalBoxLayout, HorizontalBoxLayout
+from psyke.gui.view.layout import VerticalBoxLayout, HorizontalBoxLayout
 from psyke.utils import Target
 
 
