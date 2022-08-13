@@ -13,9 +13,8 @@ from psyke.gui.model import PREDICTORS, FIXED_PREDICTOR_PARAMS
 class PredictorPanel(PanelBoxLayout):
 
     def __init__(self, controller, **kwargs):
-        super().__init__(controller, 'Train', INFO_PREDICTOR_MESSAGE, 350, **kwargs)
-
-        self.params = {}
+        super().__init__(controller, 'Train', INFO_PREDICTOR_MESSAGE, 350,
+                         PREDICTOR_MESSAGE, PREDICTORS, controller.set_predictor_param, **kwargs)
 
         self.parameter_panel = VerticalBoxLayout(size_hint_y=None, height=190)
 
@@ -44,7 +43,7 @@ class PredictorPanel(PanelBoxLayout):
     def go_action(self, button):
         self.controller.train_predictor()
 
-    def set_predictor_info(self):
+    def set_info(self):
         predictor_name, predictor, predictor_params = self.controller.get_predictor_from_model()
         if predictor is None:
             self.info_label.text = INFO_PREDICTOR_MESSAGE
@@ -68,15 +67,3 @@ class PredictorPanel(PanelBoxLayout):
                 self.info_label.text += f'MAE: {mean_absolute_error(true, predicted):.2f}\n' \
                                    f'MSE: {mean_squared_error(true, predicted):.2f}\n' \
                                    f'R2: {r2_score(true, predicted):.2f}'
-
-    def init(self):
-        self.spinner_options.text = PREDICTOR_MESSAGE
-        task = self.controller.get_task_from_model()
-        self.spinner_options.values = [k for k, v in PREDICTORS.items() if task in v[0]]
-        self.go_button.disabled = True
-        self.spinner_options.disabled = True
-        self.parameter_panel.clear_widgets()
-        self.set_predictor_info()
-
-    def set_param(self, key, widget, value):
-        self.params[key] = value

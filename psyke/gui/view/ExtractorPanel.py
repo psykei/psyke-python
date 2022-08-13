@@ -1,19 +1,20 @@
 from functools import partial
 
 from kivy.uix.label import Label
+from sklearn.base import ClassifierMixin, RegressorMixin
+from sklearn.metrics import accuracy_score, f1_score, mean_absolute_error, mean_squared_error, r2_score
 
 from psyke.gui.model import EXTRACTORS
 from psyke.gui.view.layout import PanelBoxLayout, VerticalBoxLayout, SidebarBoxLayout
-from psyke.gui.view import INFO_EXTRACTOR_MESSAGE, EXTRACTOR_MESSAGE, text_with_label
+from psyke.gui.view import INFO_EXTRACTOR_MESSAGE, EXTRACTOR_MESSAGE, text_with_label, INFO_EXTRACTOR_PREFIX, \
+    EXTRACTOR_PERFORMANCE_PREFIX
 
 
 class ExtractorPanel(PanelBoxLayout):
 
     def __init__(self, controller, **kwargs):
-        super().__init__(controller, 'Extract', INFO_EXTRACTOR_MESSAGE, **kwargs)
-
-        self.extractor = None
-        self.params = {}
+        super().__init__(controller, 'Extract', INFO_EXTRACTOR_MESSAGE, 350,
+                         EXTRACTOR_MESSAGE, EXTRACTORS, controller.set_extractor_param, **kwargs)
 
         self.parameter_panel = VerticalBoxLayout(size_hint_y=None, height=190)
 
@@ -25,26 +26,42 @@ class ExtractorPanel(PanelBoxLayout):
         self.add_widget(left_sidebar)
         self.add_widget(self.info_label)
 
-    def init(self):
-        self.spinner_options.text = EXTRACTOR_MESSAGE
-        task = self.controller.get_task_from_model()
-        self.spinner_options.values = [k for k, v in EXTRACTORS.items() if task in v[0]]
-        self.go_button.disabled = True
-        self.spinner_options.disabled = True
-        self.parameter_panel.clear_widgets()
-        self.set_extractor_info()
+    def set_info(self):
+        extractor_name, extractor, extractor_params = self.controller.get_extractor_from_model()
+        if extractor is None:
+            self.info_label.text = INFO_EXTRACTOR_MESSAGE
+        else:
+            self.info_label.text = f'\n{INFO_EXTRACTOR_PREFIX}Predictor: {extractor_name}\n'
+            for name, _ in EXTRACTORS[extractor_name][1].items():
+                self.info_label.text += f'{name} = {extractor_params[name]}\n'
 
-    def set_extractor_info(self):
-        pass
+            self.info_label.text += '\n' + EXTRACTOR_PERFORMANCE_PREFIX
+
+            test = self.controller.get_test_set_from_model()
+            predictor = self.controller.get_predictor_from_model()[1]
+            true = test.iloc[:, -1]
+            predicted_bb = predictor.predict(test.iloc[:, :-1])
+            predicted = extractor.predict(test.iloc[:, :-1])
+            if isinstance(predictor, ClassifierMixin):
+                self.info_label.text += f'Acc.: {accuracy_score(true, predicted):.2f} (data), ' \
+                                        f'{accuracy_score(predicted_bb, predicted):.2f} (BB)\n' \
+                                        f'F1: {f1_score(true, predicted, average="weighted"):.2f} (data), ' \
+                                        f'{f1_score(predicted_bb, predicted, average="weighted"):.2f} (BB)'
+            elif isinstance(predictor, RegressorMixin):
+                self.info_label.text += f'MAE: {mean_absolute_error(true, predicted):.2f} (data), ' \
+                                        f'{mean_absolute_error(predicted_bb, predicted):.2f} (BB)\n' \
+                                        f'MSE: {mean_squared_error(true, predicted):.2f} (data), ' \
+                                        f'{mean_squared_error(predicted_bb, predicted):.2f} (BB)\n' \
+                                        f'R2: {r2_score(true, predicted):.2f} (data), ' \
+                                        f'{r2_score(predicted_bb, predicted):.2f} (BB)'
 
     def select(self, spinner, text):
         if text == EXTRACTOR_MESSAGE:
-            self.extractor = None
-        else:
             self.controller.reset_extractor()
-            self.extractor = text
+        else:
+            self.controller.select_extractor(text)
             self.go_button.disabled = False
-            params = EXTRACTORS[self.extractor][1]
+            params = EXTRACTORS[text][1]
             self.parameter_panel.clear_widgets()
             for name, (default, param_type) in params.items():
                 self.parameter_panel.add_widget(
