@@ -1,21 +1,29 @@
+#:set default_width 130
+#:set default_height 40
+
 <SpinnerOption>:
     size_hint: None, None
-    size: 130, 40
+    size: default_width, 40
+
+<Spinner>:
+    size_hint: (None, None)
+    width: default_width
+    height: default_height
 
 <Button>:
     size_hint: (None, None)
-    width: 130
-    height: 40
+    width: default_width
+    height: default_height
 
 <ToggleButton>:
     size_hint: (None, None)
-    width: 130
-    height: 40
+    width: default_width
+    height: default_height
 
 <TextInput>:
     size_hint: (None, None)
-    width: 130
-    height: 30
+    width: default_width - 60
+    height: default_height - 10
     multiline: False
 
 <PanelBoxLayout>:
