@@ -39,6 +39,10 @@ class MainScreen(View):
         self.predictor_panel = PredictorPanel(controller)
         self.extractor_panel = ExtractorPanel(controller)
 
+        self.data_panel.init()
+        self.predictor_panel.init()
+        self.extractor_panel.init()
+
         layout = GridLayout(cols=1, spacing=0, rows_minimum={0: 200, 1: 300, 2: 250})
         layout.add_widget(self.data_panel)
         layout.add_widget(self.predictor_panel)
