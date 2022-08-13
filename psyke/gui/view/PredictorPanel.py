@@ -4,8 +4,9 @@ from kivy.uix.label import Label
 from sklearn.base import ClassifierMixin, RegressorMixin
 from sklearn.metrics import accuracy_score, mean_absolute_error, mean_squared_error, r2_score, f1_score
 
+from psyke.gui import text_with_label
 from psyke.gui.view import INFO_PREDICTOR_MESSAGE, PREDICTOR_MESSAGE, PREDICTOR_PERFORMANCE_PREFIX, \
-    INFO_PREDICTOR_PREFIX, text_with_label
+    INFO_PREDICTOR_PREFIX
 from psyke.gui.view.layout import PanelBoxLayout, SidebarBoxLayout, VerticalBoxLayout
 from psyke.gui.model import PREDICTORS, FIXED_PREDICTOR_PARAMS
 
@@ -13,8 +14,10 @@ from psyke.gui.model import PREDICTORS, FIXED_PREDICTOR_PARAMS
 class PredictorPanel(PanelBoxLayout):
 
     def __init__(self, controller, **kwargs):
-        super().__init__(controller, 'Train', INFO_PREDICTOR_MESSAGE, 315,
-                         PREDICTOR_MESSAGE, PREDICTORS, controller.set_predictor_param, **kwargs)
+        super().__init__(controller, 'Train', INFO_PREDICTOR_MESSAGE, 350, **kwargs)
+
+        self.predictor = None
+        self.params = {}
 
         self.parameter_panel = VerticalBoxLayout(size_hint_y=None, height=190)
 
@@ -25,14 +28,16 @@ class PredictorPanel(PanelBoxLayout):
 
         self.add_widget(left_sidebar)
         self.add_widget(self.info_label)
+        self.init_predictors()
 
     def select(self, spinner, text):
         if text == PREDICTOR_MESSAGE:
-            self.controller.reset_predictor()
+            self.predictor = None
         else:
-            self.controller.select_predictor(text)
+            self.controller.reset_predictor()
+            self.predictor = text
             self.go_button.disabled = False
-            params = PREDICTORS[text][1]
+            params = PREDICTORS[self.predictor][1]
             self.parameter_panel.clear_widgets()
             for name, (default, param_type) in dict(FIXED_PREDICTOR_PARAMS, **params).items():
                 self.parameter_panel.add_widget(
@@ -42,17 +47,18 @@ class PredictorPanel(PanelBoxLayout):
 
     def go_action(self, button):
         self.controller.train_predictor()
+        self.set_predictor_info()
 
-    def set_info(self):
-        predictor_name, predictor, predictor_params = self.controller.get_predictor_from_model()
+    def set_predictor_info(self):
+        predictor, predictor_params = self.controller.get_predictor_from_model()
         if predictor is None:
             self.info_label.text = INFO_PREDICTOR_MESSAGE
         else:
             self.info_label.text = ''
             for name, _ in FIXED_PREDICTOR_PARAMS.items():
                 self.info_label.text += f'{name} = {predictor_params[name]}\n'
-            self.info_label.text += f'\n{INFO_PREDICTOR_PREFIX}Predictor: {predictor_name}\n'
-            for name, _ in PREDICTORS[predictor_name][1].items():
+            self.info_label.text += f'\n{INFO_PREDICTOR_PREFIX}Predictor: {self.predictor}\n'
+            for name, _ in PREDICTORS[self.predictor][1].items():
                 self.info_label.text += f'{name} = {predictor_params[name]}\n'
 
             self.info_label.text += '\n' + PREDICTOR_PERFORMANCE_PREFIX
@@ -67,3 +73,18 @@ class PredictorPanel(PanelBoxLayout):
                 self.info_label.text += f'MAE: {mean_absolute_error(true, predicted):.2f}\n' \
                                    f'MSE: {mean_squared_error(true, predicted):.2f}\n' \
                                    f'R2: {r2_score(true, predicted):.2f}'
+
+    def init_predictors(self):
+        self.spinner_options.text = PREDICTOR_MESSAGE
+        task = self.controller.get_task_from_model()
+        self.spinner_options.values = [k for k, v in PREDICTORS.items() if task in v[0]]
+        self.go_button.disabled = True
+        self.spinner_options.disabled = True
+        self.parameter_panel.clear_widgets()
+        self.set_predictor_info()
+
+    def set_param(self, key, widget, value):
+        self.params[key] = value
+
+    def enable_predictors(self):
+        self.spinner_options.disabled = False
