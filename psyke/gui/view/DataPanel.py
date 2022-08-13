@@ -12,13 +12,12 @@ class DataPanel(PanelBoxLayout):
     def __init__(self, controller, **kwargs):
         super().__init__(controller, 'Load', INFO_DATASET_MESSAGE, **kwargs)
 
-        self.task = TASKS[0]
-        self.dataset = None
         self.preprocessing = {}
 
         task_panel = HorizontalBoxLayout()
         for task in TASKS:
-            btn_task = ToggleButton(text=task, group='task', state='down' if self.task == task else 'normal')
+            btn_task = ToggleButton(text=task, group='task',
+                                    state='down' if self.controller.get_task_from_model() == task else 'normal')
             btn_task.bind(state=self.select_task)
             task_panel.add_widget(btn_task)
 
@@ -39,15 +38,14 @@ class DataPanel(PanelBoxLayout):
 
         self.add_widget(left_sidebar)
         self.add_widget(self.info_label)
-        self.init_datasets()
 
     def select(self, spinner, text):
-        self.dataset = text if text != DATASET_MESSAGE else None
+        self.controller.select_dataset(text if text != DATASET_MESSAGE else None)
         self.go_button.disabled = False
 
     def go_action(self, button):
         self.controller.load_dataset()
-        if self.task == 'Classification':
+        if self.controller.get_task_from_model() == 'Classification':
             self.discretize_button.disabled = False
         else:
             self.scale_button.disabled = False
@@ -56,13 +54,15 @@ class DataPanel(PanelBoxLayout):
         data = self.controller.get_data_from_model()
         self.info_label.text = INFO_DATASET_MESSAGE if data is None else \
             INFO_DATASET_PREFIX + \
-            f'Dataset: {self.dataset}\nInput variables: {len(data.columns) - 1}\nInstances: {len(data)}'
+            f'Dataset: {self.controller.get_dataset_from_model()}\n' \
+            f'Input variables: {len(data.columns) - 1}\nInstances: {len(data)}'
         if data is not None and isinstance(data.iloc[0, -1], str):
             self.info_label.text += f'\nClasses: {len(np.unique(data.iloc[:, -1]))}'
 
-    def init_datasets(self):
+    def init(self):
         self.spinner_options.text = DATASET_MESSAGE
-        self.spinner_options.values = [entry[0] for entry in DATASETS if self.task in entry[1]]
+        self.spinner_options.values = [entry[0] for entry in DATASETS
+                                       if self.controller.get_task_from_model() in entry[1]]
         self.go_button.disabled = True
         self.discretize_button.state = 'normal'
         self.scale_button.state = 'normal'
@@ -71,8 +71,7 @@ class DataPanel(PanelBoxLayout):
 
     def select_task(self, button, value):
         if value == 'down':
-            self.task = button.text
-            self.controller.select_task()
+            self.controller.select_task(button.text)
 
     def select_preprocessing(self, button, value):
         self.preprocessing[button.text] = value == 'down'
