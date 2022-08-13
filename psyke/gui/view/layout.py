@@ -41,6 +41,9 @@ class PanelBoxLayout(HorizontalBoxLayout):
     def go_action(self, button):
         pass
 
+    def enable(self):
+        self.spinner_options.disabled = False
+
 
 class SidebarBoxLayout(VerticalBoxLayout):
 
