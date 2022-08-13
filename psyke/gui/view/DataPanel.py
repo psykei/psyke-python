@@ -50,7 +50,7 @@ class DataPanel(PanelBoxLayout):
         else:
             self.scale_button.disabled = False
 
-    def set_dataset_info(self):
+    def set_info(self):
         data = self.controller.get_data_from_model()
         self.info_label.text = INFO_DATASET_MESSAGE if data is None else \
             INFO_DATASET_PREFIX + \
