@@ -55,6 +55,7 @@ class Model:
         print(f'Loading {self.dataset}... ', end='')
         if self.dataset == 'Iris':
             x, y = load_iris(return_X_y=True, as_frame=True)
+            y.name = 'iris'
             self.data = (x, y.replace({0: 'setosa', 1: 'versicolor', 2: 'virginica'}))
         elif self.dataset == 'Wine':
             self.data = load_wine(return_X_y=True, as_frame=True)
