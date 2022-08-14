@@ -2,6 +2,7 @@ from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
 from kivy.uix.label import Label
 from kivy.uix.spinner import Spinner
+from kivy.uix.togglebutton import ToggleButton
 
 
 class VerticalBoxLayout(BoxLayout):
@@ -69,3 +70,23 @@ class SidebarBoxLayout(VerticalBoxLayout):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.add_widget(Label())
+
+
+class FeatureSelectionBoxLayout(HorizontalBoxLayout):
+
+    def __init__(self, feature, role, action, plot_action, **kwargs):
+        super().__init__(size_hint=(None, None), size=(225, 20), **kwargs)
+        self.buttons = {}
+        text = feature if len(feature) < 18 else feature[:15] + '...'
+        self.add_widget(Label(text=text, size_hint=(None, None), height=20, width=150))
+        for text in ['I', 'O']:
+            button = ToggleButton(text=text, height=20, width=25, state='down' if role == text else 'normal',
+                                  group=f'feature_{feature}')
+            button.bind(on_press=action)
+            self.add_widget(button)
+            self.buttons[text] = button
+        self.plot_button = ToggleButton(text='P', height=20, width=25, state='down' if role == 'O' else 'normal')
+        self.plot_button.bind(on_press=plot_action)
+        self.add_widget(self.plot_button)
+
+
