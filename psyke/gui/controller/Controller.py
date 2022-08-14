@@ -47,6 +47,7 @@ class Controller:
         self.model.select_dataset(dataset)
         self.reset_predictor()
         self.view.data_panel.set_info()
+        self.view.feature_panel.set_info()
 
     def select_predictor(self, predictor):
         self.model.reset_predictor()
@@ -63,7 +64,9 @@ class Controller:
         self.model.reset_dataset()
         self.reset_predictor()
         self.view.data_panel.init()
+        self.view.feature_panel.init()
         self.view.data_panel.set_info()
+        self.view.feature_panel.set_info()
 
     def reset_predictor(self):
         self.model.reset_predictor()
@@ -80,6 +83,7 @@ class Controller:
         self.model.load_dataset()
         self.reset_predictor()
         self.view.data_panel.set_info()
+        self.view.feature_panel.set_info()
         self.view.predictor_panel.enable()
 
     def train_predictor(self):
