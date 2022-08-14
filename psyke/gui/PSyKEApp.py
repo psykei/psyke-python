@@ -1,17 +1,18 @@
 from kivy.app import App
-from kivy import Config
+from kivy.core.window import Window
 from kivy.lang import Builder
 
-Config.set('graphics', 'resizable', 0)
-Config.set('graphics', 'width', 1500)
-Config.set('graphics', 'height', 770)
+from psyke.gui.controller.Controller import Controller
+from psyke.gui.model.Model import Model
+
+Window.top = 50
+Window.left = 10
+Window.size = (1400, 770)
 
 Builder.load_file('view/style.kv')
 
 
 class PSyKEApp(App):
-    from psyke.gui.controller.Controller import Controller
-    from psyke.gui.model.Model import Model
 
     model = Model()
     controller = Controller(model)
