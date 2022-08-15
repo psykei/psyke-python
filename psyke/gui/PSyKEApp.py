@@ -7,7 +7,7 @@ from psyke.gui.model.Model import Model
 
 Window.top = 50
 Window.left = 10
-Window.size = (1400, 770)
+Window.size = (1500, 770)
 
 Builder.load_file('view/style.kv')
 
