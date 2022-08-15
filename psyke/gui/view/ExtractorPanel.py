@@ -36,12 +36,17 @@ class ExtractorPanel(PanelBoxLayout):
                 self.info_label.text += f'{name} = {extractor_params[name]}\n'
 
             self.info_label.text += '\n' + EXTRACTOR_PERFORMANCE_PREFIX
+            self.info_label.text += f'N. rules: {extractor.n_rules}\n'
 
             test = self.controller.get_test_set_from_model()
-            predictor = self.controller.get_predictor_from_model()[1]
-            true = test.iloc[:, -1]
-            predicted_bb = predictor.predict(test.iloc[:, :-1])
             predicted = extractor.predict(test.iloc[:, :-1])
+            idx = [prediction is not None for prediction in predicted]
+            predicted = predicted[idx]
+
+            predictor = self.controller.get_predictor_from_model()[1]
+            true = test.iloc[idx, -1]
+            predicted_bb = predictor.predict(test.iloc[idx, :-1])
+
             if isinstance(predictor, ClassifierMixin):
                 self.info_label.text += f'Acc.: {accuracy_score(true, predicted):.2f} (data), ' \
                                         f'{accuracy_score(predicted_bb, predicted):.2f} (BB)\n' \
