@@ -26,7 +26,7 @@ class Controller:
         return self.model.dataset
 
     def get_data_from_model(self):
-        return self.model.data
+        return self.model.data, self.model.pruned_data
 
     def get_predictor_from_model(self):
         return self.model.predictor_name, self.model.predictor, self.model.predictor_params
@@ -36,6 +36,9 @@ class Controller:
 
     def get_test_set_from_model(self):
         return self.model.test
+
+    def get_theory_from_model(self):
+        return self.model.theory
 
     def select_task(self, task):
         self.model.reset_dataset()
@@ -48,17 +51,37 @@ class Controller:
         self.reset_predictor()
         self.view.data_panel.set_info()
         self.view.feature_panel.set_info()
+        self.view.plot_panel.clear_data()
 
     def select_predictor(self, predictor):
         self.model.reset_predictor()
         self.model.select_predictor(predictor)
         self.reset_extractor()
         self.view.predictor_panel.set_info()
+        self.view.plot_panel.clear_predictor()
 
     def select_extractor(self, extractor):
         self.model.reset_extractor()
         self.model.select_extractor(extractor)
         self.view.extractor_panel.set_info()
+        self.view.theory_panel.set_info()
+        self.view.plot_panel.clear_extractor()
+
+    def reload_dataset(self, features):
+        self.model.select_features(features)
+        self.reset_predictor()
+        self.view.data_panel.set_info()
+        self.view.predictor_panel.enable()
+        self.view.plot_panel.clear_data()
+
+    def plot(self, features, plot_features):
+        inputs = [k for k, v in features.items() if v == 'I' and k in plot_features]
+        output = [k for k, v in features.items() if v == 'O' and k in plot_features][0]
+        self.model.plot(inputs, output)
+        self.view.plot_panel.set_info()
+
+    def get_plots_from_model(self):
+        return self.model.data_plot, self.model.predictor_plot, self.model.extractor_plot
 
     def reset_dataset(self):
         self.model.reset_dataset()
@@ -67,24 +90,32 @@ class Controller:
         self.view.feature_panel.init()
         self.view.data_panel.set_info()
         self.view.feature_panel.set_info()
+        self.view.plot_panel.clear_data()
 
     def reset_predictor(self):
         self.model.reset_predictor()
         self.reset_extractor()
         self.view.predictor_panel.init()
         self.view.predictor_panel.set_info()
+        self.view.plot_panel.clear_predictor()
 
     def reset_extractor(self):
         self.model.reset_extractor()
         self.view.extractor_panel.init()
+        self.view.theory_panel.init()
         self.view.extractor_panel.set_info()
+        self.view.theory_panel.set_info()
+        self.view.plot_panel.clear_extractor()
 
     def load_dataset(self):
+        self.model.reset_dataset(True)
         self.model.load_dataset()
         self.reset_predictor()
         self.view.data_panel.set_info()
+        self.view.feature_panel.init()
         self.view.feature_panel.set_info()
         self.view.predictor_panel.enable()
+        self.view.plot_panel.clear_data()
 
     def train_predictor(self):
         self.model.train_predictor()
@@ -95,6 +126,7 @@ class Controller:
     def train_extractor(self):
         self.model.train_extractor()
         self.view.extractor_panel.set_info()
+        self.view.theory_panel.set_info()
 
     def set_predictor_param(self, key, value):
         self.model.set_predictor_param(key, value)

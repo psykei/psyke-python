@@ -18,7 +18,8 @@ class FeaturePanel(VerticalBoxLayout):
         self.plot_features = {}
 
         self.top_label = Label(text='Feature selection')
-        self.top_button = Button(text='Reload')
+        self.top_button = Button(text='Plot')
+        self.top_button.bind(on_press=self.plot)
         self.alert_label = Label(size_hint_x=None, width=600)
 
         top_panel = HorizontalBoxLayout(size_hint=(None, None), size=(900, 40), spacing=-10)
@@ -32,18 +33,24 @@ class FeaturePanel(VerticalBoxLayout):
         self.add_widget(self.feature_panel)
 
     def init(self):
+        self.features = {}
+        self.feature_panels = {}
+        self.plot_features = {}
         self.top_button.disabled = True
+        self.alert_label.text = ''
         self.feature_panel.clear_widgets()
         self.feature_panel.add_widget(Label(text='No dataset selected'))
         self.feature_panel.add_widget(Label())
 
     def set_info(self):
-        dataset = self.controller.get_data_from_model()
+        dataset, pruned_dataset = self.controller.get_data_from_model()
         if dataset is not None:
+            pruned_columns = dataset.columns if pruned_dataset is None else pruned_dataset.columns
             self.feature_panel.clear_widgets()
             self.top_button.disabled = False
             for feature in dataset.columns:
-                self.features[feature] = 'O' if feature == dataset.columns[-1] else 'I'
+                self.features[feature] = None if feature not in pruned_columns else \
+                    'O' if feature == pruned_columns[-1] else 'I'
                 self.plot_features[feature] = feature == dataset.columns[-1]
                 self.feature_panels[feature] = FeatureSelectionBoxLayout(feature, self.features[feature],
                                                                          partial(self.set_feature, feature),
@@ -88,7 +95,7 @@ class FeaturePanel(VerticalBoxLayout):
                     self.feature_panels[feature].plot_button.state = 'down'
                     self.plot_features[feature] = True
                     self.alert_label.text = ''
-        self.check()
+        self.controller.reload_dataset(self.features)
 
     def set_plot_feature(self, feature, button):
         if self.features[feature] is None:
@@ -101,7 +108,7 @@ class FeaturePanel(VerticalBoxLayout):
             inputs = [k for k, v in self.features.items() if v == 'I']
             active = len([k for k, v in self.plot_features.items() if v and k in inputs])
             if (self.plot_features[feature] and active == 2) or (not self.plot_features[feature] and active < 2):
-                self.plot_features[feature] = ~self.plot_features[feature]
+                self.plot_features[feature] = not self.plot_features[feature]
                 self.alert_label.text = ''
             else:
                 self.alert_label.text = 'Cannot plot less than 1 input feature' if self.plot_features[feature] else \
@@ -109,12 +116,13 @@ class FeaturePanel(VerticalBoxLayout):
                 state = self.feature_panels[feature].plot_button.state
                 self.feature_panels[feature].plot_button.state = 'down' if state == 'normal' else 'normal'
 
-        self.check()
-
-    def check(self):
-        outputs = [k for k, v in self.features.items() if v == 'O']
-        inputs = [k for k, v in self.features.items() if v == 'I']
-        input_plots = len([k for k, v in self.plot_features.items() if v and k in inputs])
-        output_plots = len([k for k, v in self.plot_features.items() if v and k in outputs])
-
-        # self.alert_label.text += f'{len(inputs)} {len(outputs)} {input_plots} {output_plots}'
+    def plot(self, button):
+        inputs = len([k for k, v in self.features.items() if v == 'I' and self.plot_features[k]])
+        task = self.controller.get_task_from_model()
+        if task == 'Classification' and inputs < 2:
+            self.alert_label.text = 'Classification plots require two input features'
+        elif task == 'Regression' and inputs == 0:
+            self.alert_label.text = 'Regression plots require at least one input feature'
+        else:
+            self.controller.plot(self.features, [k for k, v in self.plot_features.items() if v])
+            self.alert_label.text = ''

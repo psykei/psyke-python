@@ -23,7 +23,13 @@ INFO_EXTRACTOR_PREFIX = 'Extractor info:\n'
 
 INFO_EXTRACTOR_MESSAGE = f'\n\n{INFO_EXTRACTOR_PREFIX}\nNo extractor trained\n\n\n\n\n\n'
 
+THEORY_PREFIX = 'Extracted theory'
+
+THEORY_MESSAGE = 'No extractor trained\n\n\n'
+
 EXTRACTOR_PERFORMANCE_PREFIX = 'Extractor performance:\n'
+
+THEORY_ERROR_MESSAGE = 'Too many extracted rules\n\n\n'
 
 
 def text_with_label(label: str, text: str, filter: str, action) -> HorizontalBoxLayout:

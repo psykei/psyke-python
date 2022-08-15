@@ -1,3 +1,6 @@
+import numpy as np
+import pandas as pd
+from matplotlib import pyplot as plt, colors
 from sklearn.datasets import load_iris, load_wine, fetch_california_housing
 from sklearn.model_selection import train_test_split
 from sklearn.neighbors import KNeighborsClassifier, KNeighborsRegressor
@@ -6,6 +9,7 @@ from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
 from psyke import Extractor
 from psyke.extraction.hypercubic import Grid, FixedStrategy
 from psyke.gui.model import PREDICTORS, FIXED_PREDICTOR_PARAMS, EXTRACTORS, cast_param
+from psyke.gui.model.plot import init_plot, plotSamples, create_grid, cmap, plot_regions
 from psyke.utils import Target
 
 
@@ -15,6 +19,7 @@ class Model:
         self.task = 'Classification'
         self.dataset = None
         self.data = None
+        self.pruned_data = None
         self.train = None
         self.test = None
         self.predictor_name = None
@@ -23,6 +28,10 @@ class Model:
         self.extractor_name = None
         self.extractor = None
         self.extractor_params = {}
+        self.theory = None
+        self.data_plot = None
+        self.predictor_plot = None
+        self.extractor_plot = None
 
     def select_task(self, task):
         self.task = task
@@ -36,20 +45,26 @@ class Model:
     def select_extractor(self, extractor):
         self.extractor_name = extractor
 
-    def reset_dataset(self):
-        self.data = None
+    def reset_dataset(self, soft=False):
+        if not soft:
+            self.data = None
+        self.pruned_data = None
         self.train = None
         self.test = None
+        self.data_plot = None
 
     def reset_predictor(self):
         self.predictor_name = None
         self.predictor = None
         self.predictor_params = {}
+        self.predictor_plot = None
 
     def reset_extractor(self):
         self.extractor_name = None
         self.extractor = None
         self.extractor_params = {}
+        self.theory = None
+        self.extractor_plot = None
 
     def load_dataset(self):
         print(f'Loading {self.dataset}... ', end='')
@@ -58,13 +73,19 @@ class Model:
             y.name = 'iris'
             self.data = (x, y.replace({0: 'setosa', 1: 'versicolor', 2: 'virginica'}))
         elif self.dataset == 'Wine':
-            self.data = load_wine(return_X_y=True, as_frame=True)
+            x, y = load_wine(return_X_y=True, as_frame=True)
+            self.data = (x, y.apply(str))
         elif self.dataset == "House":
             self.data = fetch_california_housing(return_X_y=True, as_frame=True)
         else:
             raise NotImplementedError
         print('Done')
         self.data = self.data[0].join(self.data[1])
+
+    def select_features(self, features):
+        inputs = [k for k, v in features.items() if v == 'I']
+        output = [k for k, v in features.items() if v == 'O'][0]
+        self.pruned_data = self.data[inputs].join(self.data[output])
 
     def train_predictor(self):
         self.read_predictor_param()
@@ -79,7 +100,8 @@ class Model:
             self.predictor.max_leaf_nodes = self.predictor_params['Max leaves']
         else:
             ...
-        self.train, self.test = train_test_split(self.data, test_size=self.predictor_params['Test set'],
+        self.train, self.test = train_test_split(self.data if self.pruned_data is None else self.pruned_data,
+                                                 test_size=self.predictor_params['Test set'],
                                                  random_state=self.predictor_params['Split seed'])
         self.predictor.fit(self.train.iloc[:, :-1], self.train.iloc[:, -1])
         print('Done')
@@ -130,8 +152,42 @@ class Model:
         else:
             raise NotImplementedError
 
-        self.extractor.extract(self.train)
+        self.theory = self.extractor.extract(self.train)
         print('Done')
+
+    def plot(self, inputs, output):
+        x = inputs[0]
+        y = inputs[1] if len(inputs) > 1 else output
+        z = output if len(inputs) > 1 else None
+
+        data = self.data if self.pruned_data is None else self.pruned_data
+
+        init_plot(data[x], data[y])
+        plotSamples(data[x], data[y], data[z if z is not None else y])
+        self.data_plot = plt.gcf()
+        plt.close()
+
+        if self.predictor is None:
+            return
+
+        grid = create_grid(x, y, data)
+
+        init_plot(data[x], data[y])
+        grid_data = pd.concat([grid, pd.DataFrame(self.predictor.predict(grid), columns=[data.columns[-1]])], axis=1)
+        plot_regions(grid_data[x], grid_data[y], grid_data[z if z is not None else y])
+        plotSamples(data[x], data[y], data[z if z is not None else y])
+        self.predictor_plot = plt.gcf()
+        plt.close()
+
+        if self.extractor is None:
+            return
+
+        init_plot(data[x], data[y])
+        grid_data = pd.concat([grid, pd.DataFrame(self.extractor.predict(grid), columns=[data.columns[-1]])], axis=1)
+        plot_regions(grid_data[x], grid_data[y], grid_data[z if z is not None else y])
+        plotSamples(data[x], data[y], data[z if z is not None else y])
+        self.extractor_plot = plt.gcf()
+        plt.close()
 
     def set_predictor_param(self, key, value):
         self.predictor_params[key] = \
