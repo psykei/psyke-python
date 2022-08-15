@@ -51,7 +51,9 @@ class DataPanel(PanelBoxLayout):
             self.scale_button.disabled = False
 
     def set_info(self):
-        data = self.controller.get_data_from_model()
+        data, pruned_data = self.controller.get_data_from_model()
+        if pruned_data is not None:
+            data = pruned_data
         self.info_label.text = INFO_DATASET_MESSAGE if data is None else \
             INFO_DATASET_PREFIX + \
             f'Dataset: {self.controller.get_dataset_from_model()}\n' \
