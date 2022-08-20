@@ -20,8 +20,8 @@ class CReEPy(HyperCubeExtractor):
 
     def __init__(self, predictor, depth: int, error_threshold: float, output: Target = Target.CONSTANT,
                  gauss_components: int = 5, ranks: list[(str, float)] = [], ignore_threshold: float = 0.0,
-                 normalization=None, clustering=Extractor.exact):
-        super().__init__(predictor, normalization)
+                 clustering=Extractor.exact):
+        super().__init__(predictor)
         self._output = Target.CLASSIFICATION if isinstance(predictor, ClassifierMixin) else output
         self.clustering = clustering(depth, error_threshold, self._output, gauss_components)
         self.ranks = ranks
