@@ -1,5 +1,6 @@
 from kivy.uix.screenmanager import ScreenManager
 
+from psyke.gui.model import DatasetError, PredictorError, SVMError
 from psyke.gui.view.View import MainScreen
 
 
@@ -49,6 +50,7 @@ class Controller:
         self.model.reset_dataset()
         self.model.select_dataset(dataset)
         self.reset_predictor()
+        self.view.data_panel.disable()
         self.view.data_panel.set_info()
         self.view.feature_panel.set_info()
         self.view.plot_panel.clear_data()
@@ -109,19 +111,28 @@ class Controller:
 
     def load_dataset(self):
         self.model.reset_dataset(True)
-        self.model.load_dataset()
         self.reset_predictor()
-        self.view.data_panel.set_info()
         self.view.feature_panel.init()
-        self.view.feature_panel.set_info()
-        self.view.predictor_panel.enable()
+        try:
+            self.model.load_dataset()
+            self.view.data_panel.enable()
+            self.view.predictor_panel.enable()
+            self.view.feature_panel.set_info()
+        except DatasetError as e:
+            self.view.feature_panel.set_alert(e.message)
+        self.view.data_panel.set_info()
         self.view.plot_panel.clear_data()
 
     def train_predictor(self):
-        self.model.train_predictor()
         self.reset_extractor()
-        self.view.predictor_panel.set_info()
-        self.view.extractor_panel.enable()
+        try:
+            self.model.train_predictor()
+            self.view.extractor_panel.enable()
+            self.view.predictor_panel.set_info()
+            self.view.feature_panel.reset_alert()
+        except (PredictorError, SVMError) as e:
+            self.view.feature_panel.set_alert(e.message)
+
 
     def train_extractor(self):
         self.model.train_extractor()

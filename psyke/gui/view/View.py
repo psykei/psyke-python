@@ -41,6 +41,7 @@ class MainScreen(View):
             RoundedRectangle(pos=[527, 307], size=[318, 266])
             RoundedRectangle(pos=[850, 307], size=[318, 266])
             RoundedRectangle(pos=[1173, 307], size=[318, 266])
+            RoundedRectangle(pos=[850, 710], size=[600, 40])
             Line(points=[300, 0, 300, Window.height])
             Line(points=[520, 0, 520, Window.height])
 
