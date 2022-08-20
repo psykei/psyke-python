@@ -30,7 +30,10 @@ THEORY_MESSAGE = 'No extractor trained\n\n\n'
 
 EXTRACTOR_PERFORMANCE_PREFIX = 'Extractor performance:\n'
 
-THEORY_ERROR_MESSAGE = 'Too many extracted rules\n\n\n'
+THEORY_ERROR_MESSAGE = {
+    'amount': 'Too many extracted rules\n\n\n',
+    'length': 'Too long clauses\n\n\n',
+}
 
 
 def text_with_label(label: str, text: str, filter: str, action) -> HorizontalBoxLayout:
