@@ -1,15 +1,18 @@
-import numpy as np
 import pandas as pd
-from matplotlib import pyplot as plt, colors
+from matplotlib import pyplot as plt
 from sklearn.datasets import load_iris, load_wine, fetch_california_housing
+from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
+from sklearn.linear_model import LinearRegression
 from sklearn.model_selection import train_test_split
 from sklearn.neighbors import KNeighborsClassifier, KNeighborsRegressor
+from sklearn.svm import SVC, SVR
 from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
 
 from psyke import Extractor
 from psyke.extraction.hypercubic import Grid, FixedStrategy
-from psyke.gui.model import PREDICTORS, FIXED_PREDICTOR_PARAMS, EXTRACTORS, cast_param
-from psyke.gui.model.plot import init_plot, plotSamples, create_grid, cmap, plot_regions
+from psyke.gui.model import PREDICTORS, FIXED_PREDICTOR_PARAMS, EXTRACTORS, cast_param, DatasetError, SVMError, \
+    PredictorError
+from psyke.gui.model.plot import init_plot, plotSamples, create_grid, plot_regions
 from psyke.utils import Target
 
 
@@ -68,19 +71,24 @@ class Model:
 
     def load_dataset(self):
         print(f'Loading {self.dataset}... ', end='')
-        if self.dataset == 'Iris':
-            x, y = load_iris(return_X_y=True, as_frame=True)
-            y.name = 'iris'
-            self.data = (x, y.replace({0: 'setosa', 1: 'versicolor', 2: 'virginica'}))
-        elif self.dataset == 'Wine':
-            x, y = load_wine(return_X_y=True, as_frame=True)
-            self.data = (x, y.apply(str))
-        elif self.dataset == "House":
-            self.data = fetch_california_housing(return_X_y=True, as_frame=True)
+        if self.dataset == 'Arti':
+            import os
+            print(os.getcwd())
+            self.data = pd.read_csv('../../test/resources/datasets/arti.csv')
         else:
-            raise NotImplementedError
+            if self.dataset == 'Iris':
+                x, y = load_iris(return_X_y=True, as_frame=True)
+                y.name = 'iris'
+                self.data = (x, y.replace({0: 'setosa', 1: 'versicolor', 2: 'virginica'}))
+            elif self.dataset == 'Wine':
+                x, y = load_wine(return_X_y=True, as_frame=True)
+                self.data = (x, y.apply(str))
+            elif self.dataset == "House":
+                self.data = fetch_california_housing(return_X_y=True, as_frame=True)
+            else:
+                raise DatasetError
+            self.data = self.data[0].join(self.data[1])
         print('Done')
-        self.data = self.data[0].join(self.data[1])
 
     def select_features(self, features):
         inputs = [k for k, v in features.items() if v == 'I']
@@ -94,12 +102,29 @@ class Model:
         if self.predictor_name == 'K-NN':
             self.predictor = KNeighborsClassifier() if self.task == 'Classification' else KNeighborsRegressor()
             self.predictor.n_neighbors = self.predictor_params['K']
-        elif self.predictor_name == 'DT':
-            self.predictor = DecisionTreeClassifier() if self.task == 'Classification' else DecisionTreeRegressor()
+        elif self.predictor_name == 'LR':
+            self.predictor = LinearRegression()
+        elif self.predictor_name in ['DT', 'RF']:
+            if self.predictor_name == 'DT':
+                self.predictor = DecisionTreeClassifier() if self.task == 'Classification' else DecisionTreeRegressor()
+            else:
+                self.predictor = RandomForestClassifier() if self.task == 'Classification' else RandomForestRegressor()
+                self.predictor.n_estimators = self.predictor_params['N estimators']
             self.predictor.max_depth = self.predictor_params['Max depth']
             self.predictor.max_leaf_nodes = self.predictor_params['Max leaves']
+        elif self.predictor_name in ['SVC', 'SVR']:
+            if self.predictor_name == 'SVC':
+                self.predictor = SVC()
+            else:
+                self.predictor = SVR()
+                self.predictor.epsilon = self.predictor_params['Epsilon']
+            self.predictor.C = self.predictor_params['Regularization']
+            if self.predictor_params['Kernel'].lower() in ['linear', 'poly', 'rbf', 'sigmoid', 'precomputed']:
+                self.predictor.kernel = self.predictor_params['Kernel'].lower()
+            else:
+                raise SVMError
         else:
-            ...
+            raise PredictorError
         self.train, self.test = train_test_split(self.data if self.pruned_data is None else self.pruned_data,
                                                  test_size=self.predictor_params['Test set'],
                                                  random_state=self.predictor_params['Split seed'])
@@ -162,7 +187,7 @@ class Model:
 
         data = self.data if self.pruned_data is None else self.pruned_data
 
-        init_plot(data[x], data[y])
+        init_plot(data[x], data[y], 'Data set')
         plotSamples(data[x], data[y], data[z if z is not None else y])
         self.data_plot = plt.gcf()
         plt.close()
@@ -172,22 +197,23 @@ class Model:
 
         grid = create_grid(x, y, data)
 
-        init_plot(data[x], data[y])
-        grid_data = pd.concat([grid, pd.DataFrame(self.predictor.predict(grid), columns=[data.columns[-1]])], axis=1)
-        plot_regions(grid_data[x], grid_data[y], grid_data[z if z is not None else y])
-        plotSamples(data[x], data[y], data[z if z is not None else y])
-        self.predictor_plot = plt.gcf()
-        plt.close()
-
-        if self.extractor is None:
-            return
-
-        init_plot(data[x], data[y])
-        grid_data = pd.concat([grid, pd.DataFrame(self.extractor.predict(grid), columns=[data.columns[-1]])], axis=1)
-        plot_regions(grid_data[x], grid_data[y], grid_data[z if z is not None else y])
-        plotSamples(data[x], data[y], data[z if z is not None else y])
-        self.extractor_plot = plt.gcf()
-        plt.close()
+        for model, name in zip([self.predictor, self.extractor], [self.predictor_name, self.extractor_name]):
+            if model is None:
+                break
+            init_plot(data[x], data[y], name)
+            grid_data = pd.concat([grid, pd.DataFrame(model.predict(grid), columns=[data.columns[-1]])], axis=1)
+            grid_data = grid_data[grid_data.iloc[:, -1].notna()]
+            grouped = grid_data.groupby([x, y])[grid_data.columns[-1]]
+            outputs = grouped.agg(pd.Series.mode) if isinstance(grid_data.iloc[0, -1], str) else grouped.mean()
+            grid_data = grid_data.groupby([x, y])[grid_data.columns[:-1]].mean().join(outputs)
+            if z is not None:
+                plot_regions(grid_data[x].values, grid_data[y].values, grid_data[z].values)
+            plotSamples(data[x], data[y], data[z if z is not None else y])
+            if isinstance(model, Extractor):
+                self.extractor_plot = plt.gcf()
+            else:
+                self.predictor_plot = plt.gcf()
+            plt.close()
 
     def set_predictor_param(self, key, value):
         self.predictor_params[key] = \
