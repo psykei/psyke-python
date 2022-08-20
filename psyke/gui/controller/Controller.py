@@ -125,6 +125,7 @@ class Controller:
 
     def train_predictor(self):
         self.reset_extractor()
+        self.view.plot_panel.clear_predictor()
         try:
             self.model.train_predictor()
             self.view.extractor_panel.enable()
@@ -133,8 +134,8 @@ class Controller:
         except (PredictorError, SVMError) as e:
             self.view.feature_panel.set_alert(e.message)
 
-
     def train_extractor(self):
+        self.view.plot_panel.clear_extractor()
         self.model.train_extractor()
         self.view.extractor_panel.set_info()
         self.view.theory_panel.set_info()

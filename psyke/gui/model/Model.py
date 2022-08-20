@@ -9,7 +9,7 @@ from sklearn.svm import SVC, SVR
 from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
 
 from psyke import Extractor
-from psyke.extraction.hypercubic import Grid, FixedStrategy
+from psyke.extraction.hypercubic import Grid, FixedStrategy, FeatureRanker
 from psyke.gui.model import PREDICTORS, FIXED_PREDICTOR_PARAMS, EXTRACTORS, cast_param, DatasetError, SVMError, \
     PredictorError
 from psyke.gui.model.plot import init_plot, plotSamples, create_grid, plot_regions
@@ -132,9 +132,7 @@ class Model:
         print('Done')
 
     def train_extractor(self):
-        # CREEPY, ORCHID, ITER -> output
         # GRIDEX, GRIDREX -> strategy
-
         self.read_extractor_param()
 
         print(f'Training {self.extractor_name}... ', end='')
@@ -162,18 +160,14 @@ class Model:
                                                min_examples=self.extractor_params['Min examples'],
                                                grid=Grid(self.extractor_params['Max depth'],
                                                          FixedStrategy(self.extractor_params['Splits'])))
-        elif self.extractor_name == 'CReEPy':
-            self.extractor = Extractor.creepy(self.predictor, depth=self.extractor_params['Max depth'],
-                                              error_threshold=self.extractor_params['Threshold'],
-                                              ignore_threshold=self.extractor_params['Feat threshold'],
-                                              gauss_components=self.extractor_params['Max components'],
-                                              output=Target.CONSTANT)
-        elif self.extractor_name == 'ORCHiD':
-            self.extractor = Extractor.orchid(self.predictor, depth=self.extractor_params['Max depth'],
-                                              error_threshold=self.extractor_params['Threshold'],
-                                              ignore_threshold=self.extractor_params['Feat threshold'],
-                                              gauss_components=self.extractor_params['Max components'],
-                                              output=Target.CONSTANT)
+        elif self.extractor_name in ['CReEPy', 'ORCHiD']:
+            ranked = FeatureRanker(self.data.columns[:-1]).fit(self.predictor, self.data.iloc[:, :-1]).rankings()
+            extractor = Extractor.creepy if self.extractor_name == 'CReEPy' else Extractor.orchid
+            self.extractor = extractor(self.predictor, depth=self.extractor_params['Max depth'],
+                                       error_threshold=self.extractor_params['Threshold'],
+                                       ignore_threshold=self.extractor_params['Feat threshold'],
+                                       gauss_components=self.extractor_params['Max components'],
+                                       output=Target.CONSTANT, ranks=ranked)
         else:
             raise NotImplementedError
 
