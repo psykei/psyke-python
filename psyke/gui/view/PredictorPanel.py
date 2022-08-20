@@ -13,7 +13,7 @@ from psyke.gui.model import PREDICTORS, FIXED_PREDICTOR_PARAMS
 class PredictorPanel(PanelBoxLayout):
 
     def __init__(self, controller, **kwargs):
-        super().__init__(controller, 'Train', INFO_PREDICTOR_MESSAGE, 350,
+        super().__init__(controller, 'Train', INFO_PREDICTOR_MESSAGE, 315,
                          PREDICTOR_MESSAGE, PREDICTORS, controller.set_predictor_param, **kwargs)
 
         self.parameter_panel = VerticalBoxLayout(size_hint_y=None, height=190)

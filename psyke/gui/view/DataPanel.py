@@ -45,10 +45,16 @@ class DataPanel(PanelBoxLayout):
 
     def go_action(self, button):
         self.controller.load_dataset()
+
+    def enable(self):
         if self.controller.get_task_from_model() == 'Classification':
             self.discretize_button.disabled = False
         else:
             self.scale_button.disabled = False
+
+    def disable(self):
+        self.discretize_button.disabled = True
+        self.scale_button.disabled = True
 
     def set_info(self):
         data, pruned_data = self.controller.get_data_from_model()
@@ -68,8 +74,7 @@ class DataPanel(PanelBoxLayout):
         self.go_button.disabled = True
         self.discretize_button.state = 'normal'
         self.scale_button.state = 'normal'
-        self.discretize_button.disabled = True
-        self.scale_button.disabled = True
+        self.disable()
 
     def select_task(self, button, value):
         if value == 'down':

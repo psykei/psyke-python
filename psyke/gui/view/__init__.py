@@ -1,3 +1,4 @@
+from kivy.graphics import Color, Rectangle
 from kivy.uix.label import Label
 from kivy.uix.textinput import TextInput
 
