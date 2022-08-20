@@ -20,11 +20,12 @@ class FeaturePanel(VerticalBoxLayout):
         self.top_label = Label(text='Feature selection')
         self.top_button = Button(text='Plot')
         self.top_button.bind(on_press=self.plot)
-        self.alert_label = Label(size_hint_x=None, width=600)
+        self.alert_label = Label(size_hint_x=None, width=540, font_size=20, color=(1, 0, 0), )
 
         top_panel = HorizontalBoxLayout(size_hint=(None, None), size=(900, 40), spacing=-10)
         top_panel.add_widget(self.top_label)
         top_panel.add_widget(self.top_button)
+        top_panel.add_widget(Label(size_hint_x=None, width=70))
         top_panel.add_widget(self.alert_label)
         self.add_widget(top_panel)
 
@@ -37,7 +38,7 @@ class FeaturePanel(VerticalBoxLayout):
         self.feature_panels = {}
         self.plot_features = {}
         self.top_button.disabled = True
-        self.alert_label.text = ''
+        self.reset_alert()
         self.feature_panel.clear_widgets()
         self.feature_panel.add_widget(Label(text='No dataset selected'))
         self.feature_panel.add_widget(Label())
@@ -65,23 +66,22 @@ class FeaturePanel(VerticalBoxLayout):
                 self.features[feature] = None
                 self.feature_panels[feature].plot_button.state = 'normal'
                 self.plot_features[feature] = False
-                self.alert_label.text = ''
+                self.reset_alert()
             else:
-                self.alert_label.text = \
-                    f'Cannot remove the only selected {"input" if button.text == "I" else "output"} feature'
+                self.set_alert(f'Cannot remove the only selected {"input" if button.text == "I" else "output"} feature')
                 self.feature_panels[feature].buttons[button.text].state = 'down'
         else:
             if button.text == 'I':
                 if self.features[feature] is None:
                     self.features[feature] = button.text
-                    self.alert_label.text = ''
+                    self.reset_alert()
                 else:
-                    self.alert_label.text = f'Cannot remove the only selected output feature'
+                    self.set_alert('Cannot remove the only selected output feature')
                     self.feature_panels[feature].buttons['I'].state = 'normal'
                     self.feature_panels[feature].buttons['O'].state = 'down'
             else:
                 if len([k for k, v in self.features.items() if v == 'I' and k != feature]) == 0:
-                    self.alert_label.text = f'Cannot remove the only selected input feature'
+                    self.set_alert('Cannot remove the only selected input feature')
                     self.feature_panels[feature].buttons['O'].state = 'normal'
                     self.feature_panels[feature].buttons['I'].state = 'down'
                 else:
@@ -94,25 +94,25 @@ class FeaturePanel(VerticalBoxLayout):
                         self.plot_features[to_normal[0]] = False
                     self.feature_panels[feature].plot_button.state = 'down'
                     self.plot_features[feature] = True
-                    self.alert_label.text = ''
+                    self.reset_alert()
         self.controller.reload_dataset(self.features)
 
     def set_plot_feature(self, feature, button):
         if self.features[feature] is None:
-            self.alert_label.text = 'Cannot plot non-selected features'
+            self.set_alert('Cannot plot non-selected features')
             self.feature_panels[feature].plot_button.state = 'normal'
         elif self.features[feature] == 'O':
-            self.alert_label.text = 'Output feature must be plotted'
+            self.set_alert('Output feature must be plotted')
             self.feature_panels[feature].plot_button.state = 'down'
         else:
             inputs = [k for k, v in self.features.items() if v == 'I']
             active = len([k for k, v in self.plot_features.items() if v and k in inputs])
             if (self.plot_features[feature] and active == 2) or (not self.plot_features[feature] and active < 2):
                 self.plot_features[feature] = not self.plot_features[feature]
-                self.alert_label.text = ''
+                self.reset_alert()
             else:
-                self.alert_label.text = 'Cannot plot less than 1 input feature' if self.plot_features[feature] else \
-                    'Cannot plot more than 2 input features'
+                self.set_alert('Cannot plot less than 1 input feature' if self.plot_features[feature] else
+                               'Cannot plot more than 2 input features')
                 state = self.feature_panels[feature].plot_button.state
                 self.feature_panels[feature].plot_button.state = 'down' if state == 'normal' else 'normal'
 
@@ -120,9 +120,15 @@ class FeaturePanel(VerticalBoxLayout):
         inputs = len([k for k, v in self.features.items() if v == 'I' and self.plot_features[k]])
         task = self.controller.get_task_from_model()
         if task == 'Classification' and inputs < 2:
-            self.alert_label.text = 'Classification plots require two input features'
+            self.set_alert('Classification plots require two input features')
         elif task == 'Regression' and inputs == 0:
-            self.alert_label.text = 'Regression plots require at least one input feature'
+            self.set_alert('Regression plots require at least one input feature')
         else:
             self.controller.plot(self.features, [k for k, v in self.plot_features.items() if v])
-            self.alert_label.text = ''
+            self.reset_alert()
+
+    def set_alert(self, text: str = ''):
+        self.alert_label.text = text
+
+    def reset_alert(self):
+        self.set_alert()
