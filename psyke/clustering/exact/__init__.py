@@ -77,8 +77,8 @@ class ExACT(InterpretableClustering):
             gauss_params = select_gaussian_mixture(data, self.gauss_components)
             gauss_pred = gauss_params[2].predict(data)
             cubes, indices = self.__eligible_cubes(gauss_pred, node, gauss_params[1])
-            cubes = [(c.volume(), len(idx), i, idx, c)
-                     for i, (c, idx) in enumerate(zip(cubes, indices)) if (idx is not None) and (not node.cube.equal(c))]
+            cubes = [(c.volume(), len(idx), i, idx, c) for i, (c, idx) in enumerate(zip(cubes, indices))
+                     if (idx is not None) and (not node.cube.equal(c))]
             if len(cubes) < 1:
                 continue
             _, _, _, indices, cube = max(cubes)
