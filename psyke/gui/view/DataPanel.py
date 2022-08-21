@@ -12,8 +12,6 @@ class DataPanel(PanelBoxLayout):
     def __init__(self, controller, **kwargs):
         super().__init__(controller, 'Load', INFO_DATASET_MESSAGE, **kwargs)
 
-        self.preprocessing = {}
-
         task_panel = HorizontalBoxLayout()
         for task in TASKS:
             btn_task = ToggleButton(text=task, group='task',
@@ -57,7 +55,7 @@ class DataPanel(PanelBoxLayout):
         self.scale_button.disabled = True
 
     def set_info(self):
-        data, pruned_data = self.controller.get_data_from_model()
+        data, pruned_data, _ = self.controller.get_data_from_model()
         if pruned_data is not None:
             data = pruned_data
         self.info_label.text = INFO_DATASET_MESSAGE if data is None else \
@@ -81,4 +79,4 @@ class DataPanel(PanelBoxLayout):
             self.controller.select_task(button.text)
 
     def select_preprocessing(self, button, value):
-        self.preprocessing[button.text] = value == 'down'
+        self.controller.select_preprocessing(button.text, value == 'down')
