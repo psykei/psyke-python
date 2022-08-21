@@ -27,7 +27,7 @@ class Controller:
         return self.model.dataset
 
     def get_data_from_model(self):
-        return self.model.data, self.model.pruned_data
+        return self.model.data, self.model.pruned_data, self.model.discretization
 
     def get_predictor_from_model(self):
         return self.model.predictor_name, self.model.predictor, self.model.predictor_params
@@ -43,8 +43,16 @@ class Controller:
 
     def select_task(self, task):
         self.model.reset_dataset()
+        self.model.reset_preprocessing()
         self.model.select_task(task)
         self.reset_dataset()
+
+    def select_preprocessing(self, action, value):
+        if value:
+            self.model.select_preprocessing(action)
+        else:
+            self.model.reset_preprocessing()
+        self.load_dataset()
 
     def select_dataset(self, dataset):
         self.model.reset_dataset()

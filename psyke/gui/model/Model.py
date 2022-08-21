@@ -14,12 +14,15 @@ from psyke.gui.model import PREDICTORS, FIXED_PREDICTOR_PARAMS, EXTRACTORS, cast
     PredictorError
 from psyke.gui.model.plot import init_plot, plotSamples, create_grid, plot_regions
 from psyke.utils import Target
+from psyke.utils.dataframe import get_discrete_features_supervised, get_discrete_dataset
 
 
 class Model:
 
     def __init__(self):
         self.task = 'Classification'
+        self.preprocessing = None
+        self.discretization = None
         self.dataset = None
         self.data = None
         self.pruned_data = None
@@ -39,6 +42,9 @@ class Model:
     def select_task(self, task):
         self.task = task
 
+    def select_preprocessing(self, action):
+        self.preprocessing = action
+
     def select_dataset(self, dataset):
         self.dataset = dataset
 
@@ -47,6 +53,10 @@ class Model:
 
     def select_extractor(self, extractor):
         self.extractor_name = extractor
+
+    def reset_preprocessing(self):
+        self.preprocessing = None
+        self.discretization = None
 
     def reset_dataset(self, soft=False):
         if not soft:
@@ -69,30 +79,42 @@ class Model:
         self.theory = None
         self.extractor_plot = None
 
-    def load_dataset(self):
+    def load_dataset(self, ret=False):
         print(f'Loading {self.dataset}... ', end='')
         if self.dataset == 'Arti':
             import os
             print(os.getcwd())
-            self.data = pd.read_csv('../../test/resources/datasets/arti.csv')
+            data = pd.read_csv('../../test/resources/datasets/arti.csv')
         else:
             if self.dataset == 'Iris':
                 x, y = load_iris(return_X_y=True, as_frame=True)
+                x.columns = ['SepalLength', 'SepalWidth', 'PetalLength', 'PetalWidth']
                 y.name = 'iris'
-                self.data = (x, y.replace({0: 'setosa', 1: 'versicolor', 2: 'virginica'}))
+                data = (x, y.replace({0: 'setosa', 1: 'versicolor', 2: 'virginica'}))
             elif self.dataset == 'Wine':
                 x, y = load_wine(return_X_y=True, as_frame=True)
-                self.data = (x, y.apply(str))
+                data = (x, y.apply(str))
             elif self.dataset == "House":
-                self.data = fetch_california_housing(return_X_y=True, as_frame=True)
+                data = fetch_california_housing(return_X_y=True, as_frame=True)
             else:
                 raise DatasetError
-            self.data = self.data[0].join(self.data[1])
+            data = data[0].join(data[1])
         print('Done')
+        if ret:
+            return data
+        if self.preprocessing == 'Discretize':
+            self.discretization = get_discrete_features_supervised(data)
+            self.data = get_discrete_dataset(data.iloc[:, :-1], self.discretization, False).join(data.iloc[:, -1])
+        else:
+            self.data = data
 
     def select_features(self, features):
         inputs = [k for k, v in features.items() if v == 'I']
         output = [k for k, v in features.items() if v == 'O'][0]
+        if self.discretization is not None:
+            inputs = [[list(discretization.admissible_values.keys()) for discretization in self.discretization
+                       if discretization.name == variable] for variable in inputs]
+            inputs = [item for sublist in inputs for item in sublist[0]]
         self.pruned_data = self.data[inputs].join(self.data[output])
 
     def train_predictor(self):
@@ -133,14 +155,16 @@ class Model:
 
     def train_extractor(self):
         # GRIDEX, GRIDREX -> strategy
+        # target regression/constant
         self.read_extractor_param()
 
         print(f'Training {self.extractor_name}... ', end='')
         if self.extractor_name == 'REAL':
-            self.extractor = Extractor.real(self.predictor)
+            self.extractor = Extractor.real(self.predictor, discretization=self.discretization)
         elif self.extractor_name == 'Trepan':
             self.extractor = Extractor.trepan(self.predictor, min_examples=self.extractor_params['Min examples'],
-                                              max_depth=self.extractor_params['Max depth'])
+                                              max_depth=self.extractor_params['Max depth'],
+                                              discretization=self.discretization)
         elif self.extractor_name == 'CART':
             self.extractor = Extractor.cart(self.predictor, max_depth=self.extractor_params['Max depth'],
                                             max_leaves=self.extractor_params['Max leaves'])
@@ -179,7 +203,8 @@ class Model:
         y = inputs[1] if len(inputs) > 1 else output
         z = output if len(inputs) > 1 else None
 
-        data = self.data if self.pruned_data is None else self.pruned_data
+        #data = self.data if self.pruned_data is None else self.pruned_data
+        data = self.load_dataset(True)
 
         init_plot(data[x], data[y], 'Data set')
         plotSamples(data[x], data[y], data[z if z is not None else y])
@@ -190,12 +215,15 @@ class Model:
             return
 
         grid = create_grid(x, y, data)
+        discrete_grid = grid if self.discretization is None else get_discrete_dataset(grid, self.discretization, False)
 
         for model, name in zip([self.predictor, self.extractor], [self.predictor_name, self.extractor_name]):
             if model is None:
                 break
             init_plot(data[x], data[y], name)
-            grid_data = pd.concat([grid, pd.DataFrame(model.predict(grid), columns=[data.columns[-1]])], axis=1)
+            grid_data = pd.concat(
+                [grid, pd.DataFrame(model.predict(discrete_grid), columns=[data.columns[-1]])], axis=1
+            )
             grid_data = grid_data[grid_data.iloc[:, -1].notna()]
             grouped = grid_data.groupby([x, y])[grid_data.columns[-1]]
             outputs = grouped.agg(pd.Series.mode) if isinstance(grid_data.iloc[0, -1], str) else grouped.mean()
