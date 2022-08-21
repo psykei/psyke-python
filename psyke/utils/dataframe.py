@@ -6,6 +6,7 @@ from typing import Iterable, List
 import pandas as pd
 from pandas.core.util.hashing import hash_pandas_object
 from pandas.api.types import is_string_dtype, is_numeric_dtype, is_integer_dtype
+from sympy.core.containers import OrderedSet
 
 from psyke import DiscreteFeature
 from psyke.schema import LessThan, GreaterThan, Between, Value, Constant
@@ -22,7 +23,7 @@ def split_features(dataframe: pd.DataFrame) -> Iterable[DiscreteFeature]:
 
 
 def get_discrete_features_supervised(dataframe: pd.DataFrame) -> Iterable[DiscreteFeature]:
-    result = set()
+    result = OrderedSet()
     for feature in dataframe.columns[:-1]:
         result.add(DiscreteFeature(feature, create_set(feature, dataframe)))
     return result

@@ -48,7 +48,7 @@ PREDICTORS = {
 
 EXTRACTORS = {
     'REAL': [[TASKS[0]], {}],
-    'Trepan': [[TASKS[0]], {'Max depth': (3, 'int'), 'Min examples': (100, 'int')}],
+    'Trepan': [[TASKS[0]], {'Max depth': (3, 'int'), 'Min examples': (0, 'int')}],
     'CART': [TASKS, {'Max depth': (5, 'int'), 'Max leaves': (5, 'int')}],
     'Iter': [TASKS, {'Min examples': (100, 'int'), 'Threshold': (0.1, 'float'), 'Max iterations': (600, 'int'),
                      'N points': (1, 'int'), 'Min update': (0.05, 'float')}],

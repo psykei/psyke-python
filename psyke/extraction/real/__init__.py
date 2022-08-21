@@ -118,5 +118,5 @@ class REAL(Extractor):
         self.__ruleset = self.__get_or_set(HashableDataFrame(dataframe))
         return self.__create_theory(dataframe, self.__ruleset)
 
-    def predict(self, dataframe) -> list:
-        return [self.__predict(data.transpose()) for _, data in dataframe.iterrows()]
+    def predict(self, dataframe) -> Iterable:
+        return np.array([self.__predict(data.transpose()) for _, data in dataframe.iterrows()])

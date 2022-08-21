@@ -1,3 +1,4 @@
+from collections import OrderedDict
 from functools import partial
 
 from kivy.uix.button import Button
@@ -43,13 +44,30 @@ class FeaturePanel(VerticalBoxLayout):
         self.feature_panel.add_widget(Label(text='No dataset selected'))
         self.feature_panel.add_widget(Label())
 
+    @staticmethod
+    def __inverse_mapping(discretization, name):
+        original = [feature for feature in discretization if name in feature.admissible_values]
+        return original[0].name if len(original) > 0 else name
+
+    @staticmethod
+    def __remove_duplicates(list_with_duplicates):
+        return list(OrderedDict.fromkeys(list_with_duplicates))
+
     def set_info(self):
-        dataset, pruned_dataset = self.controller.get_data_from_model()
+        dataset, pruned_dataset, discretization = self.controller.get_data_from_model()
         if dataset is not None:
             pruned_columns = dataset.columns if pruned_dataset is None else pruned_dataset.columns
+            columns = dataset.columns
+            if discretization is not None:
+                pruned_columns = self.__remove_duplicates(
+                    [self.__inverse_mapping(discretization, column) for column in pruned_columns]
+                )
+                columns = self.__remove_duplicates(
+                    [self.__inverse_mapping(discretization, column) for column in dataset.columns]
+                )
             self.feature_panel.clear_widgets()
             self.top_button.disabled = False
-            for feature in dataset.columns:
+            for feature in columns:
                 self.features[feature] = None if feature not in pruned_columns else \
                     'O' if feature == pruned_columns[-1] else 'I'
                 self.plot_features[feature] = feature == dataset.columns[-1]
