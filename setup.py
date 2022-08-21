@@ -3,10 +3,8 @@ from setuptools import setup, find_packages
 import pathlib
 import subprocess
 import distutils.cmd
-
-# current directory
+from tensorflow.keras import Model
 from tuprolog.theory.parsing import parse_theory
-
 from psyke.utils.plot import plot_theory
 
 here = pathlib.Path(__file__).parent.resolve()
@@ -15,6 +13,10 @@ version_file = here / 'VERSION'
 
 # Get the long description from the README file
 long_description = (here / 'README.md').read_text(encoding='utf-8')
+
+
+EPOCHS: int = 50
+BATCH_SIZE: int = 16
 
 
 def format_git_describe_version(version):
@@ -96,12 +98,19 @@ class CreateTestPredictors(distutils.cmd.Command):
             if not get_predictor_path(file_name).is_file():
                 dataset = get_dataset(row['dataset'])
                 if row['bins'] > 0:
-                    schema = get_schema(dataset, int(row['bins']))
+                    schema = get_schema(dataset)  # int(row['bins'])
                     dataset = get_discrete_dataset(dataset.iloc[:, :-1], schema).join(dataset.iloc[:, -1])
                 model = get_model(row['model'], options)
                 training_set, test_set = train_test_split(dataset, test_size=0.5,
                                                           random_state=get_default_random_seed())
-                model.fit(training_set.iloc[:, :-1], training_set.iloc[:, -1])
+                if isinstance(model, Model):
+                    keys = set(training_set.iloc[:, -1])
+                    mapping = {key: i for i, key in enumerate(keys)}
+                    training_set.iloc[:, -1] = training_set.iloc[:, -1].apply(lambda x: mapping[x])
+                    test_set.iloc[:, -1] = test_set.iloc[:, -1].apply(lambda x: mapping[x])
+                    model.fit(training_set.iloc[:, :-1], training_set.iloc[:, -1], epochs=EPOCHS, batch_size=BATCH_SIZE)
+                else:
+                    model.fit(training_set.iloc[:, :-1], training_set.iloc[:, -1])
                 predictor = Predictor(model)
                 predictor.save_to_onnx(PATH / file_name, Predictor.get_initial_types(training_set.iloc[:, :-1]))
 

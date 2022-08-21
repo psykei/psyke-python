@@ -1,3 +1,4 @@
+from numpy import argmax
 from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
 from psyke.extraction.cart.predictor import CartPredictor, LeafConstraints, LeafSequence
 from psyke import Extractor, get_default_random_seed
@@ -44,11 +45,16 @@ class Cart(Extractor):
             simplified.append(nodes.pop(0))
         return simplified
 
-    def _create_theory(self, data: pd.DataFrame) -> Theory:
+    def _create_theory(self, data: pd.DataFrame, mapping: dict[str: int]) -> Theory:
         new_theory = mutable_theory()
         nodes = [node for node in self._cart_predictor]
         nodes = Cart._simplify_nodes(nodes) if self._simplify else nodes
         for (constraints, prediction) in nodes:
+            if mapping is not None and prediction in mapping.values():
+                for k, v in mapping.items():
+                    if v == prediction:
+                        prediction = k
+                        break
             variables = create_variable_list(self.discretization, data)
             new_theory.assertZ(
                 clause(
@@ -58,16 +64,27 @@ class Cart(Extractor):
             )
         return new_theory
 
-    def extract(self, data: pd.DataFrame) -> Theory:
+    def extract(self, data: pd.DataFrame, mapping: dict[str: int] = None) -> Theory:
+        data = data.copy()
         self._cart_predictor.predictor = DecisionTreeClassifier(random_state=TREE_SEED) \
             if isinstance(data.iloc[0, -1], str) else DecisionTreeRegressor(random_state=TREE_SEED)
+        if mapping is not None:
+            data.iloc[:, -1] = data.iloc[:, -1].apply(lambda x: mapping[x] if x in mapping.keys() else x)
         self._cart_predictor.predictor.max_depth = self.depth
         self._cart_predictor.predictor.max_leaf_nodes = self.leaves
-        self._cart_predictor.predictor.fit(data.iloc[:, :-1], self.predictor.predict(data.iloc[:, :-1]))
-        return self._create_theory(data)
+        new_y = self.predictor.predict(data.iloc[:, :-1])
+        if hasattr(new_y[0], 'shape'):
+            if len(new_y[0].shape) > 0 and new_y[0].shape[0] > 1:
+                new_y = [argmax(y, axis=0) for y in new_y]
+        self._cart_predictor.predictor.fit(data.iloc[:, :-1], new_y)
+        return self._create_theory(data, mapping)
 
-    def predict(self, data) -> Iterable:
-        return self._cart_predictor.predict(data)
+    def predict(self, data, mapping: dict[str: int] = None) -> Iterable:
+        ys = self._cart_predictor.predict(data)
+        if mapping is not None:
+            inverse_mapping = {v: k for k, v in mapping.items()}
+            ys = [inverse_mapping[y] for y in ys]
+        return ys
 
     @property
     def n_rules(self) -> int:

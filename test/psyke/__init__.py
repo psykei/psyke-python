@@ -2,8 +2,9 @@ from __future__ import annotations
 from onnxconverter_common import DataType, FloatTensorType, Int64TensorType, StringTensorType
 from skl2onnx import convert_sklearn
 from sklearn.model_selection import train_test_split
+from tensorflow.keras import Model
+from tensorflow.python.saved_model.save import save
 from tuprolog.solve.prolog import prolog_solver
-
 from psyke.extraction.hypercubic import Grid, FeatureRanker
 from psyke.utils.dataframe import get_discrete_dataset
 from psyke.utils.logic import data_to_struct
@@ -28,8 +29,8 @@ def initialize(file: str) -> list[dict[str:Theory]]:
         dataset = get_dataset(row['dataset'])
 
         # Dataset's columns are sorted due to alphabetically sorted extracted rules.
-        columns = sorted(dataset.columns[:-1]) + [dataset.columns[-1]]
-        dataset = dataset.reindex(columns, axis=1)
+        # columns = sorted(dataset.columns[:-1]) + [dataset.columns[-1]]
+        # dataset = dataset.reindex(columns, axis=1)
 
         training_set, test_set = train_test_split(dataset, test_size=0.05 if row['dataset'].lower() == 'house' else 0.5,
                                                   random_state=get_default_random_seed())
@@ -65,18 +66,24 @@ def initialize(file: str) -> list[dict[str:Theory]]:
                 params['grid'] = Grid(int(row['grid']), AdaptiveStrategy(ranked, n))
 
         extractor = get_extractor(row['extractor_type'], params)
-        theory = extractor.extract(training_set)
+        mapping = None if 'output_mapping' not in row.keys() or row['output_mapping'] == '' else ast.literal_eval(row['output_mapping'])
+        theory = extractor.extract(training_set, mapping) if mapping is not None else extractor.extract(training_set)
 
         # Compute predictions from rules
         index = test_set.shape[1] - 1
+        ordered_test_set = test_set.copy()
+        ordered_test_set.iloc[:, :-1] = ordered_test_set.iloc[:, :-1].reindex(sorted(ordered_test_set.columns[:-1]), axis=1)
         is_classification = isinstance(test_set.iloc[0, -1], str)
         cast: Callable = lambda x: (str(x) if is_classification else float(x.value))
         solver = prolog_solver(static_kb=mutable_theory(theory).assertZ(get_in_rule()).assertZ(get_not_in_rule()))
-        substitutions = [solver.solveOnce(data_to_struct(data)) for _, data in test_set.iterrows()]
+        substitutions = [solver.solveOnce(data_to_struct(data)) for _, data in ordered_test_set.iterrows()]
         expected = [cast(query.solved_query.get_arg_at(index)) for query in substitutions if query.is_yes]
-
-        predictions = [prediction for prediction in extractor.predict(test_set_for_predictor.iloc[:, :-1])
-                       if prediction is not None]
+        if mapping is not None:
+            predictions = [prediction for prediction in extractor.predict(test_set_for_predictor.iloc[:, :-1], mapping)
+                          if prediction is not None]
+        else:
+            predictions = [prediction for prediction in extractor.predict(test_set_for_predictor.iloc[:, :-1])
+                           if prediction is not None]
 
         yield {
             'extractor': extractor,
@@ -104,9 +111,13 @@ class Predictor:
         if not self._from_file_onnx:
             if os.path.exists(file):
                 os.remove(file)
-            onnx_predictor = convert_sklearn(self._model, initial_types=initial_types)
-            with open(file, 'wb') as f:
-                f.write(onnx_predictor.SerializeToString())
+            if isinstance(self._model, Model):
+                save(self._model, "tmp_model")
+                os.system("python -m tf2onnx.convert --saved-model tmp_model --output " + file)
+            else:
+                onnx_predictor = convert_sklearn(self._model, initial_types=initial_types)
+                with open(file, 'wb') as f:
+                    f.write(onnx_predictor.SerializeToString())
 
     def predict(self, dataset: pd.DataFrame | np.ndarray) -> Iterable:
         array = dataset.to_numpy() if isinstance(dataset, pd.DataFrame) else dataset
