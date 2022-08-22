@@ -1,3 +1,4 @@
+from numpy import argmax
 from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
 from psyke.extraction.cart.predictor import CartPredictor, LeafConstraints, LeafSequence
 from psyke import Extractor, get_default_random_seed
