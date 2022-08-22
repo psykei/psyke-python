@@ -54,9 +54,6 @@ class Cart(Extractor):
             if self.normalization is not None:
                 m, s = self.normalization[data.columns[-1]]
                 prediction = prediction * s + m
-            if self.normalization is not None:
-                m, s = self.normalization[data.columns[-1]]
-                prediction = prediction * s + m
             if mapping is not None and prediction in mapping.values():
                 for k, v in mapping.items():
                     if v == prediction:

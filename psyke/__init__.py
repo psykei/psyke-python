@@ -1,6 +1,8 @@
 from __future__ import annotations
+
 import numpy as np
 import pandas as pd
+from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score, f1_score, accuracy_score
 from psyke.schema import DiscreteFeature
 from psyke.utils import get_default_random_seed
@@ -47,6 +49,23 @@ class Extractor(object):
         """
         raise NotImplementedError('predict')
 
+    def unscale(self, values, name):
+        if self.normalization is None or isinstance(values, LinearRegression):
+            return values
+        if isinstance(values, Iterable):
+            idx = [value is not None for value in values]
+            values[idx] = values[idx] * self.normalization[name][1] + self.normalization[name][0]
+        else:
+            values = values * self.normalization[name][1] + self.normalization[name][0]
+        return values
+
+    def regression_score(self, dataframe: pd.DataFrame, predictor=None, scoring_function=mean_absolute_error):
+        predictions = np.array(self.predict(dataframe.iloc[:, :-1]))
+        idx = [prediction is not None for prediction in predictions]
+        true = self.unscale(dataframe.iloc[idx, -1] if predictor is None else
+                            predictor.predict(dataframe.iloc[idx, :-1]).flatten(), dataframe.columns[-1])
+        return scoring_function(true, self.unscale(predictions[idx], dataframe.columns[-1]))
+
     def mae(self, dataframe: pd.DataFrame, predictor=None) -> float:
         """
         Calculates the predictions' MAE w.r.t. the instances given as input.
@@ -55,11 +74,7 @@ class Extractor(object):
         :param predictor: if provided, its predictions on the dataframe are taken instead of the dataframe instances.
         :return: the mean absolute error (MAE) of the predictions.
         """
-        predictions = np.array(self.predict(dataframe.iloc[:, :-1]))
-        idx = [prediction is not None for prediction in predictions]
-        return mean_absolute_error(dataframe.iloc[idx, -1] if predictor is None else
-                                   predictor.predict(dataframe.iloc[idx, :-1]).flatten(),
-                                   predictions[idx])
+        return self.regression_score(dataframe, predictor, mean_absolute_error)
 
     def mse(self, dataframe: pd.DataFrame, predictor=None) -> float:
         """
@@ -69,11 +84,7 @@ class Extractor(object):
         :param predictor: if provided, its predictions on the dataframe are taken instead of the dataframe instances.
         :return: the mean squared error (MSE) of the predictions.
         """
-        predictions = np.array(self.predict(dataframe.iloc[:, :-1]))
-        idx = [prediction is not None for prediction in predictions]
-        return mean_squared_error(dataframe.iloc[idx, -1] if predictor is None else
-                                  predictor.predict(dataframe.iloc[idx, :-1]).flatten(),
-                                  predictions[idx])
+        return self.regression_score(dataframe, predictor, mean_squared_error)
 
     def r2(self, dataframe: pd.DataFrame, predictor=None) -> float:
         """
@@ -83,11 +94,7 @@ class Extractor(object):
         :param predictor: if provided, its predictions on the dataframe are taken instead of the dataframe instances.
         :return: the R2 score of the predictions.
         """
-        predictions = np.array(self.predict(dataframe.iloc[:, :-1]))
-        idx = [prediction is not None for prediction in predictions]
-        return r2_score(dataframe.iloc[idx, -1] if predictor is None else
-                        predictor.predict(dataframe.iloc[idx, :-1]).flatten(),
-                        predictions[idx])
+        return self.regression_score(dataframe, predictor, r2_score)
 
     def accuracy(self, dataframe: pd.DataFrame, predictor=None) -> float:
         """

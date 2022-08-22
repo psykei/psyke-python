@@ -20,12 +20,6 @@ class HyperCubeExtractor(Extractor):
         self._hypercubes = []
         self._output = Target.CONSTANT
 
-    def unscale(self, values, name):
-        if self.normalization is None or isinstance(values, LinearRegression):
-            return values
-        m, s = self.normalization[name]
-        return values * s + m
-
     def extract(self, dataframe: pd.DataFrame) -> Theory:
         raise NotImplementedError('extract')
 
