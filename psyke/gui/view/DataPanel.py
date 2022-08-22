@@ -45,10 +45,8 @@ class DataPanel(PanelBoxLayout):
         self.controller.load_dataset()
 
     def enable(self):
-        if self.controller.get_task_from_model() == 'Classification':
-            self.discretize_button.disabled = False
-        else:
-            self.scale_button.disabled = False
+        self.discretize_button.disabled = False
+        self.scale_button.disabled = False
 
     def disable(self):
         self.discretize_button.disabled = True

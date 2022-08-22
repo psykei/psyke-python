@@ -16,9 +16,9 @@ class CRASH(Optimizer):
     def __init__(self, predictor, dataframe: pd.DataFrame, max_mae_increase: float = 1.2,
                  min_rule_decrease: float = 0.9, readability_tradeoff: float = 0.1, max_depth: int = 10,
                  patience: int = 5, algorithm: Algorithm = Algorithm.ORCHiD, output: Target = Target.CONSTANT,
-                 objective: Objective = Objective.MODEL):
+                 objective: Objective = Objective.MODEL, normalization=None):
         super().__init__(predictor, algorithm, dataframe, max_mae_increase, min_rule_decrease, readability_tradeoff,
-                         max_depth, patience, objective)
+                         max_depth, patience, objective, normalization)
         self.output = output
 
     def search(self):
@@ -50,9 +50,10 @@ class CRASH(Optimizer):
         patience = self.patience
         while patience > 0:
             print(f"{self.algorithm}. Depth: {depth}. Threshold = {threshold:.2f}. ", end="")
-            extractor = Extractor.creepy(self.predictor, depth, threshold, self.output, 10) \
-                if self.algorithm == CRASH.Algorithm.CReEPy \
-                else Extractor.orchid(self.predictor, depth, threshold, self.output, 10)
+            extractor = Extractor.creepy(self.predictor, depth, threshold, self.output, 10,
+                                         normalization=self.normalization) if self.algorithm == CRASH.Algorithm.CReEPy \
+                else Extractor.orchid(self.predictor, depth, threshold, self.output, 10,
+                                      normalization=self.normalization)
             _ = extractor.extract(self.dataframe)
             mae, n = (extractor.mae(self.dataframe, self.predictor) if self.objective == Objective.MODEL else
                       extractor.mae(self.dataframe)), extractor.n_rules
