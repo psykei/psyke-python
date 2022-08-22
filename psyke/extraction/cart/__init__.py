@@ -16,9 +16,10 @@ TREE_SEED = get_default_random_seed()
 class Cart(Extractor):
 
     def __init__(self, predictor, max_depth: int = 3, max_leaves: int = None,
-                 discretization: Iterable[DiscreteFeature] = None, simplify: bool = True):
-        super().__init__(predictor, discretization)
-        self._cart_predictor = CartPredictor()
+                 discretization: Iterable[DiscreteFeature] = None,
+                 normalization=None, simplify: bool = True):
+        super().__init__(predictor, discretization, normalization)
+        self._cart_predictor = CartPredictor(normalization=normalization)
         self.depth = max_depth
         self.leaves = max_leaves
         self._simplify = simplify
@@ -50,6 +51,12 @@ class Cart(Extractor):
         nodes = [node for node in self._cart_predictor]
         nodes = Cart._simplify_nodes(nodes) if self._simplify else nodes
         for (constraints, prediction) in nodes:
+            if self.normalization is not None:
+                m, s = self.normalization[data.columns[-1]]
+                prediction = prediction * s + m
+            if self.normalization is not None:
+                m, s = self.normalization[data.columns[-1]]
+                prediction = prediction * s + m
             if mapping is not None and prediction in mapping.values():
                 for k, v in mapping.items():
                     if v == prediction:

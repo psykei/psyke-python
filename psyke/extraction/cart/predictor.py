@@ -13,13 +13,20 @@ class CartPredictor:
     A wrapper for decision and regression trees of sklearn.
     """
 
-    def __init__(self, predictor: Union[DecisionTreeClassifier, DecisionTreeRegressor] = DecisionTreeClassifier()):
+    def __init__(self, predictor: Union[DecisionTreeClassifier, DecisionTreeRegressor] = DecisionTreeClassifier(),
+                 normalization=None):
         self._predictor = predictor
+        self.normalization = normalization
 
     def __get_constraints(self, nodes: Iterable[(int, bool)]) -> LeafConstraints:
         thresholds = [self._predictor.tree_.threshold[i[0]] for i in nodes]
-        return [(self._predictor.feature_names_in_[self._predictor.tree_.feature[i[0]]],
-                 LessThan(th) if i[1] else GreaterThan(th), i[1]) for i, th in zip(nodes, thresholds)]
+        features = [self._predictor.feature_names_in_[self._predictor.tree_.feature[node[0]]] for node in nodes]
+        conditions = [node[1] for node in nodes]
+        if self.normalization is not None:
+            thresholds = [threshold * self.normalization[feature][1] + self.normalization[feature][0]
+                          for feature, threshold in zip(features, thresholds)]
+        return [(feature, LessThan(threshold) if condition else GreaterThan(threshold), condition)
+                for feature, condition, threshold in zip(features, conditions, thresholds)]
 
     def __get_leaves(self) -> Iterable[int]:
         return [i for i, (left_child, right_child) in enumerate(zip(

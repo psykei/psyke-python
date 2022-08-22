@@ -12,7 +12,7 @@ class ORCHiD(CReEPy):
     """
 
     def __init__(self, predictor, depth: int, error_threshold: float, output: Target = Target.CONSTANT,
-                 gauss_components: int = 5, ranks: list[(str, float)] = [], ignore_threshold: float = 0.0):
-        super().__init__(predictor, depth, error_threshold, output, gauss_components, ranks, ignore_threshold)
-        self.clustering = Extractor.cream(depth, error_threshold, Target.CLASSIFICATION if
-                                          isinstance(predictor, ClassifierMixin) else output, gauss_components)
+                 gauss_components: int = 5, ranks: list[(str, float)] = [], ignore_threshold: float = 0.0,
+                 normalization=None):
+        super().__init__(predictor, depth, error_threshold, output, gauss_components, ranks, ignore_threshold,
+                         normalization, clustering=Extractor.cream)

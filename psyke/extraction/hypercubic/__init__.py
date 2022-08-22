@@ -15,10 +15,16 @@ from psyke.extraction.hypercubic.strategy import Strategy, FixedStrategy
 
 class HyperCubeExtractor(Extractor):
 
-    def __init__(self, predictor):
-        super().__init__(predictor)
+    def __init__(self, predictor, normalization):
+        super().__init__(predictor, normalization=normalization)
         self._hypercubes = []
         self._output = Target.CONSTANT
+
+    def unscale(self, values, name):
+        if self.normalization is None or isinstance(values, LinearRegression):
+            return values
+        m, s = self.normalization[name]
+        return values * s + m
 
     def extract(self, dataframe: pd.DataFrame) -> Theory:
         raise NotImplementedError('extract')
@@ -64,8 +70,9 @@ class HyperCubeExtractor(Extractor):
             logger.info(cube.dimensions)
             variables = create_variable_list([], dataframe)
             variables[dataframe.columns[-1]] = to_var(dataframe.columns[-1])
-            head = HyperCubeExtractor._create_head(dataframe, list(variables.values()), cube.output)
-            body = cube.body(variables, self._ignore_dimensions())
+            head = HyperCubeExtractor._create_head(dataframe, list(variables.values()),
+                                                   self.unscale(cube.output, dataframe.columns[-1]))
+            body = cube.body(variables, self._ignore_dimensions(), self.unscale, self.normalization)
             new_theory.assertZ(clause(head, body))
         return new_theory
 

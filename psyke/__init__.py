@@ -24,9 +24,10 @@ class Extractor(object):
         Each set corresponds to a set of features derived from a single non-discrete feature.
     """
 
-    def __init__(self, predictor, discretization: Iterable[DiscreteFeature] = None):
+    def __init__(self, predictor, discretization: Iterable[DiscreteFeature] = None, normalization=None):
         self.predictor = predictor
         self.discretization = [] if discretization is None else list(discretization)
+        self.normalization = normalization
 
     def extract(self, dataframe: pd.DataFrame) -> Theory:
         """
@@ -110,11 +111,11 @@ class Extractor(object):
         :param predictor: if provided, its predictions on the dataframe are taken instead of the dataframe instances.
         :return: the F1 score of the predictions.
         """
-        predictions = np.array(self.predict(dataframe.iloc[:, :-1]))
+        predictions = np.array(self.predict(dataframe.iloc[:, :-1])[:])
         idx = [prediction is not None for prediction in predictions]
         return f1_score(dataframe.iloc[idx, -1] if predictor is None else
                         predictor.predict(dataframe.iloc[idx, :-1]).flatten(),
-                        predictions[idx])
+                        predictions[idx], average='weighted')
 
     @staticmethod
     def exact(depth: int, error_threshold: float, output, gauss_components: int = 2):
@@ -134,57 +135,66 @@ class Extractor(object):
 
     @staticmethod
     def cart(predictor, max_depth: int = 3, max_leaves: int = 3,
-             discretization: Iterable[DiscreteFeature] = None, simplify: bool = True) -> Extractor:
+             discretization: Iterable[DiscreteFeature] = None, normalization=None, simplify: bool = True) -> Extractor:
         """
         Creates a new Cart extractor.
         """
         from psyke.extraction.cart import Cart
-        return Cart(predictor, max_depth, max_leaves, discretization=discretization, simplify=simplify)
+        return Cart(predictor, max_depth, max_leaves, discretization=discretization, normalization=normalization,
+                    simplify=simplify)
 
     @staticmethod
     def iter(predictor, min_update: float = 0.1, n_points: int = 1, max_iterations: int = 600, min_examples: int = 250,
-             threshold: float = 0.1, fill_gaps: bool = True, seed: int = get_default_random_seed()) -> Extractor:
+             threshold: float = 0.1, fill_gaps: bool = True, normalization: dict[str, tuple[float, float]] = None,
+             seed: int = get_default_random_seed()) -> Extractor:
         """
         Creates a new ITER extractor.
         """
         from psyke.extraction.hypercubic.iter import ITER
-        return ITER(predictor, min_update, n_points, max_iterations, min_examples, threshold, fill_gaps, seed)
+        return ITER(predictor, min_update, n_points, max_iterations, min_examples, threshold, fill_gaps,
+                    normalization, seed)
 
     @staticmethod
     def gridex(predictor, grid, min_examples: int = 250, threshold: float = 0.1,
+               normalization: dict[str, tuple[float, float]] = None,
                seed: int = get_default_random_seed()) -> Extractor:
         """
         Creates a new GridEx extractor.
         """
         from psyke.extraction.hypercubic.gridex import GridEx
-        return GridEx(predictor, grid, min_examples, threshold, seed)
+        return GridEx(predictor, grid, min_examples, threshold, normalization, seed)
 
     @staticmethod
     def gridrex(predictor, grid, min_examples: int = 250, threshold: float = 0.1,
+                normalization: dict[str, tuple[float, float]] = None,
                 seed: int = get_default_random_seed()) -> Extractor:
         """
         Creates a new GridREx extractor.
         """
         from psyke.extraction.hypercubic.gridrex import GridREx
-        return GridREx(predictor, grid, min_examples, threshold, seed)
+        return GridREx(predictor, grid, min_examples, threshold, normalization, seed)
 
     @staticmethod
     def creepy(predictor, depth: int, error_threshold: float, output, gauss_components: int = 2,
-               ranks: [(str, float)] = [], ignore_threshold: float = 0.0) -> Extractor:
+               ranks: [(str, float)] = [], ignore_threshold: float = 0.0,
+               normalization: dict[str, tuple[float, float]] = None) -> Extractor:
         """
         Creates a new CReEPy extractor.
         """
         from psyke.extraction.hypercubic.creepy import CReEPy
-        return CReEPy(predictor, depth, error_threshold, output, gauss_components, ranks, ignore_threshold)
+        return CReEPy(predictor, depth, error_threshold, output, gauss_components, ranks, ignore_threshold,
+                      normalization)
 
     @staticmethod
     def orchid(predictor, depth: int, error_threshold: float, output, gauss_components: int = 2,
-               ranks: [(str, float)] = [], ignore_threshold: float = 0.0) -> Extractor:
+               ranks: [(str, float)] = [], ignore_threshold: float = 0.0,
+               normalization: dict[str, tuple[float, float]] = None) -> Extractor:
         """
         Creates a new ORCHiD extractor.
         """
         from psyke.extraction.hypercubic.orchid import ORCHiD
-        return ORCHiD(predictor, depth, error_threshold, output, gauss_components, ranks, ignore_threshold)
+        return ORCHiD(predictor, depth, error_threshold, output, gauss_components, ranks, ignore_threshold,
+                      normalization)
 
     @staticmethod
     def real(predictor, discretization=None) -> Extractor:

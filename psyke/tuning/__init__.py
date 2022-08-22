@@ -13,7 +13,7 @@ class Objective(Enum):
 class Optimizer:
     def __init__(self, predictor, algorithm, dataframe: pd.DataFrame, max_mae_increase: float = 1.2,
                  min_rule_decrease: float = 0.9, readability_tradeoff: float = 0.1, max_depth: int = 10,
-                 patience: int = 5, objective: Objective = Objective.MODEL):
+                 patience: int = 5, objective: Objective = Objective.MODEL, normalization=None):
         self.predictor = predictor
         self.algorithm = algorithm
         self.dataframe = dataframe
@@ -26,6 +26,7 @@ class Optimizer:
         self.model_mae = abs(self.predictor.predict(dataframe.iloc[:, :-1]).flatten() -
                              self.dataframe.iloc[:, -1].values).mean()
         self.params = None
+        self.normalization = normalization
 
     def _depth_improvement(self, first, second):
         if second[0] == first[0]:

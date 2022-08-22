@@ -15,9 +15,9 @@ class GridEx(HyperCubeExtractor):
     Explanator implementing GridEx algorithm, doi:10.1007/978-3-030-82017-6_2.
     """
 
-    def __init__(self, predictor, grid: Grid, min_examples: int, threshold: float,
+    def __init__(self, predictor, grid: Grid, min_examples: int, threshold: float, normalization,
                  seed=get_default_random_seed()):
-        super().__init__(predictor)
+        super().__init__(predictor, normalization)
         self.grid = grid
         self.min_examples = min_examples
         self.threshold = threshold

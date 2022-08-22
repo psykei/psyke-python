@@ -1,3 +1,5 @@
+import numpy as np
+
 from psyke.extraction.trepan.utils import Node, Split, SplitLogic
 from psyke import Extractor, DiscreteFeature
 from psyke.utils.logic import create_term, create_variable_list, create_head
@@ -151,4 +153,6 @@ class Trepan(Extractor):
         return self.__create_theory(dataframe.columns[-1])
 
     def predict(self, dataframe: pd.DataFrame) -> Iterable:
-        return [Trepan.__predict(sample, self.__root, dataframe.columns[-1]) for _, sample in dataframe.iterrows()]
+        return np.array(
+            [Trepan.__predict(sample, self.__root, dataframe.columns[-1]) for _, sample in dataframe.iterrows()]
+        )
