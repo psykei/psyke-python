@@ -1,11 +1,7 @@
-import pandas as pd
 from setuptools import setup, find_packages
 import pathlib
 import subprocess
 import distutils.cmd
-from tensorflow.keras import Model
-from tuprolog.theory.parsing import parse_theory
-from psyke.utils.plot import plot_theory
 
 here = pathlib.Path(__file__).parent.resolve()
 
@@ -85,6 +81,7 @@ class CreateTestPredictors(distutils.cmd.Command):
         from test.resources.predictors import get_predictor_path, PATH, create_predictor_name
         import ast
         import pandas as pd
+        from tensorflow.keras import Model
 
         # Read the required predictors to run the tests:
         #   model | model_options | dataset
@@ -158,6 +155,10 @@ class CreateTheoryPlot(distutils.cmd.Command):
         self.s = self.show in (True, 'y', 'Y', 'yes', 'YES', 'Yes')
 
     def run(self):
+        import pandas as pd
+        from tuprolog.theory.parsing import parse_theory
+        from psyke.utils.plot import plot_theory
+
         if self.theory_file is None or self.theory_file == '':
             raise Exception('Empty theory file name')
         if self.data is None or self.data == '':
@@ -192,14 +193,14 @@ setup(
     ],
     keywords='knowledge extraction, symbolic ai, ske, extractor, rules, prolog',  # Optional
     # package_dir={'': 'src'},  # Optional
-    packages=find_packages(),  # Required
+    packages=find_packages('./'),  # Required
     include_package_data=True,
     python_requires='>=3.9.0, <3.10',
     install_requires=[
-        'numpy~=1.23.0',
+        'numpy~=1.23.2',
         'pandas~=1.4.3',
-        'scikit-learn~=1.1.1',
-        '2ppy>=0.3.3',
+        'scikit-learn~=1.1.2',
+        '2ppy>=0.4.0',
         # 'skl2onnx~=1.10.0',
         # 'onnxruntime~=1.9.0'
     ],  # Optional
