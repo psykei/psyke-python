@@ -11,6 +11,7 @@ on:
       - 'CHANGELOG.md'
       - 'renovate.json'
       - '.gitignore'
+      - 'psyke/gui/'
   pull_request:
   workflow_dispatch:
 env:
