@@ -4,6 +4,9 @@ import pandas as pd
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
+from tensorflow.python.framework.random_seed import set_seed
+from tensorflow.keras import Input, Model
+from tensorflow.keras.layers import Dense
 from tuprolog.core import Clause
 from tuprolog.theory.parsing import DEFAULT_CLAUSES_PARSER
 from psyke.schema import DiscreteFeature, Value
@@ -44,8 +47,23 @@ def get_model(model_type: str, parameters: dict):
         return DecisionTreeClassifier(max_leaf_nodes=3, random_state=np.random.seed(get_default_random_seed()))
     elif model_type.lower() == 'dtr':
         return DecisionTreeRegressor(max_depth=3, random_state=np.random.seed(get_default_random_seed()))
+    elif model_type.lower() == 'nn':
+        return get_simple_neural_network(**parameters, random_state=np.random.seed(get_default_random_seed()))
     else:
         raise NotImplementedError(model_type + ' not handled yet.')
+
+
+def get_simple_neural_network(input: int = 4, output: int = 3, layers: int = 3, neurons: int = 32,
+                              random_state: int = np.random.seed(get_default_random_seed())) -> Model:
+    set_seed(random_state)
+    input_layer = Input(input)
+    x = input_layer
+    for _ in range(layers-1):
+        x = Dense(neurons, activation='relu')(x)
+    x = Dense(output, activation='softmax')(x)
+    model = Model(input_layer, x)
+    model.compile('adam', loss='sparse_categorical_crossentropy', metrics=['accuracy'])
+    return model
 
 
 def get_in_rule(min_included: bool = True, max_included: bool = False) -> Clause:
