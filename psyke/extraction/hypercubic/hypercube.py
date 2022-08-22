@@ -140,11 +140,12 @@ class HyperCube:
     def count(self, dataset: pd.DataFrame) -> int:
         return self._filter_dataframe(dataset.iloc[:, :-1]).shape[0]
 
-    def body(self, variables: dict[str, Var], ignore: list[str]) -> Iterable[Struct]:
+    def body(self, variables: dict[str, Var], ignore: list[str], unscale=None, normalization=None) -> Iterable[Struct]:
         dimensions = dict(self.dimensions)
         for dimension in ignore:
             del dimensions[dimension]
-        return [create_term(variables[name], Between(values[0], values[1])) for name, values in dimensions.items()]
+        return [create_term(variables[name], Between(unscale(values[0], name), unscale(values[1], name)))
+                for name, values in dimensions.items()]
 
     @staticmethod
     def create_surrounding_cube(dataset: pd.DataFrame, closed: bool = False,
@@ -277,10 +278,15 @@ class RegressionCube(HyperCube):
     def copy(self) -> RegressionCube:
         return RegressionCube(self.dimensions.copy())
 
-    def body(self, variables: dict[str, Var], ignore: list[str]) -> Iterable[Struct]:
-        return list(super().body(variables, ignore)) + [linear_function_creator(
-            list(variables.values()), [to_rounded_real(v) for v in self.output.coef_],
-            to_rounded_real(self.output.intercept_)
+    def body(self, variables: dict[str, Var], ignore: list[str], unscale=None, normalization=None) -> Iterable[Struct]:
+        intercept = self.output.intercept_ if normalization is None else \
+            unscale(sum([-self.output.coef_[i] * normalization[name][0] / normalization[name][1] for i, name in
+                         enumerate(self.dimensions.keys())], self.output.intercept_), list(normalization.keys())[-1])
+        coefs = self.output.coef_ if normalization is None else \
+            [self.output.coef_[i] / normalization[name][1] for i, name in enumerate(self.dimensions.keys())]
+        return list(super().body(variables, ignore, unscale, normalization)) + [linear_function_creator(
+            list(variables.values()), [to_rounded_real(v) for v in coefs],
+            to_rounded_real(intercept)
         )]
 
 

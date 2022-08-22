@@ -14,9 +14,10 @@ class PEDRO(Optimizer):
 
     def __init__(self, predictor, dataframe: pd.DataFrame, max_mae_increase: float = 1.2,
                  min_rule_decrease: float = 0.9, readability_tradeoff: float = 0.1, max_depth: int = 3,
-                 patience: int = 3, algorithm: Algorithm = Algorithm.GRIDREX, objective: Objective = Objective.MODEL):
+                 patience: int = 3, algorithm: Algorithm = Algorithm.GRIDREX, objective: Objective = Objective.MODEL,
+                 normalization=None):
         super().__init__(predictor, algorithm, dataframe, max_mae_increase, min_rule_decrease, readability_tradeoff,
-                         max_depth, patience, objective)
+                         max_depth, patience, objective, normalization)
         self.ranked = FeatureRanker(dataframe.columns[:-1]).fit(predictor, dataframe.iloc[:, :-1]).rankings()
 
     def __search_threshold(self, grid, critical, max_partitions):
@@ -26,9 +27,9 @@ class PEDRO(Optimizer):
         patience = self.patience
         while patience > 0:
             print("{}. {}. Threshold = {:.2f}. ".format(self.algorithm, grid, threshold), end="")
-            extractor = Extractor.gridrex(self.predictor, grid, threshold=threshold) \
+            extractor = Extractor.gridrex(self.predictor, grid, threshold=threshold, normalization=self.normalization) \
                 if self.algorithm == PEDRO.Algorithm.GRIDREX \
-                else Extractor.gridex(self.predictor, grid, threshold=threshold)
+                else Extractor.gridex(self.predictor, grid, threshold=threshold, normalization=self.normalization)
             _ = extractor.extract(self.dataframe)
             mae, n = (extractor.mae(self.dataframe, self.predictor) if self.objective == Objective.MODEL else
                       extractor.mae(self.dataframe)), extractor.n_rules
