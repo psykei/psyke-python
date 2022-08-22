@@ -12,5 +12,5 @@ protobuf==3.20.1
 setuptools==65.2.0
 kneed==0.8.1
 kivy==2.1.0
-matplotlib==3.5.1
+matplotlib==3.5.3
 kivy-garden==0.1.5
