@@ -8,8 +8,9 @@ class GridREx(GridEx):
     Explanator implementing GridREx algorithm.
     """
 
-    def __init__(self, predictor, grid: Grid, min_examples: int, threshold: float, seed=get_default_random_seed()):
-        super().__init__(predictor, grid, min_examples, threshold, seed)
+    def __init__(self, predictor, grid: Grid, min_examples: int, threshold: float, normalization,
+                 seed=get_default_random_seed()):
+        super().__init__(predictor, grid, min_examples, threshold, normalization, seed)
 
     def _default_cube(self) -> RegressionCube:
         return RegressionCube()

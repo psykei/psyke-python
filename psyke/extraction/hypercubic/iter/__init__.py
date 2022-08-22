@@ -18,8 +18,8 @@ class ITER(HyperCubeExtractor):
     """
 
     def __init__(self, predictor, min_update, n_points, max_iterations, min_examples, threshold, fill_gaps,
-                 seed=get_default_random_seed()):
-        super().__init__(predictor)
+                 normalization, seed=get_default_random_seed()):
+        super().__init__(predictor, normalization)
         self.predictor = predictor
         self.min_update = min_update
         self.n_points = n_points
