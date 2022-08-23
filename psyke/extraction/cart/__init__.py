@@ -77,9 +77,14 @@ class Cart(Extractor):
         self._cart_predictor.predictor.max_depth = self.depth
         self._cart_predictor.predictor.max_leaf_nodes = self.leaves
         new_y = self.predictor.predict(data.iloc[:, :-1])
-        if hasattr(new_y[0], 'shape'):
-            if len(new_y[0].shape) > 0 and new_y[0].shape[0] > 1:
-                new_y = [argmax(y, axis=0) for y in new_y]
+        if mapping is not None:
+            if hasattr(new_y[0], 'shape'):
+                # One-hot encoding for multi-class tasks
+                if len(new_y[0].shape) > 0 and new_y[0].shape[0] > 1:
+                    new_y = [argmax(y, axis=0) for y in new_y]
+                # One-hot encoding for binary class tasks
+                else:
+                    new_y = [round(y[0]) for y in new_y]
         self._cart_predictor.predictor.fit(data.iloc[:, :-1], new_y)
         return self._create_theory(data, mapping)
 
