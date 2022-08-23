@@ -169,7 +169,8 @@ class Model:
         elif self.extractor_name == 'CART':
             self.extractor = Extractor.cart(self.predictor, max_depth=self.extractor_params['Max depth'],
                                             max_leaves=self.extractor_params['Max leaves'],
-                                            simplify=self.extractor_params['Simplify'])
+                                            simplify=self.extractor_params['Simplify'],
+                                            discretization=self.discretization)
         elif self.extractor_name == 'Iter':
             self.extractor = Extractor.iter(self.predictor, threshold=self.extractor_params['Threshold'],
                                             min_examples=self.extractor_params['Min examples'],
