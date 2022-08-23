@@ -37,7 +37,8 @@ class CReEPy(HyperCubeExtractor):
         theory = self._create_theory(dataframe)
         last_clause = list(theory.clauses)[-1]
         theory.retract(last_clause)
-        theory.assertZ(clause(last_clause.head, []))
+        theory.assertZ(clause(
+            last_clause.head, [list(last_clause.body)[-1]] if self._output is Target.REGRESSION else []))
         last_cube = self._hypercubes[-1]
         for dimension in last_cube.dimensions.keys():
             last_cube[dimension] = [-np.inf, np.inf]

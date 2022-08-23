@@ -155,6 +155,10 @@ class Model:
         def get_output():
             return Target.CONSTANT if self.extractor_params['Constant output'] else Target.REGRESSION
 
+        def get_rankings():
+            data = (self.data if self.pruned_data is None else self.pruned_data)
+            return FeatureRanker(data.columns[:-1]).fit(self.predictor, data.iloc[:, :-1]).rankings()
+
         # GRIDEX, GRIDREX -> strategy
         # target regression/constant
         self.read_extractor_param()
@@ -189,13 +193,12 @@ class Model:
                                                grid=Grid(self.extractor_params['Max depth'],
                                                          FixedStrategy(self.extractor_params['Splits'])))
         elif self.extractor_name in ['CReEPy', 'ORCHiD']:
-            ranked = FeatureRanker(self.data.columns[:-1]).fit(self.predictor, self.data.iloc[:, :-1]).rankings()
             extractor = Extractor.creepy if self.extractor_name == 'CReEPy' else Extractor.orchid
             self.extractor = extractor(self.predictor, depth=self.extractor_params['Max depth'],
                                        error_threshold=self.extractor_params['Threshold'],
                                        ignore_threshold=self.extractor_params['Feat threshold'],
                                        gauss_components=self.extractor_params['Max components'],
-                                       output=get_output(), ranks=ranked)
+                                       output=get_output(), ranks=get_rankings())
         else:
             raise NotImplementedError
 
@@ -207,7 +210,6 @@ class Model:
         y = inputs[1] if len(inputs) > 1 else output
         z = output if len(inputs) > 1 else None
 
-        # data = self.data if self.pruned_data is None else self.pruned_data
         data = self.load_dataset(True)
 
         init_plot(data[x], data[y], 'Data set')
