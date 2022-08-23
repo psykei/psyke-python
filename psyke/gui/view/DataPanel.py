@@ -1,40 +1,33 @@
 import numpy as np
-from kivy.uix.label import Label
-from kivy.uix.togglebutton import ToggleButton
-
-from psyke.gui.view.layout import PanelBoxLayout, SidebarBoxLayout, HorizontalBoxLayout
+from psyke.gui.view.layout import PanelBoxLayout, CoupledRelativeLayout, CoupledToggleButton
 from psyke.gui.model import TASKS, DATASETS
 from psyke.gui.view import DATASET_MESSAGE, INFO_DATASET_MESSAGE, INFO_DATASET_PREFIX
 
 
 class DataPanel(PanelBoxLayout):
 
-    def __init__(self, controller, **kwargs):
-        super().__init__(controller, 'Load', INFO_DATASET_MESSAGE, **kwargs)
+    def __init__(self, controller, ratio=1, **kwargs):
+        super().__init__(controller, 'Load', INFO_DATASET_MESSAGE, 2, ratio, **kwargs)
 
-        task_panel = HorizontalBoxLayout()
-        for task in TASKS:
-            btn_task = ToggleButton(text=task, group='task',
-                                    state='down' if self.controller.get_task_from_model() == task else 'normal')
+        task_panel = CoupledRelativeLayout(1, ratio)
+        for i, task in enumerate(TASKS):
+            btn_task = CoupledToggleButton(i, text=task, group='task', state='down'
+                                           if self.controller.get_task_from_model() == task else 'normal')
             btn_task.bind(state=self.select_task)
             task_panel.add_widget(btn_task)
 
-        processing_panel = HorizontalBoxLayout(size_hint=(None, None), size=(130, 40))
-        self.discretize_button = ToggleButton(text='Discretize')
-        self.scale_button = ToggleButton(text='Scale')
+        processing_panel = CoupledRelativeLayout(3, ratio)
+        self.discretize_button = CoupledToggleButton(0, text='Discretize')
+        self.scale_button = CoupledToggleButton(1, text='Scale')
         for btn_proc in [self.discretize_button, self.scale_button]:
             btn_proc.state = 'normal'
             btn_proc.group = 'preprocessing'
             btn_proc.bind(state=self.select_preprocessing)
             processing_panel.add_widget(btn_proc)
 
-        left_sidebar = SidebarBoxLayout()
-        left_sidebar.add_widget(task_panel)
-        left_sidebar.add_widget(self.main_panel)
-        left_sidebar.add_widget(processing_panel)
-        left_sidebar.add_widget(Label())
-
-        self.add_widget(left_sidebar)
+        self.add_widget(task_panel)
+        self.add_widget(self.main_panel)
+        self.add_widget(processing_panel)
         self.add_widget(self.info_label)
 
     def select(self, spinner, text):

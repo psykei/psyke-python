@@ -1,37 +1,34 @@
 from collections import OrderedDict
 from functools import partial
+from math import floor
 
 from kivy.uix.button import Button
-from kivy.uix.gridlayout import GridLayout
 from kivy.uix.label import Label
+from kivy.uix.relativelayout import RelativeLayout
 
-from psyke.gui.view import HorizontalBoxLayout
-from psyke.gui.view.layout import VerticalBoxLayout, FeatureSelectionBoxLayout
+from psyke.gui.view import NO_DATASET
+from psyke.gui.view.layout import FeatureSelectionBoxLayout
 
 
-class FeaturePanel(VerticalBoxLayout):
+class FeaturePanel(RelativeLayout):
 
     def __init__(self, controller, **kwargs):
-        super().__init__(spacing=10, **kwargs)
+        super().__init__(**kwargs)
         self.controller = controller
         self.features = {}
         self.feature_panels = {}
         self.plot_features = {}
 
-        self.top_label = Label(text='Feature selection')
-        self.top_button = Button(text='Plot')
+        self.top_label = Label(text='Feature selection', size_hint=(.15, .17), pos_hint={'x': .01, 'y': .76})
+        self.top_button = Button(text='Plot', size_hint=(.15, .17), pos_hint={'x': .2, 'y': .76})
         self.top_button.bind(on_press=self.plot)
-        self.alert_label = Label(size_hint_x=None, width=540, font_size=20, color=(1, 0, 0), )
+        self.alert_label = Label(size_hint=(.5, .17), pos_hint={'x': .4, 'y': .76}, font_size=20, color=(1, 0, 0))
 
-        top_panel = HorizontalBoxLayout(size_hint=(None, None), size=(900, 40), spacing=-10)
-        top_panel.add_widget(self.top_label)
-        top_panel.add_widget(self.top_button)
-        top_panel.add_widget(Label(size_hint_x=None, width=70))
-        top_panel.add_widget(self.alert_label)
-        self.add_widget(top_panel)
+        self.add_widget(self.top_label)
+        self.add_widget(self.top_button)
+        self.add_widget(self.alert_label)
 
-        self.feature_panel = GridLayout(rows=5, size_hint=(None, None), size=(800, 150),
-                                        spacing=(15, 2), padding=(15, 0))
+        self.feature_panel = RelativeLayout(size_hint=(1., .7), pos_hint={'x': 0., 'y': 0.})
         self.add_widget(self.feature_panel)
 
     def init(self):
@@ -41,7 +38,7 @@ class FeaturePanel(VerticalBoxLayout):
         self.top_button.disabled = True
         self.reset_alert()
         self.feature_panel.clear_widgets()
-        self.feature_panel.add_widget(Label(text='No dataset selected'))
+        self.feature_panel.add_widget(Label(text=NO_DATASET, pos_hint={'x': -.2, 'y': .25}))
         self.feature_panel.add_widget(Label())
 
     @staticmethod
@@ -67,13 +64,14 @@ class FeaturePanel(VerticalBoxLayout):
                 )
             self.feature_panel.clear_widgets()
             self.top_button.disabled = False
-            for feature in columns:
+            for i, feature in enumerate(columns):
                 self.features[feature] = None if feature not in pruned_columns else \
                     'O' if feature == pruned_columns[-1] else 'I'
                 self.plot_features[feature] = feature == dataset.columns[-1]
-                self.feature_panels[feature] = FeatureSelectionBoxLayout(feature, self.features[feature],
-                                                                         partial(self.set_feature, feature),
-                                                                         partial(self.set_plot_feature, feature))
+                self.feature_panels[feature] = FeatureSelectionBoxLayout(
+                    feature, self.features[feature], partial(self.set_feature, feature),
+                    partial(self.set_plot_feature, feature),
+                    pos_hint={'x': .01 + .24 * floor(i / 6.), 'y': 1 - 1. / 7. * (i % 6 + 1)})
                 self.feature_panel.add_widget(self.feature_panels[feature])
         else:
             self.init()

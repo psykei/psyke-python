@@ -82,9 +82,7 @@ class Model:
     def load_dataset(self, ret=False):
         print(f'Loading {self.dataset}... ', end='')
         if self.dataset == 'Arti':
-            import os
-            print(os.getcwd())
-            data = pd.read_csv('../../test/resources/datasets/arti.csv')
+            data = pd.read_csv('test/resources/datasets/arti.csv')
         else:
             if self.dataset == 'Iris':
                 x, y = load_iris(return_X_y=True, as_frame=True)

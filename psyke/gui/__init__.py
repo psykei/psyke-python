@@ -1,4 +1,4 @@
-def main(resizable=False, width=1500, height=770):
+def main(width=1500, height=770, resizable=False):
     from kivy import Config
     from kivy.app import App
     from kivy.lang import Builder
@@ -6,6 +6,8 @@ def main(resizable=False, width=1500, height=770):
     Config.set('graphics', 'resizable', 1 if resizable else 0)
     Config.set('graphics', 'width', width)
     Config.set('graphics', 'height', height)
+    Config.set('graphics', 'minimum_width', '1800')
+    Config.set('graphics', 'minimum_height', '950')
 
     Builder.load_file('view/style.kv')
 
@@ -18,6 +20,5 @@ def main(resizable=False, width=1500, height=770):
 
         def build(self):
             return self.controller.screen
-
 
     PSyKEApp().run()

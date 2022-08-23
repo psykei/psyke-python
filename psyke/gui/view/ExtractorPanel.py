@@ -1,29 +1,26 @@
 from functools import partial
 
 from kivy.uix.label import Label
+from kivy.uix.relativelayout import RelativeLayout
 from sklearn.base import ClassifierMixin, RegressorMixin
 from sklearn.metrics import accuracy_score, f1_score, mean_absolute_error, mean_squared_error, r2_score
 
 from psyke.gui.model import EXTRACTORS
-from psyke.gui.view.layout import PanelBoxLayout, VerticalBoxLayout, SidebarBoxLayout
-from psyke.gui.view import INFO_EXTRACTOR_MESSAGE, EXTRACTOR_MESSAGE, text_with_label, INFO_EXTRACTOR_PREFIX, \
+from psyke.gui.view.layout import PanelBoxLayout, TextLabelCoupledRelativeLayout
+from psyke.gui.view import INFO_EXTRACTOR_MESSAGE, EXTRACTOR_MESSAGE, INFO_EXTRACTOR_PREFIX, \
     EXTRACTOR_PERFORMANCE_PREFIX
 
 
 class ExtractorPanel(PanelBoxLayout):
 
-    def __init__(self, controller, **kwargs):
-        super().__init__(controller, 'Extract', INFO_EXTRACTOR_MESSAGE, 350,
+    def __init__(self, controller, ratio=1, **kwargs):
+        super().__init__(controller, 'Extract', INFO_EXTRACTOR_MESSAGE, 1, ratio,
                          EXTRACTOR_MESSAGE, EXTRACTORS, controller.set_extractor_param, **kwargs)
 
-        self.parameter_panel = VerticalBoxLayout(size_hint_y=None, height=190)
+        self.parameter_panel = RelativeLayout(size_hint=(1, .83 / ratio))
 
-        left_sidebar = SidebarBoxLayout()
-        left_sidebar.add_widget(self.main_panel)
-        left_sidebar.add_widget(self.parameter_panel)
-        left_sidebar.add_widget(Label())
-
-        self.add_widget(left_sidebar)
+        self.add_widget(self.main_panel)
+        self.add_widget(self.parameter_panel)
         self.add_widget(self.info_label)
 
     def set_info(self):
@@ -68,10 +65,9 @@ class ExtractorPanel(PanelBoxLayout):
             self.go_button.disabled = False
             params = EXTRACTORS[text][1]
             self.parameter_panel.clear_widgets()
-            for name, (default, param_type) in params.items():
-                self.parameter_panel.add_widget(
-                    text_with_label(f'{name} ({default})', '', param_type, partial(self.set_param, name))
-                )
+            for i, (name, (default, param_type)) in enumerate(params.items()):
+                self.parameter_panel.add_widget(TextLabelCoupledRelativeLayout(
+                    f'{name} ({default})', '', param_type, partial(self.set_param, name), i))
             self.parameter_panel.add_widget(Label())
 
     def go_action(self, button):

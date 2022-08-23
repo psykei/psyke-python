@@ -1,38 +1,8 @@
-#:set default_width 130
-#:set default_height 40
+#:set default_width .45
+#:set default_height .17
 
-<SpinnerOption>:
-    size_hint: None, None
-    size: default_width, 40
+<CoupledToggleButton>:
+    size_hint: (default_width, 1.)
 
-<Spinner>:
-    size_hint: (None, None)
-    width: default_width
-    height: default_height
-
-<Button>:
-    size_hint: (None, None)
-    width: default_width
-    height: default_height
-
-<ToggleButton>:
-    size_hint: (None, None)
-    width: default_width
-    height: default_height
-
-<TextInput>:
-    size_hint: (None, None)
-    width: default_width - 60
-    height: default_height - 10
-    multiline: False
-
-<PanelBoxLayout>:
-    size_hint: (None, None)
-    width: 520
-    height: 220
-
-<SidebarBoxLayout>:
-    size_hint_x: None
-    width: 290
-    padding: 20
-    spacing: 15
+<LeftButton>:
+    size_hint: (default_width, 1.)
