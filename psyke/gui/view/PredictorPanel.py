@@ -7,7 +7,7 @@ from sklearn.metrics import accuracy_score, mean_absolute_error, mean_squared_er
 
 from psyke.gui.view import INFO_PREDICTOR_MESSAGE, PREDICTOR_MESSAGE, PREDICTOR_PERFORMANCE_PREFIX, \
     INFO_PREDICTOR_PREFIX
-from psyke.gui.view.layout import PanelBoxLayout, TextLabelCoupledRelativeLayout
+from psyke.gui.view.layout import PanelBoxLayout, TextLabelCoupledRelativeLayout, RadioLabelCoupledRelativeLayout
 from psyke.gui.model import PREDICTORS, FIXED_PREDICTOR_PARAMS
 
 
@@ -17,7 +17,7 @@ class PredictorPanel(PanelBoxLayout):
         super().__init__(controller, 'Train', INFO_PREDICTOR_MESSAGE, 1, ratio,
                          PREDICTOR_MESSAGE, PREDICTORS, controller.set_predictor_param, **kwargs)
 
-        self.parameter_panel = RelativeLayout(size_hint=(1, .83 / ratio))
+        self.parameter_panel = RelativeLayout(size_hint=(1, .83))
 
         self.add_widget(self.main_panel)
         self.add_widget(self.parameter_panel)
@@ -33,7 +33,9 @@ class PredictorPanel(PanelBoxLayout):
             self.parameter_panel.clear_widgets()
             for i, (name, (default, param_type)) in enumerate(dict(FIXED_PREDICTOR_PARAMS, **params).items()):
                 self.parameter_panel.add_widget(TextLabelCoupledRelativeLayout(
-                    f'{name} ({default})', '', param_type, partial(self.set_param, name), i))
+                    f'{name} ({default})', '', param_type, partial(self.set_param, name), i, self.ratio)
+                                                if param_type != 'bool' else RadioLabelCoupledRelativeLayout(
+                    f'{name}', '', default, partial(self.set_param, name), i, self.ratio))
             self.parameter_panel.add_widget(Label())
 
     def go_action(self, button):

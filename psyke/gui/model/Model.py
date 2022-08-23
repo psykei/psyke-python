@@ -152,6 +152,9 @@ class Model:
         print('Done')
 
     def train_extractor(self):
+        def get_output():
+            return Target.CONSTANT if self.extractor_params['Constant output'] else Target.REGRESSION
+
         # GRIDEX, GRIDREX -> strategy
         # target regression/constant
         self.read_extractor_param()
@@ -165,13 +168,15 @@ class Model:
                                               discretization=self.discretization)
         elif self.extractor_name == 'CART':
             self.extractor = Extractor.cart(self.predictor, max_depth=self.extractor_params['Max depth'],
-                                            max_leaves=self.extractor_params['Max leaves'])
+                                            max_leaves=self.extractor_params['Max leaves'],
+                                            simplify=self.extractor_params['Simplify'])
         elif self.extractor_name == 'Iter':
             self.extractor = Extractor.iter(self.predictor, threshold=self.extractor_params['Threshold'],
                                             min_examples=self.extractor_params['Min examples'],
                                             min_update=self.extractor_params['Min update'],
                                             n_points=self.extractor_params['N points'],
-                                            max_iterations=self.extractor_params['Max iterations'])
+                                            max_iterations=self.extractor_params['Max iterations'],
+                                            fill_gaps=self.extractor_params['Fill gaps'])
         elif self.extractor_name == 'GridEx':
             self.extractor = Extractor.gridex(self.predictor, threshold=self.extractor_params['Threshold'],
                                               min_examples=self.extractor_params['Min examples'],
@@ -189,7 +194,7 @@ class Model:
                                        error_threshold=self.extractor_params['Threshold'],
                                        ignore_threshold=self.extractor_params['Feat threshold'],
                                        gauss_components=self.extractor_params['Max components'],
-                                       output=Target.CONSTANT, ranks=ranked)
+                                       output=get_output(), ranks=ranked)
         else:
             raise NotImplementedError
 
@@ -201,7 +206,7 @@ class Model:
         y = inputs[1] if len(inputs) > 1 else output
         z = output if len(inputs) > 1 else None
 
-        #data = self.data if self.pruned_data is None else self.pruned_data
+        # data = self.data if self.pruned_data is None else self.pruned_data
         data = self.load_dataset(True)
 
         init_plot(data[x], data[y], 'Data set')
@@ -214,6 +219,7 @@ class Model:
 
         grid = create_grid(x, y, data)
         discrete_grid = grid if self.discretization is None else get_discrete_dataset(grid, self.discretization, False)
+        discrete_grid = discrete_grid[(self.data if self.pruned_data is None else self.pruned_data).columns[:-1]]
 
         for model, name in zip([self.predictor, self.extractor], [self.predictor_name, self.extractor_name]):
             if model is None:

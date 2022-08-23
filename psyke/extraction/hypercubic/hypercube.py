@@ -163,6 +163,8 @@ class HyperCube:
             return ClosedClassificationCube(dimensions)
         if output == Target.CLASSIFICATION:
             return ClassificationCube(dimensions)
+        if output == Target.REGRESSION:
+            return RegressionCube(dimensions)
         return HyperCube(dimensions)
 
     def _create_tuple(self, generator: Random) -> dict:
@@ -170,9 +172,11 @@ class HyperCube:
 
     @staticmethod
     def cube_from_point(point: dict, output=None) -> GenericCube:
-        return ClassificationCube({k: (v, v) for k, v in list(point.items())[:-1]}) \
-            if output is Target.CLASSIFICATION \
-            else HyperCube({k: (v, v) for k, v in list(point.items())[:-1]}, output=list(point.values())[-1])
+        if output is Target.CLASSIFICATION:
+            return ClassificationCube({k: (v, v) for k, v in list(point.items())[:-1]})
+        if output is Target.REGRESSION:
+            return RegressionCube({k: (v, v) for k, v in list(point.items())[:-1]})
+        return HyperCube({k: (v, v) for k, v in list(point.items())[:-1]}, output=list(point.values())[-1])
 
     def equal(self, hypercubes: Iterable[HyperCube] | HyperCube) -> bool:
         if isinstance(hypercubes, Iterable):

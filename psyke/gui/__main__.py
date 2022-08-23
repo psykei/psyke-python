@@ -1,4 +1,3 @@
-# from . import main
 from psyke.gui import main
 from screeninfo import get_monitors
 

@@ -29,7 +29,7 @@ class MainScreen(View):
 
         self.l = .33
         self.r = 1 - self.l
-        self.t = .3
+        self.t = .27
         self.m = .35
         self.b = 1 - self.t - self.m
         self.pad = 4

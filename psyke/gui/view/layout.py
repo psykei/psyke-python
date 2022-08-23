@@ -1,4 +1,5 @@
 from kivy.uix.button import Button
+from kivy.uix.checkbox import CheckBox
 from kivy.uix.label import Label
 from kivy.uix.relativelayout import RelativeLayout
 from kivy.uix.spinner import Spinner
@@ -24,18 +25,28 @@ class CoupledRelativeLayout(RelativeLayout):
 
     def __init__(self, index, ratio=1, **kwargs):
         super().__init__(**kwargs)
-        self.size_hint = (.575, .17 / ratio)
+        self.size_hint = (.575, .2 / ratio)
         self.pos_hint = {'x': 0., 'y': .95 - index * (self.size_hint[1] + .02)}
 
 
 class TextLabelCoupledRelativeLayout(RelativeLayout):
 
-    def __init__(self, label:str, text: str, filter: str, action, index: int, ratio: float = 1.0, **kwargs):
-        super().__init__(size_hint=(.575, 1. / 6. / ratio), pos_hint={'x': 0., 'y': .85 - index * 1. / 6.}, **kwargs)
+    def __init__(self, label: str, text: str, filter: str, action, index: int, ratio: float = 1.0, **kwargs):
+        super().__init__(size_hint=(.575, 1. / 6. / ratio), pos_hint={'x': 0., 'y': .75 - index / 6. / ratio}, **kwargs)
         self.add_widget(Label(text=label, size_hint=(.65, 1), pos_hint={'x': 0., 'y': 0.}))
         text = TextInput(text=text, input_filter=filter, size_hint=(.3, 1), pos_hint={'x': .65, 'y': 0.})
         text.bind(text=action)
         self.add_widget(text)
+
+
+class RadioLabelCoupledRelativeLayout(RelativeLayout):
+
+    def __init__(self, label: str, text: str, default: bool, action, index: int, ratio: float = 1.0, **kwargs):
+        super().__init__(size_hint=(.575, 1. / 6. / ratio), pos_hint={'x': 0., 'y': .75 - index / 6. / ratio}, **kwargs)
+        self.add_widget(Label(text=label, size_hint=(.65, 1), pos_hint={'x': 0., 'y': 0.}))
+        radio = CheckBox(active=default, size_hint=(.3, 1), pos_hint={'x': .65, 'y': 0.})
+        radio.bind(active=action)
+        self.add_widget(radio)
 
 
 class PanelBoxLayout(RelativeLayout):
@@ -48,6 +59,7 @@ class PanelBoxLayout(RelativeLayout):
         self.param_f = param_function
         self.spinner_text = spinner_text
         self.spinner_list = spinner_list
+        self.ratio = ratio
 
         self.spinner_options = Spinner(
             pos_hint={'center_x': .275, 'center_y': .5}, size_hint=(.45, 1)

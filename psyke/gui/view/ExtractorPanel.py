@@ -6,7 +6,7 @@ from sklearn.base import ClassifierMixin, RegressorMixin
 from sklearn.metrics import accuracy_score, f1_score, mean_absolute_error, mean_squared_error, r2_score
 
 from psyke.gui.model import EXTRACTORS
-from psyke.gui.view.layout import PanelBoxLayout, TextLabelCoupledRelativeLayout
+from psyke.gui.view.layout import PanelBoxLayout, TextLabelCoupledRelativeLayout, RadioLabelCoupledRelativeLayout
 from psyke.gui.view import INFO_EXTRACTOR_MESSAGE, EXTRACTOR_MESSAGE, INFO_EXTRACTOR_PREFIX, \
     EXTRACTOR_PERFORMANCE_PREFIX
 
@@ -17,7 +17,7 @@ class ExtractorPanel(PanelBoxLayout):
         super().__init__(controller, 'Extract', INFO_EXTRACTOR_MESSAGE, 1, ratio,
                          EXTRACTOR_MESSAGE, EXTRACTORS, controller.set_extractor_param, **kwargs)
 
-        self.parameter_panel = RelativeLayout(size_hint=(1, .83 / ratio))
+        self.parameter_panel = RelativeLayout(size_hint=(1, .83))
 
         self.add_widget(self.main_panel)
         self.add_widget(self.parameter_panel)
@@ -67,7 +67,9 @@ class ExtractorPanel(PanelBoxLayout):
             self.parameter_panel.clear_widgets()
             for i, (name, (default, param_type)) in enumerate(params.items()):
                 self.parameter_panel.add_widget(TextLabelCoupledRelativeLayout(
-                    f'{name} ({default})', '', param_type, partial(self.set_param, name), i))
+                    f'{name} ({default})', '', param_type, partial(self.set_param, name), i, self.ratio)
+                                                if param_type != 'bool' else RadioLabelCoupledRelativeLayout(
+                    f'{name}', '', default, partial(self.set_param, name), i, self.ratio))
             self.parameter_panel.add_widget(Label())
 
     def go_action(self, button):
