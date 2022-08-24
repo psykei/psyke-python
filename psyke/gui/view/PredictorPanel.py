@@ -1,15 +1,13 @@
 from functools import partial
 
-from kivy.uix.label import Label
 from kivy.uix.relativelayout import RelativeLayout
 from sklearn.base import ClassifierMixin, RegressorMixin
-from sklearn.metrics import accuracy_score, mean_absolute_error, mean_squared_error, r2_score, f1_score
 
 from psyke.gui.view import INFO_PREDICTOR_MESSAGE, PREDICTOR_MESSAGE, PREDICTOR_PERFORMANCE_PREFIX, \
     INFO_PREDICTOR_PREFIX
-from psyke.gui.view.layout import PanelBoxLayout, TextLabelCoupledRelativeLayout, RadioLabelCoupledRelativeLayout, \
-    SpinnerLabelCoupledRelativeLayout, create_param_layout
+from psyke.gui.view.layout import PanelBoxLayout, create_param_layout
 from psyke.gui.model import PREDICTORS, FIXED_PREDICTOR_PARAMS
+from psyke.utils.metrics import accuracy, f1, mae, mse, r2
 
 
 class PredictorPanel(PanelBoxLayout):
@@ -59,9 +57,9 @@ class PredictorPanel(PanelBoxLayout):
             true = test.iloc[:, -1]
             predicted = predictor.predict(test.iloc[:, :-1])
             if isinstance(predictor, ClassifierMixin):
-                self.info_label.text += f'Accuracy: {accuracy_score(true, predicted):.2f}\n' \
-                                        f'F1: {f1_score(true, predicted, average="weighted"):.2f}'
+                self.info_label.text += f'Accuracy: {accuracy(true, predicted):.2f}\n' \
+                                        f'F1: {f1(true, predicted):.2f}'
             elif isinstance(predictor, RegressorMixin):
-                self.info_label.text += f'MAE: {mean_absolute_error(true, predicted):.2f}\n' \
-                                   f'MSE: {mean_squared_error(true, predicted):.2f}\n' \
-                                   f'R2: {r2_score(true, predicted):.2f}'
+                self.info_label.text += f'MAE: {mae(true, predicted):.2f}\n' \
+                                   f'MSE: {mse(true, predicted):.2f}\n' \
+                                   f'R2: {r2(true, predicted):.2f}'

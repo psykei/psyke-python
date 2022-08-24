@@ -1,3 +1,5 @@
+from functools import partial
+
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score, accuracy_score, f1_score
 
 
@@ -53,7 +55,7 @@ def f1(expected, predicted):
     :param predicted: the predicted data.
     :return: the F1 score of the predictions.
     """
-    return score(expected, predicted, f1_score)
+    return score(expected, predicted, partial(f1_score, average='weighted'))
 
 
 def score(expected, predicted, scoring_function):

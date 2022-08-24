@@ -1,15 +1,13 @@
 from functools import partial
 
-from kivy.uix.label import Label
 from kivy.uix.relativelayout import RelativeLayout
 from sklearn.base import ClassifierMixin, RegressorMixin
-from sklearn.metrics import accuracy_score, f1_score, mean_absolute_error, mean_squared_error, r2_score
 
 from psyke.gui.model import EXTRACTORS
-from psyke.gui.view.layout import PanelBoxLayout, TextLabelCoupledRelativeLayout, RadioLabelCoupledRelativeLayout, \
-    create_param_layout
+from psyke.gui.view.layout import PanelBoxLayout, create_param_layout
 from psyke.gui.view import INFO_EXTRACTOR_MESSAGE, EXTRACTOR_MESSAGE, INFO_EXTRACTOR_PREFIX, \
     EXTRACTOR_PERFORMANCE_PREFIX
+from psyke.utils.metrics import accuracy, f1, mae, mse, r2
 
 
 class ExtractorPanel(PanelBoxLayout):
@@ -37,26 +35,24 @@ class ExtractorPanel(PanelBoxLayout):
             self.info_label.text += f'N. rules: {extractor.n_rules}\n'
 
             test = self.controller.get_test_set_from_model()
-            predicted = extractor.predict(test.iloc[:, :-1])
-            idx = [prediction is not None for prediction in predicted]
-            predicted = predicted[idx]
+            extracted = extractor.predict(test.iloc[:, :-1])
 
             predictor = self.controller.get_predictor_from_model()[1]
-            true = test.iloc[idx, -1]
-            predicted_bb = predictor.predict(test.iloc[idx, :-1])
+            true = test.iloc[:, -1]
+            predicted = predictor.predict(test.iloc[:, :-1])
 
             if isinstance(predictor, ClassifierMixin):
-                self.info_label.text += f'Acc.: {accuracy_score(true, predicted):.2f} (data), ' \
-                                        f'{accuracy_score(predicted_bb, predicted):.2f} (BB)\n' \
-                                        f'F1: {f1_score(true, predicted, average="weighted"):.2f} (data), ' \
-                                        f'{f1_score(predicted_bb, predicted, average="weighted"):.2f} (BB)'
+                labels = ['Acc.', 'F1']
+                metrics = [accuracy, f1]
             elif isinstance(predictor, RegressorMixin):
-                self.info_label.text += f'MAE: {mean_absolute_error(true, predicted):.2f} (data), ' \
-                                        f'{mean_absolute_error(predicted_bb, predicted):.2f} (BB)\n' \
-                                        f'MSE: {mean_squared_error(true, predicted):.2f} (data), ' \
-                                        f'{mean_squared_error(predicted_bb, predicted):.2f} (BB)\n' \
-                                        f'R2: {r2_score(true, predicted):.2f} (data), ' \
-                                        f'{r2_score(predicted_bb, predicted):.2f} (BB)'
+                labels = ['MAE', 'MSE', 'R2']
+                metrics = [mae, mse, r2]
+            else:
+                raise NotImplementedError
+
+            for label, metric in zip(labels, metrics):
+                self.info_label.text += \
+                    f'{label}: {metric(true, extracted):.2f} (data), {metric(predicted, extracted):.2f} (BB)\n'
 
     def select(self, spinner, text):
         if text == EXTRACTOR_MESSAGE:
