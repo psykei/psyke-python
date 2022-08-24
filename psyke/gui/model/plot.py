@@ -50,9 +50,8 @@ def plotSamples(x: pd.Series, y: pd.Series, z: pd.Series, name: str = None):
     else:
         sc = plt.scatter(x, y, c=z, cmap='cool', edgecolor="k", linewidths=0.05, s=7)
         plt.colorbar(sc, pad=0.03, label=z.name)
-    # if name is not None:
-    #    plt.savefig("CLA/{}.pdf".format(name), dpi=500, bbox_inches='tight')
-    #    plt.show()
+    if name is not None:
+        plt.savefig(f"{name}", dpi=500, bbox_inches='tight')
 
 
 def create_grid(x_name: str, y_name: str, data: pd.DataFrame):

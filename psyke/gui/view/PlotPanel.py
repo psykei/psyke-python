@@ -1,4 +1,5 @@
-from kivy.garden.matplotlib.backend_kivyagg import FigureCanvasKivyAgg
+# from kivy.garden.matplotlib.backend_kivyagg import FigureCanvasKivyAgg
+from kivy.uix.image import Image
 from kivy.uix.label import Label
 from kivy.uix.relativelayout import RelativeLayout
 
@@ -37,11 +38,12 @@ class PlotPanel(RelativeLayout):
     def set_info(self):
         plots = self.controller.get_plots_from_model()
         if plots[0] is not None:
-            self.data_plot = FigureCanvasKivyAgg(plots[0])
+            self.data_plot = Image(source=plots[0])
+            # FigureCanvasKivyAgg(plots[0])
         if plots[1] is not None:
-            self.predictor_plot = FigureCanvasKivyAgg(plots[1])
+            self.predictor_plot = Image(source=plots[1])
         if plots[2] is not None:
-            self.extractor_plot = FigureCanvasKivyAgg(plots[2])
+            self.extractor_plot = Image(source=plots[2])
         self.__add_widgets()
 
     def clear_data(self):

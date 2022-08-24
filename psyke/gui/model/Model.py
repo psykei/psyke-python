@@ -214,8 +214,9 @@ class Model:
         actual_data = self.data if self.pruned_data is None else self.pruned_data
 
         init_plot(data[x], data[y], 'Data set')
-        plotSamples(data[x], data[y], data[z if z is not None else y])
-        self.data_plot = plt.gcf()
+        plotSamples(data[x], data[y], data[z if z is not None else y], 'data.png')
+        self.data_plot = 'data.png'
+        # plt.gcf()
         plt.close()
 
         if self.predictor is None:
@@ -227,7 +228,8 @@ class Model:
             if self.preprocessing_action == 'Scale' else grid
         processed_grid = processed_grid[actual_data.columns[:-1]]
 
-        for model, name in zip([self.predictor, self.extractor], [self.predictor_name, self.extractor_name]):
+        for model, name, fig in \
+                zip([self.predictor, self.extractor], [self.predictor_name, self.extractor_name], ['bb', 'extractor']):
             if model is None:
                 break
             init_plot(data[x], data[y], name)
@@ -244,11 +246,11 @@ class Model:
             grid_data = grid_data.groupby([x, y])[grid_data.columns[:-1]].mean().join(outputs)
             if z is not None:
                 plot_regions(grid_data[x].values, grid_data[y].values, grid_data[z].values)
-            plotSamples(data[x], data[y], data[z if z is not None else y])
+            plotSamples(data[x], data[y], data[z if z is not None else y], f'{fig}.png')
             if isinstance(model, Extractor):
-                self.extractor_plot = plt.gcf()
+                self.extractor_plot = f'{fig}.png'
             else:
-                self.predictor_plot = plt.gcf()
+                self.predictor_plot = f'{fig}.png'
             plt.close()
 
     def set_predictor_param(self, key, value):
