@@ -84,7 +84,7 @@ class InstallGardenDependency(distutils.cmd.Command):
             raise ValueError("No Garden package provided")
 
     def run(self):
-        cmd = str(InstallGardenDependency.garden_executable) + " install "
+        cmd = f"{sys.executable} {InstallGardenDependency.garden_executable} install "
         if self.as_library:
             cmd += "--app "
             os.chdir(here / "psyke" / "gui")
@@ -223,7 +223,7 @@ setup(
     ],
     keywords='knowledge extraction, symbolic ai, ske, extractor, rules, prolog',  # Optional
     # package_dir={'': 'src'},  # Optional
-    packages=find_packages('./'),  # Required
+    packages=find_packages('.'),  # Required
     include_package_data=True,
     python_requires='>=3.9.0, <3.10',
     install_requires=[
