@@ -1,3 +1,6 @@
 include VERSION
+include psyke/gui/libs/garden/garden.matplotlib/*
+include psyke/gui/view/*.kv
 exclude test/*
+exclude demo/*
 exclude main.py
