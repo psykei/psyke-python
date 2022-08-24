@@ -57,9 +57,13 @@ class PredictorPanel(PanelBoxLayout):
 
             self.info_label.text += '\n' + PREDICTOR_PERFORMANCE_PREFIX
 
-            test = self.controller.get_test_set_from_model()
+            test, action, preprocessing = self.controller.get_test_set_from_model()
             true = test.iloc[:, -1]
             predicted = predictor.predict(test.iloc[:, :-1])
+            if action == 'Scale' and preprocessing is not None:
+                m, s = preprocessing[test.columns[-1]]
+                true = true * s + m
+                predicted = predicted * s + m
             if isinstance(predictor, ClassifierMixin):
                 self.info_label.text += f'Accuracy: {accuracy(true, predicted):.2f}\n' \
                                         f'F1: {f1(true, predicted):.2f}'

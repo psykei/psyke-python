@@ -51,16 +51,16 @@ class FeaturePanel(RelativeLayout):
         return list(OrderedDict.fromkeys(list_with_duplicates))
 
     def set_info(self):
-        dataset, pruned_dataset, discretization = self.controller.get_data_from_model()
+        dataset, pruned_dataset, action, preprocessing = self.controller.get_data_from_model()
         if dataset is not None:
             pruned_columns = dataset.columns if pruned_dataset is None else pruned_dataset.columns
             columns = dataset.columns
-            if discretization is not None:
+            if action == 'Discretize' and preprocessing is not None:
                 pruned_columns = self.__remove_duplicates(
-                    [self.__inverse_mapping(discretization, column) for column in pruned_columns]
+                    [self.__inverse_mapping(preprocessing, column) for column in pruned_columns]
                 )
                 columns = self.__remove_duplicates(
-                    [self.__inverse_mapping(discretization, column) for column in dataset.columns]
+                    [self.__inverse_mapping(preprocessing, column) for column in dataset.columns]
                 )
             self.feature_panel.clear_widgets()
             self.top_button.disabled = False

@@ -36,12 +36,16 @@ class ExtractorPanel(PanelBoxLayout):
             self.info_label.text += '\n' + EXTRACTOR_PERFORMANCE_PREFIX
             self.info_label.text += f'N. rules: {extractor.n_rules}\n'
 
-            test = self.controller.get_test_set_from_model()
-            extracted = extractor.predict(test.iloc[:, :-1])
-
+            test, action, preprocessing = self.controller.get_test_set_from_model()
             predictor = self.controller.get_predictor_from_model()[1]
+            extracted = extractor.predict(test.iloc[:, :-1])
             true = test.iloc[:, -1]
             predicted = predictor.predict(test.iloc[:, :-1])
+            if action == 'Scale' and preprocessing is not None:
+                m, s = preprocessing[test.columns[-1]]
+                extracted = extracted * s + m
+                true = true * s + m
+                predicted = predicted * s + m
 
             if isinstance(predictor, ClassifierMixin):
                 labels = ['Acc.', 'F1']

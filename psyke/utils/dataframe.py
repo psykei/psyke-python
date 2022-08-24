@@ -6,6 +6,7 @@ from typing import Iterable, List
 import pandas as pd
 from pandas.core.util.hashing import hash_pandas_object
 from pandas.api.types import is_string_dtype, is_numeric_dtype, is_integer_dtype
+from sklearn.preprocessing import StandardScaler
 from sympy.core.containers import OrderedSet
 
 from psyke import DiscreteFeature
@@ -137,6 +138,21 @@ def get_discrete_dataset(dataset: pd.DataFrame, discrete_features: Iterable[Disc
             new_dataset[new_feature] = new_dataset[new_feature].astype(str).astype(int)
 
     return new_dataset
+
+
+def get_scaled_dataset(dataset: pd.DataFrame) -> tuple[pd.DataFrame, dict[str, tuple[float, float]]]:
+    scaler = StandardScaler()
+    scaler.fit(dataset)
+    normalization = {key: (m, s) for key, m, s in zip(dataset.columns, scaler.mean_, scaler.scale_)}
+    return pd.DataFrame(scaler.transform(dataset), columns=dataset.columns, index=dataset.index), normalization
+
+
+def scale_dataset(dataset: pd.DataFrame, normalization: dict[str, tuple[float, float]]) -> pd.DataFrame:
+    new_data = pd.DataFrame()
+    for column in dataset.columns:
+        m, s = normalization[column]
+        new_data[column] = (dataset[column] - m) / s
+    return new_data
 
 
 class HashableDataFrame(pd.DataFrame):

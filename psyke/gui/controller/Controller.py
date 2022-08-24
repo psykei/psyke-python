@@ -27,7 +27,7 @@ class Controller:
         return self.model.dataset
 
     def get_data_from_model(self):
-        return self.model.data, self.model.pruned_data, self.model.discretization
+        return self.model.data, self.model.pruned_data, self.model.preprocessing_action, self.model.preprocessing
 
     def get_predictor_from_model(self):
         return self.model.predictor_name, self.model.predictor, self.model.predictor_params
@@ -36,7 +36,7 @@ class Controller:
         return self.model.extractor_name, self.model.extractor, self.model.extractor_params
 
     def get_test_set_from_model(self):
-        return self.model.test
+        return self.model.test, self.model.preprocessing_action, self.model.preprocessing
 
     def get_theory_from_model(self):
         return self.model.theory
