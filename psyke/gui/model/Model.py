@@ -246,12 +246,16 @@ class Model:
 
     def read_predictor_param(self):
         all_params = dict(FIXED_PREDICTOR_PARAMS, **PREDICTORS[self.predictor_name][1])
-        for name, (default, _, _) in all_params.items():
+        for name, (default, _, constraint) in all_params.items():
+            if constraint is not None and constraint != self.task:
+                continue
             if name not in self.predictor_params.keys():
                 self.predictor_params[name] = default
 
     def read_extractor_param(self):
         params = EXTRACTORS[self.extractor_name][1]
-        for name, (default, _, _) in params.items():
+        for name, (default, _, constraint) in params.items():
+            if constraint is not None and constraint != self.task:
+                continue
             if name not in self.extractor_params.keys():
                 self.extractor_params[name] = default

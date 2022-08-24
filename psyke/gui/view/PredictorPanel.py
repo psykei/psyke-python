@@ -45,10 +45,14 @@ class PredictorPanel(PanelBoxLayout):
             self.info_label.text = INFO_PREDICTOR_MESSAGE
         else:
             self.info_label.text = ''
-            for name, _ in FIXED_PREDICTOR_PARAMS.items():
+            for name, (_, _, constraint) in FIXED_PREDICTOR_PARAMS.items():
+                if constraint is not None and constraint != self.controller.get_task_from_model():
+                    continue
                 self.info_label.text += f'{name} = {predictor_params[name]}\n'
             self.info_label.text += f'\n{INFO_PREDICTOR_PREFIX}Predictor: {predictor_name}\n'
-            for name, _ in PREDICTORS[predictor_name][1].items():
+            for name, (_, _, constraint) in PREDICTORS[predictor_name][1].items():
+                if constraint is not None and constraint != self.controller.get_task_from_model():
+                    continue
                 self.info_label.text += f'{name} = {predictor_params[name]}\n'
 
             self.info_label.text += '\n' + PREDICTOR_PERFORMANCE_PREFIX

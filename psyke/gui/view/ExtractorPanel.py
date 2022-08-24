@@ -28,7 +28,9 @@ class ExtractorPanel(PanelBoxLayout):
             self.info_label.text = INFO_EXTRACTOR_MESSAGE
         else:
             self.info_label.text = f'\n{INFO_EXTRACTOR_PREFIX}Predictor: {extractor_name}\n'
-            for name, _ in EXTRACTORS[extractor_name][1].items():
+            for name, (_, _, constraint) in EXTRACTORS[extractor_name][1].items():
+                if constraint is not None and constraint != self.controller.get_task_from_model():
+                    continue
                 self.info_label.text += f'{name} = {extractor_params[name]}\n'
 
             self.info_label.text += '\n' + EXTRACTOR_PERFORMANCE_PREFIX
