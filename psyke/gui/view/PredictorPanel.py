@@ -7,7 +7,8 @@ from sklearn.metrics import accuracy_score, mean_absolute_error, mean_squared_er
 
 from psyke.gui.view import INFO_PREDICTOR_MESSAGE, PREDICTOR_MESSAGE, PREDICTOR_PERFORMANCE_PREFIX, \
     INFO_PREDICTOR_PREFIX
-from psyke.gui.view.layout import PanelBoxLayout, TextLabelCoupledRelativeLayout, RadioLabelCoupledRelativeLayout
+from psyke.gui.view.layout import PanelBoxLayout, TextLabelCoupledRelativeLayout, RadioLabelCoupledRelativeLayout, \
+    SpinnerLabelCoupledRelativeLayout, create_param_layout
 from psyke.gui.model import PREDICTORS, FIXED_PREDICTOR_PARAMS
 
 
@@ -31,12 +32,11 @@ class PredictorPanel(PanelBoxLayout):
             self.go_button.disabled = False
             params = PREDICTORS[text][1]
             self.parameter_panel.clear_widgets()
-            for i, (name, (default, param_type)) in enumerate(dict(FIXED_PREDICTOR_PARAMS, **params).items()):
-                self.parameter_panel.add_widget(TextLabelCoupledRelativeLayout(
-                    f'{name} ({default})', '', param_type, partial(self.set_param, name), i, self.ratio)
-                                                if param_type != 'bool' else RadioLabelCoupledRelativeLayout(
-                    f'{name}', '', default, partial(self.set_param, name), i, self.ratio))
-            self.parameter_panel.add_widget(Label())
+            for i, (name, (default, type, constraint)) in enumerate(dict(FIXED_PREDICTOR_PARAMS, **params).items()):
+                if constraint is not None and constraint != self.controller.get_task_from_model():
+                    continue
+                self.parameter_panel.add_widget(create_param_layout(
+                    name, default, type, partial(self.set_param, name), i, self.ratio))
 
     def go_action(self, button):
         self.controller.train_predictor()

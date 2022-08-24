@@ -132,17 +132,10 @@ class Model:
                 self.predictor.n_estimators = self.predictor_params['N estimators']
             self.predictor.max_depth = self.predictor_params['Max depth']
             self.predictor.max_leaf_nodes = self.predictor_params['Max leaves']
-        elif self.predictor_name in ['SVC', 'SVR']:
-            if self.predictor_name == 'SVC':
-                self.predictor = SVC()
-            else:
-                self.predictor = SVR()
-                self.predictor.epsilon = self.predictor_params['Epsilon']
+        elif self.predictor_name == 'SVM':
+            self.predictor = SVC() if self.task == 'Classification' else SVR(epsilon=self.predictor_params['Epsilon'])
             self.predictor.C = self.predictor_params['Regularization']
-            if self.predictor_params['Kernel'].lower() in ['linear', 'poly', 'rbf', 'sigmoid', 'precomputed']:
-                self.predictor.kernel = self.predictor_params['Kernel'].lower()
-            else:
-                raise SVMError
+            self.predictor.kernel = self.predictor_params['Kernel'].lower()
         else:
             raise PredictorError
         self.train, self.test = train_test_split(self.data if self.pruned_data is None else self.pruned_data,
@@ -253,12 +246,12 @@ class Model:
 
     def read_predictor_param(self):
         all_params = dict(FIXED_PREDICTOR_PARAMS, **PREDICTORS[self.predictor_name][1])
-        for name, (default, _) in all_params.items():
+        for name, (default, _, _) in all_params.items():
             if name not in self.predictor_params.keys():
                 self.predictor_params[name] = default
 
     def read_extractor_param(self):
         params = EXTRACTORS[self.extractor_name][1]
-        for name, (default, _) in params.items():
+        for name, (default, _, _) in params.items():
             if name not in self.extractor_params.keys():
                 self.extractor_params[name] = default

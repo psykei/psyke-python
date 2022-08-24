@@ -6,7 +6,8 @@ from sklearn.base import ClassifierMixin, RegressorMixin
 from sklearn.metrics import accuracy_score, f1_score, mean_absolute_error, mean_squared_error, r2_score
 
 from psyke.gui.model import EXTRACTORS
-from psyke.gui.view.layout import PanelBoxLayout, TextLabelCoupledRelativeLayout, RadioLabelCoupledRelativeLayout
+from psyke.gui.view.layout import PanelBoxLayout, TextLabelCoupledRelativeLayout, RadioLabelCoupledRelativeLayout, \
+    create_param_layout
 from psyke.gui.view import INFO_EXTRACTOR_MESSAGE, EXTRACTOR_MESSAGE, INFO_EXTRACTOR_PREFIX, \
     EXTRACTOR_PERFORMANCE_PREFIX
 
@@ -65,12 +66,11 @@ class ExtractorPanel(PanelBoxLayout):
             self.go_button.disabled = False
             params = EXTRACTORS[text][1]
             self.parameter_panel.clear_widgets()
-            for i, (name, (default, param_type)) in enumerate(params.items()):
-                self.parameter_panel.add_widget(TextLabelCoupledRelativeLayout(
-                    f'{name} ({default})', '', param_type, partial(self.set_param, name), i, self.ratio)
-                                                if param_type != 'bool' else RadioLabelCoupledRelativeLayout(
-                    f'{name}', '', default, partial(self.set_param, name), i, self.ratio))
-            self.parameter_panel.add_widget(Label())
+            for i, (name, (default, type, constraint)) in enumerate(params.items()):
+                if constraint is not None and constraint != self.controller.get_task_from_model():
+                    continue
+                self.parameter_panel.add_widget(create_param_layout(
+                    name, default, type, partial(self.set_param, name), i, self.ratio))
 
     def go_action(self, button):
         self.controller.train_extractor()

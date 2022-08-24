@@ -33,33 +33,39 @@ DATASETS = [
 ]
 
 FIXED_PREDICTOR_PARAMS = {
-    'Test set': (0.5, 'float'),
-    'Split seed': (0, 'int')
+    'Test set': (0.5, 'float', None),
+    'Split seed': (0, 'int', None)
 }
 
 PREDICTORS = {
-    'K-NN': [TASKS, {'K': (3, 'int')}],
-    'DT': [TASKS, {'Max depth': (3, 'int'), 'Max leaves': (3, 'int')}],
-    'RF': [TASKS, {'N estimators': (50, 'int'), 'Max depth': (3, 'int'), 'Max leaves': (100, 'int')}],
+    'K-NN': [TASKS, {'K': (3, 'int', None)}],
+    'DT': [TASKS, {'Max depth': (3, 'int', None), 'Max leaves': (3, 'int', None)}],
+    'RF': [TASKS, {'N estimators': (50, 'int', None), 'Max depth': (3, 'int', None), 'Max leaves': (100, 'int', None)}],
     'LR': [[TASKS[1]], {}],
-    'SVC': [TASKS[0], {'Regularization': (1.0, 'float'), 'Kernel': ('RBF', None)}],
-    'SVR': [TASKS[1], {'Regularization': (1.0, 'float'), 'Kernel': ('RBF', None), 'Epsilon': (0.1, 'float')}]
+    'SVM': [TASKS, {'Regularization': (1.0, 'float', None),
+                    'Kernel': ('RBF', ['Linear', 'Poly', 'RBF', 'Sigmoid'], None),
+                    'Epsilon': (0.1, 'float', TASKS[1])}]
 }
+
+MAX_DEPTH = (3, 'int', None)
+THRESHOLD = (0.1, 'float', None)
+MIN_EXAMPLES = (100, 'int', None)
 
 EXTRACTORS = {
     'REAL': [[TASKS[0]], {}],
-    'Trepan': [[TASKS[0]], {'Max depth': (3, 'int'), 'Min examples': (0, 'int')}],
-    'CART': [TASKS, {'Max depth': (5, 'int'), 'Max leaves': (5, 'int'), 'Simplify': (True, 'bool')}],
-    'Iter': [TASKS, {'Min examples': (100, 'int'), 'Threshold': (0.1, 'float'), 'Max iterations': (600, 'int'),
-                     'N points': (1, 'int'), 'Min update': (0.05, 'float'), 'Fill gaps': (True, 'bool')}],
-    'GridEx': [TASKS, {'Max depth': (3, 'int'), 'Splits': (2, 'int'),
-                       'Min examples': (100, 'int'), 'Threshold': (0.1, 'float')}],
-    'GridREx': [[TASKS[1]], {'Max depth': (3, 'int'), 'Splits': (2, 'int'),
-                             'Min examples': (100, 'int'), 'Threshold': (0.1, 'float')}],
-    'CReEPy': [TASKS, {'Max depth': (3, 'int'), 'Threshold': (0.1, 'float'), 'Max components': (10, 'int'),
-                       'Feat threshold': (0.8, 'float'), 'Constant output': (True, 'bool')}],
-    'ORCHiD': [TASKS, {'Max depth': (3, 'int'), 'Threshold': (0.1, 'float'), 'Max components': (10, 'int'),
-                       'Feat threshold': (0.8, 'float'), 'Constant output': (True, 'bool')}]
+    'Trepan': [[TASKS[0]], {'Max depth': MAX_DEPTH, 'Min examples': (0, 'int', None)}],
+    'CART': [TASKS, {'Max depth': MAX_DEPTH, 'Max leaves': (3, 'int', None), 'Simplify': (True, 'bool', None)}],
+    'Iter': [TASKS, {'Min examples': MIN_EXAMPLES, 'Threshold': THRESHOLD, 'Max iterations': (600, 'int', None),
+                     'N points': (1, 'int', None), 'Min update': (0.05, 'float', None),
+                     'Fill gaps': (True, 'bool', None)}],
+    'GridEx': [TASKS, {'Max depth': MAX_DEPTH, 'Splits': (1, 'int', None),
+                       'Min examples': MIN_EXAMPLES, 'Threshold': THRESHOLD}],
+    'GridREx': [[TASKS[1]], {'Max depth': MAX_DEPTH, 'Splits': (1, 'int', None),
+                             'Min examples': MIN_EXAMPLES, 'Threshold': THRESHOLD}],
+    'CReEPy': [TASKS, {'Max depth': MAX_DEPTH, 'Threshold': THRESHOLD, 'Max components': (10, 'int', None),
+                       'Feat threshold': (0.8, 'float', None), 'Constant output': (True, 'bool', TASKS[1])}],
+    'ORCHiD': [TASKS, {'Max depth': MAX_DEPTH, 'Threshold': THRESHOLD, 'Max components': (10, 'int', None),
+                       'Feat threshold': (0.8, 'float', None), 'Constant output': (True, 'bool', TASKS[1])}]
 }
 
 
@@ -72,4 +78,8 @@ def cast_param(params, key, value):
         return float(value)
     if params[key][1] == 'bool':
         return bool(value)
+    if isinstance(params[key][1], list):
+        if value not in params[key][1]:
+            raise ValueError
+        return value
     raise NotImplementedError
