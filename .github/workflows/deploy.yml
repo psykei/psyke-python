@@ -36,7 +36,9 @@ jobs:
           python-version: ${{ steps.get-python-version.outputs.version }}
 
       - name: Restore Python dependencies
-        run: pip install -r requirements.txt
+        run: |
+          pip install -r requirements.txt
+          python setup.py garden_install --package=matplotlib --as-library
 
       - name: Change default logging level
         run: sed -i -e 's/DEBUG/WARN/g' psyke/__init__.py

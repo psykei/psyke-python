@@ -90,7 +90,9 @@ jobs:
           submodules: recursive
 
       - name: Restore Python dependencies
-        run: pip install -r requirements.txt
+        run: |
+          pip install -r requirements.txt
+          python setup.py garden_install --package=matplotlib --as-library
 
       - name: Test
         run: python -m unittest discover -s test -t .

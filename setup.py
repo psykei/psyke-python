@@ -1,5 +1,7 @@
 from setuptools import setup, find_packages
 import pathlib
+import sys
+import os
 import subprocess
 import distutils.cmd
 
@@ -60,6 +62,34 @@ class GetVersionCommand(distutils.cmd.Command):
 
     def run(self):
         print(version)
+
+
+class InstallGardenDependency(distutils.cmd.Command):
+    """A custom command to install Garden dependencies"""
+
+    garden_executable = pathlib.Path(sys.executable).parent / 'garden'
+
+    description = 'runs `garden install [--app] PACKAGE`'
+    user_options = [
+        ('package=', None, 'the package to be installed'),
+        ('as-library', None, 'wether to install the dependency as a local library')
+    ]
+
+    def initialize_options(self):
+        self.package = None
+        self.as_library = False
+
+    def finalize_options(self):
+        if self.package is None:
+            raise ValueError("No Garden package provided")
+
+    def run(self):
+        cmd = str(InstallGardenDependency.garden_executable) + " install "
+        if self.as_library:
+            cmd += "--app "
+            os.chdir(here / "psyke" / "gui")
+        cmd += self.package
+        os.system(cmd)
 
 
 class CreateTestPredictors(distutils.cmd.Command):
@@ -216,5 +246,6 @@ setup(
         'get_project_version': GetVersionCommand,
         'create_test_predictors': CreateTestPredictors,
         'create_theory_plot': CreateTheoryPlot,
+        'garden_install': InstallGardenDependency
     },
 )
