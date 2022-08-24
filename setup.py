@@ -230,7 +230,14 @@ setup(
         'numpy~=1.23.2',
         'pandas~=1.4.3',
         'scikit-learn~=1.1.2',
-        '2ppy>=0.4.0',
+        '2ppy~=0.4.0',
+        'tensorflow~=2.7.2',
+        'kneed~=0.8.1',
+        'kivy~=2.1.0',
+        'matplotlib~=3.5.3',
+        'kivy-garden~=0.1.5',
+        'screeninfo~=0.8',
+        'sympy~=1.11'
         # 'skl2onnx~=1.10.0',
         # 'onnxruntime~=1.9.0'
     ],  # Optional
