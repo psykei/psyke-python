@@ -231,7 +231,7 @@ setup(
         'pandas~=1.4.3',
         'scikit-learn~=1.1.2',
         '2ppy~=0.4.0',
-        'tensorflow~=2.7.2',
+        'tensorflow~=2.7.0',
         'kneed~=0.8.1',
         'kivy~=2.1.0',
         'matplotlib~=3.5.3',
