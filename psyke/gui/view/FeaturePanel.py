@@ -20,9 +20,9 @@ class FeaturePanel(RelativeLayout):
         self.plot_features = {}
 
         self.top_label = Label(text='Feature selection', size_hint=(.15, .17), pos_hint={'x': .01, 'y': .76})
-        self.top_button = Button(text='Plot', size_hint=(.15, .17), pos_hint={'x': .2, 'y': .76})
+        self.top_button = Button(text='Plot', size_hint=(.1, .17), pos_hint={'x': .17, 'y': .76})
         self.top_button.bind(on_press=self.plot)
-        self.alert_label = Label(size_hint=(.5, .17), pos_hint={'x': .4, 'y': .76}, font_size=20, color=(1, 0, 0))
+        self.alert_label = Label(size_hint=(.3, .17), pos_hint={'x': .59, 'y': .76}, font_size=20, color=(1, 0, 0))
 
         self.add_widget(self.top_label)
         self.add_widget(self.top_button)
