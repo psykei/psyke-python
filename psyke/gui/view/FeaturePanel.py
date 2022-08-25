@@ -36,7 +36,7 @@ class FeaturePanel(RelativeLayout):
         self.feature_panels = {}
         self.plot_features = {}
         self.top_button.disabled = True
-        self.reset_alert()
+        self.reset_alert(True)
         self.feature_panel.clear_widgets()
         self.feature_panel.add_widget(Label(text=NO_DATASET, pos_hint={'x': -.2, 'y': .25}))
         self.feature_panel.add_widget(Label())
@@ -53,6 +53,7 @@ class FeaturePanel(RelativeLayout):
     def set_info(self):
         dataset, pruned_dataset, action, preprocessing = self.controller.get_data_from_model()
         if dataset is not None:
+            rankings = {feature: score for feature, score in self.controller.get_data_rankings_from_model()}
             pruned_columns = dataset.columns if pruned_dataset is None else pruned_dataset.columns
             columns = dataset.columns
             if action == 'Discretize' and preprocessing is not None:
@@ -69,20 +70,21 @@ class FeaturePanel(RelativeLayout):
                     'O' if feature == pruned_columns[-1] else 'I'
                 self.plot_features[feature] = feature == dataset.columns[-1]
                 self.feature_panels[feature] = FeatureSelectionBoxLayout(
-                    feature, self.features[feature], partial(self.set_feature, feature),
-                    partial(self.set_plot_feature, feature),
+                    feature, self.features[feature], rankings[feature] if self.features[feature] == 'I' else None,
+                    partial(self.set_feature, feature), partial(self.set_plot_feature, feature),
                     pos_hint={'x': .01 + .24 * floor(i / 6.), 'y': 1 - 1. / 7. * (i % 6 + 1)})
                 self.feature_panel.add_widget(self.feature_panels[feature])
         else:
             self.init()
 
     def set_feature(self, feature, button):
+        reset_alert = False
         if self.features[feature] == button.text:
             if len([k for k, v in self.features.items() if v == button.text]) > 1:
                 self.features[feature] = None
                 self.feature_panels[feature].plot_button.state = 'normal'
                 self.plot_features[feature] = False
-                self.reset_alert()
+                reset_alert = True
             else:
                 self.set_alert(f'Cannot remove the only selected {"input" if button.text == "I" else "output"} feature')
                 self.feature_panels[feature].buttons[button.text].state = 'down'
@@ -90,7 +92,7 @@ class FeaturePanel(RelativeLayout):
             if button.text == 'I':
                 if self.features[feature] is None:
                     self.features[feature] = button.text
-                    self.reset_alert()
+                    reset_alert = True
                 else:
                     self.set_alert('Cannot remove the only selected output feature')
                     self.feature_panels[feature].buttons['I'].state = 'normal'
@@ -110,8 +112,8 @@ class FeaturePanel(RelativeLayout):
                         self.plot_features[to_normal[0]] = False
                     self.feature_panels[feature].plot_button.state = 'down'
                     self.plot_features[feature] = True
-                    self.reset_alert()
-        self.controller.reload_dataset(self.features)
+                    reset_alert = True
+        self.reset_alert(reset_alert & self.controller.reload_dataset(self.features))
 
     def set_plot_feature(self, feature, button):
         if self.features[feature] is None:
@@ -125,7 +127,7 @@ class FeaturePanel(RelativeLayout):
             active = len([k for k, v in self.plot_features.items() if v and k in inputs])
             if (self.plot_features[feature] and active == 2) or (not self.plot_features[feature] and active < 2):
                 self.plot_features[feature] = not self.plot_features[feature]
-                self.reset_alert()
+                self.reset_alert(True)
             else:
                 self.set_alert('Cannot plot less than 1 input feature' if self.plot_features[feature] else
                                'Cannot plot more than 2 input features')
@@ -141,10 +143,16 @@ class FeaturePanel(RelativeLayout):
             self.set_alert('Regression plots require at least one input feature')
         else:
             self.controller.plot(self.features, [k for k, v in self.plot_features.items() if v])
-            self.reset_alert()
+            self.reset_alert(True)
 
     def set_alert(self, text: str = ''):
         self.alert_label.text = text
 
-    def reset_alert(self):
-        self.set_alert()
+    def reset_alert(self, reset):
+        if reset:
+            self.set_alert()
+        rankings = self.controller.get_data_rankings_from_model()
+        rankings = {feature: None for feature in self.features} if rankings is None else \
+            {feature: score for feature, score in rankings}
+        for feature, panel in self.feature_panels.items():
+            panel.set_text(feature, rankings[feature] if self.features[feature] == 'I' else None)

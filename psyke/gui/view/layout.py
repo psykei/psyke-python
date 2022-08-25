@@ -123,11 +123,13 @@ class PanelBoxLayout(RelativeLayout):
 
 class FeatureSelectionBoxLayout(RelativeLayout):
 
-    def __init__(self, feature, role, action, plot_action, **kwargs):
+    def __init__(self, feature, role, ranking, action, plot_action, **kwargs):
         super().__init__(size_hint=(.24, 1. / 7.), **kwargs)
         self.buttons = {}
-        text = feature if len(feature) < 18 else feature[:15] + '...'
-        self.add_widget(Label(text=text, size_hint=(.7, 1.), pos_hint={'x': 0, 'y': 0}))
+        self.label = Label(size_hint=(.7, 1.), pos_hint={'x': 0, 'y': 0},
+                           halign='right', text_size=(self.width * 2, self.height * .2))
+        self.set_text(feature, ranking)
+        self.add_widget(self.label)
         for i, text in enumerate(['I', 'O']):
             button = ToggleButton(text=text, size_hint=(.1, .8), pos_hint={'x': .7 + .1 * i, 'y': .1},
                                   state='down' if role == text else 'normal', group=f'feature_{feature}')
@@ -138,6 +140,12 @@ class FeatureSelectionBoxLayout(RelativeLayout):
                                         state='down' if role == 'O' else 'normal')
         self.plot_button.bind(on_press=plot_action)
         self.add_widget(self.plot_button)
+
+    def set_text(self, feature, ranking):
+        text = feature if len(feature) < 16 else feature[:12] + '...'
+        if ranking is not None:
+            text += f' [{ranking:.2f}]'
+        self.label.text = text
 
 
 def create_param_layout(name: str, default: Union[str, bool, int, float], type, action, index: int, ratio: float):

@@ -29,6 +29,9 @@ class Controller:
     def get_data_from_model(self):
         return self.model.data, self.model.pruned_data, self.model.preprocessing_action, self.model.preprocessing
 
+    def get_data_rankings_from_model(self):
+        return self.model.ranked_data
+
     def get_predictor_from_model(self):
         return self.model.predictor_name, self.model.predictor, self.model.predictor_params
 
@@ -78,11 +81,17 @@ class Controller:
         self.view.plot_panel.clear_extractor()
 
     def reload_dataset(self, features):
-        self.model.select_features(features)
+        ret = True
+        try:
+            self.model.select_features(features)
+        except ValueError as e:
+            self.view.feature_panel.set_alert('Cannot calculate ranking for these features')
+            ret = False
         self.reset_predictor()
         self.view.data_panel.set_info()
         self.view.predictor_panel.enable()
         self.view.plot_panel.clear_data()
+        return ret
 
     def plot(self, features, plot_features):
         inputs = [k for k, v in features.items() if v == 'I' and k in plot_features]

@@ -27,6 +27,7 @@ class Model:
         self.dataset = None
         self.data = None
         self.pruned_data = None
+        self.ranked_data = None
         self.train = None
         self.test = None
         self.predictor_name = None
@@ -65,6 +66,7 @@ class Model:
         self.pruned_data = None
         self.train = None
         self.test = None
+        self.ranked_data = None
         self.data_plot = None
 
     def reset_predictor(self):
@@ -101,6 +103,7 @@ class Model:
         print('Done')
         if ret:
             return data
+        self.ranked_data = FeatureRanker(data.columns[:-1]).fit_on_data(data).rankings()
         if self.preprocessing_action == 'Discretize':
             self.preprocessing = get_discrete_features_supervised(data)
             self.data = get_discrete_dataset(data.iloc[:, :-1], self.preprocessing, False).join(data.iloc[:, -1])
@@ -117,6 +120,12 @@ class Model:
                        if discretization.name == variable] for variable in inputs]
             inputs = [item for sublist in inputs for item in sublist[0]]
         self.pruned_data = self.data[inputs].join(self.data[output])
+        data = self.load_dataset(True)
+        try:
+            self.ranked_data = FeatureRanker(data[inputs]).fit_on_data(data[inputs].join(data[output])).rankings()
+        except ValueError:
+            self.ranked_data = None
+            raise ValueError
 
     def train_predictor(self):
         self.read_predictor_param()

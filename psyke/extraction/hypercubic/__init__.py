@@ -2,6 +2,7 @@ from __future__ import annotations
 from typing import Iterable
 import numpy as np
 import pandas as pd
+from sklearn.base import ClassifierMixin
 from sklearn.feature_selection import SelectKBest, f_regression, f_classif
 from sklearn.linear_model import LinearRegression
 from tuprolog.core import Var, Struct, clause
@@ -82,8 +83,14 @@ class FeatureRanker:
 
     def fit(self, model, samples):
         predictions = np.array(model.predict(samples)).flatten()
-        function = f_classif if isinstance(predictions[0], str) else f_regression
+        function = f_classif if isinstance(model, ClassifierMixin) else f_regression
         best = SelectKBest(score_func=function, k="all").fit(samples, predictions)
+        self.scores = np.array(best.scores_) / max(best.scores_)
+        return self
+
+    def fit_on_data(self, samples):
+        function = f_classif if isinstance(samples.iloc[0, -1], str) else f_regression
+        best = SelectKBest(score_func=function, k="all").fit(samples.iloc[:, :-1], samples.iloc[:, -1])
         self.scores = np.array(best.scores_) / max(best.scores_)
         return self
 
