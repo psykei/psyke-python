@@ -18,43 +18,18 @@ long_description = (here / 'README.md').read_text(encoding='utf-8')
 
 EPOCHS: int = 50
 BATCH_SIZE: int = 16
-
-
-def get_processor_name():
-    if platform.system() == "Windows":
-        return platform.processor()
-    elif platform.system() == "Darwin":
-        os.environ['PATH'] = os.environ['PATH'] + os.pathsep + '/usr/sbin'
-        name = subprocess.run(["sysctl", "-n", "machdep.cpu.brand_string"], cwd=str(here), check=True, capture_output=True)
-        name = name.stdout.decode('utf-8').strip()
-        return name
-    elif platform.system() == "Linux":
-        command = "cat /proc/cpuinfo"
-        all_info = subprocess.check_output(command, shell=True).decode().strip()
-        all_info = subprocess.run(["cat", "/proc/cpuinfo"], cwd=str(here), check=True, capture_output=True)
-        all_info = all_info.stdout.decode('utf-8').strip()
-        for line in all_info.split("\n"):
-            if "model name" in line:
-                return re.sub(".*model name.*:", "", line, 1)
-    return ""
-
-
-COMMON_REQUIREMENTS = [
-        'numpy~=1.23.2',
-        'pandas~=1.4.3',
-        'scikit-learn~=1.1.2',
-        '2ppy~=0.4.0',
-        'kneed~=0.8.1',
-        'kivy~=2.1.0',
-        'matplotlib~=3.5.3',
-        'kivy-garden~=0.1.5',
-        'screeninfo~=0.8',
-        'sympy~=1.11'
-        # 'skl2onnx~=1.10.0',
-        # 'onnxruntime~=1.9.0'
-    ]  # Optional
-TENSORFLOW = ['tensorflow~=2.7.2', ]
-REQUIREMENTS = COMMON_REQUIREMENTS + TENSORFLOW if get_processor_name() != 'Apple M1' else COMMON_REQUIREMENTS
+REQUIREMENTS = [
+    'numpy~=1.23.2',
+    'pandas~=1.4.3',
+    'scikit-learn~=1.1.2',
+    '2ppy~=0.4.0',
+    'kneed~=0.8.1',
+    'kivy~=2.1.0',
+    'matplotlib~=3.5.3',
+    'kivy-garden~=0.1.5',
+    'screeninfo~=0.8',
+    'sympy~=1.11'
+]  # Optional
 
 
 def format_git_describe_version(version):
