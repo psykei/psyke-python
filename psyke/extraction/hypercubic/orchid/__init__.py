@@ -1,6 +1,4 @@
 from __future__ import annotations
-from sklearn.base import ClassifierMixin
-
 from psyke import Extractor
 from psyke.extraction.hypercubic.creepy import CReEPy
 from psyke.utils import Target

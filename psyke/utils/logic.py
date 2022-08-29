@@ -1,5 +1,4 @@
 from __future__ import annotations
-
 from typing import Iterable
 import pandas as pd
 from tuprolog.core import Var, Struct, Real, Term, Integer, Numeric, clause

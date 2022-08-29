@@ -1,4 +1,5 @@
 from __future__ import annotations
+from abc import ABC
 from typing import Iterable
 import numpy as np
 import pandas as pd
@@ -13,20 +14,17 @@ from psyke.utils import Target, get_int_precision
 from psyke.extraction.hypercubic.strategy import Strategy, FixedStrategy
 
 
-class HyperCubeExtractor(Extractor):
+class HyperCubeExtractor(Extractor, ABC):
 
     def __init__(self, predictor, normalization):
         super().__init__(predictor, normalization=normalization)
         self._hypercubes = []
         self._output = Target.CONSTANT
 
-    def extract(self, dataframe: pd.DataFrame) -> Theory:
-        raise NotImplementedError('extract')
+    def _predict(self, dataframe: pd.DataFrame) -> Iterable:
+        return np.array([self._predict_from_cubes(dict(row.to_dict())) for _, row in dataframe.iterrows()])
 
-    def predict(self, dataframe: pd.DataFrame) -> Iterable:
-        return np.array([self._predict(dict(row.to_dict())) for _, row in dataframe.iterrows()])
-
-    def _predict(self, data: dict[str, float]) -> float | None:
+    def _predict_from_cubes(self, data: dict[str, float]) -> float | None:
         data = {k: v for k, v in data.items()}
         for cube in self._hypercubes:
             if cube.__contains__(data):
