@@ -57,6 +57,9 @@ class Controller:
             self.model.reset_preprocessing()
         self.load_dataset()
 
+    def select_colormap(self, cmap):
+        self.model.select_colormap(cmap)
+
     def select_dataset(self, dataset):
         self.model.reset_dataset()
         self.model.select_dataset(dataset)
@@ -93,10 +96,10 @@ class Controller:
         self.view.plot_panel.clear_data()
         return ret
 
-    def plot(self, features, plot_features):
+    def plot(self, features, plot_features, save=False):
         inputs = [k for k, v in features.items() if v == 'I' and k in plot_features]
         output = [k for k, v in features.items() if v == 'O' and k in plot_features][0]
-        self.model.plot(inputs, output)
+        self.model.plot(inputs, output, save)
         self.view.plot_panel.set_info()
 
     def get_plots_from_model(self):

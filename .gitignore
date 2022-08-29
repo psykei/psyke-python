@@ -159,3 +159,4 @@ dmypy.json
 # Local stuff
 dummy/
 tmp_model/
+plots/

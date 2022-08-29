@@ -29,6 +29,7 @@ DATASETS = [
     ['Wine', [TASKS[0]]],
     ['Arti', [TASKS[1]]],
     ['House', [TASKS[1]]],
+    ['Bank marketing', [TASKS[1]]],
     ['Custom', TASKS]
 ]
 
@@ -58,10 +59,12 @@ EXTRACTORS = {
     'Iter': [TASKS, {'Min examples': MIN_EXAMPLES, 'Threshold': THRESHOLD, 'Max iterations': (600, 'int', None),
                      'N points': (1, 'int', None), 'Min update': (0.05, 'float', None),
                      'Fill gaps': (True, 'bool', None)}],
-    'GridEx': [TASKS, {'Max depth': MAX_DEPTH, 'Splits': (1, 'int', None),
-                       'Min examples': MIN_EXAMPLES, 'Threshold': THRESHOLD}],
-    'GridREx': [[TASKS[1]], {'Max depth': MAX_DEPTH, 'Splits': (1, 'int', None),
-                             'Min examples': MIN_EXAMPLES, 'Threshold': THRESHOLD}],
+    'GridEx': [TASKS, {'Max depth': MAX_DEPTH, 'Splits': (2, 'int', None), 'Adaptive': (True, 'bool', None),
+                       'Adaptive threshold': (0.8, 'float', None), 'Min examples': MIN_EXAMPLES,
+                       'Threshold': THRESHOLD}],
+    'GridREx': [[TASKS[1]], {'Max depth': MAX_DEPTH, 'Splits': (2, 'int', None), 'Adaptive': (True, 'bool', None),
+                             'Adaptive threshold': (0.8, 'float', None), 'Min examples': MIN_EXAMPLES,
+                             'Threshold': THRESHOLD}],
     'CReEPy': [TASKS, {'Max depth': MAX_DEPTH, 'Threshold': THRESHOLD, 'Max components': (10, 'int', None),
                        'Feat threshold': (0.8, 'float', None), 'Constant output': (True, 'bool', TASKS[1])}],
     'ORCHiD': [TASKS, {'Max depth': MAX_DEPTH, 'Threshold': THRESHOLD, 'Max components': (10, 'int', None),
