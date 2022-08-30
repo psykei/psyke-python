@@ -9,7 +9,7 @@ from tuprolog.core import Var, Struct, clause
 from tuprolog.theory import Theory, mutable_theory
 from psyke import Extractor, logger
 from psyke.extraction.hypercubic.hypercube import HyperCube, RegressionCube, ClassificationCube, ClosedCube
-from psyke.utils.logic import create_variable_list, create_head, to_var
+from psyke.utils.logic import create_variable_list, create_head, to_var, Simplifier
 from psyke.utils import Target, get_int_precision
 from psyke.extraction.hypercubic.strategy import Strategy, FixedStrategy
 
@@ -66,7 +66,20 @@ class HyperCubeExtractor(Extractor, ABC):
                                                    self.unscale(cube.output, dataframe.columns[-1]))
             body = cube.body(variables, self._ignore_dimensions(), self.unscale, self.normalization)
             new_theory.assertZ(clause(head, body))
-        return new_theory
+        return HyperCubeExtractor._prettify_theory(new_theory)
+
+    @staticmethod
+    def _prettify_theory(theory: Theory) -> Theory:
+        visitor = Simplifier()
+        new_clauses = []
+        for c in theory.clauses:
+            body = c.body
+            structs = body.unfolded if c.body_size > 1 else [body]
+            new_structs = []
+            for s in structs:
+                new_structs.append(s.accept(visitor))
+            new_clauses.append(clause(c.head, new_structs))
+        return mutable_theory(new_clauses)
 
     @property
     def n_rules(self):

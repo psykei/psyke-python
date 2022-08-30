@@ -54,7 +54,7 @@ def is_zero(term: Term) -> bool:
 def absolute(term: Term) -> bool:
     if is_negative(term):
         if isinstance(term, Numeric):
-            return numeric(term.getValue().unaryMinus())
+            return numeric(float(str(term.getValue().unaryMinus())))
         return struct(term.getFunctor(), map(absolute, term.getArgs()))
     return term
 

@@ -63,7 +63,7 @@ class GridEx(PedagogicalExtractor, HyperCubeExtractor):
                         cube.update_dimension(f, p[i])
                     n = cube.count(dataframe)
                     if n > 0:
-                        fake = fake.append(cube.create_samples(self.min_examples - n, self.__generator))
+                        fake = pd.concat([fake, cube.create_samples(self.min_examples - n, self.__generator)])
                         cube.update(fake, self.predictor)
                         to_split += [cube]
                 to_split = self._merge(to_split, fake)
