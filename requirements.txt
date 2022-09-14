@@ -8,7 +8,7 @@ skl2onnx==1.12
 onnxruntime==1.12.1
 tensorflow==2.7.2
 parameterized==0.8.1
-protobuf==3.20.1
+protobuf==3.20.2
 setuptools==65.3.0
 kneed==0.8.1
 kivy==2.1.0
