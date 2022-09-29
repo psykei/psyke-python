@@ -141,6 +141,14 @@ class Extractor(object):
         return CREAM(depth, error_threshold, output, gauss_components)
 
     @staticmethod
+    def cream2(depth: int, error_threshold: float, output, gauss_components: int = 2):
+        """
+        Creates a new CREAM instance.
+        """
+        from psyke.clustering.cream2 import CREAM2
+        return CREAM2(depth, error_threshold, output, gauss_components)
+
+    @staticmethod
     def cart(predictor, max_depth: int = 3, max_leaves: int = 3,
              discretization: Iterable[DiscreteFeature] = None, normalization=None, simplify: bool = True) -> Extractor:
         """
@@ -201,6 +209,17 @@ class Extractor(object):
         """
         from psyke.extraction.hypercubic.orchid import ORCHiD
         return ORCHiD(predictor, depth, error_threshold, output, gauss_components, ranks, ignore_threshold,
+                      normalization)
+
+    @staticmethod
+    def orchid2(predictor, depth: int, error_threshold: float, gauss_components: int = 2,
+               ranks: [(str, float)] = [], ignore_threshold: float = 0.0,
+               normalization: dict[str, tuple[float, float]] = None) -> Extractor:
+        """
+        Creates a new ORCHiD extractor.
+        """
+        from psyke.extraction.hypercubic.orchid2 import ORCHiD2
+        return ORCHiD2(predictor, depth, error_threshold, gauss_components, ranks, ignore_threshold,
                       normalization)
 
     @staticmethod
