@@ -37,6 +37,7 @@ jobs:
 
       - name: Create Docker Image
         run: ./.github/scripts/retry.sh "docker build -t pikalab/psyke:$PSYKE_VERSION --build-arg PSYKE_VERSION=$PSYKE_VERSION ."
+        shell: bash
         env:
           PSYKE_VERSION: '${{ steps.get-version.outputs.version }}'
 

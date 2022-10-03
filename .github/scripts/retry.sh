@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 DT=${2:-${RETRY_TIME:-5m}}
 MAX=${3:-${MAX_RETRIES:-3}}
