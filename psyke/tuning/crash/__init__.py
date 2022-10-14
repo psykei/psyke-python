@@ -11,7 +11,8 @@ from psyke.utils import Target
 class CRASH(Optimizer):
     class Algorithm(Enum):
         CReEPy = 1,
-        ORCHiD = 2
+        ORCHiD = 2,
+        ORBIt = 3
 
     def __init__(self, predictor, dataframe: pd.DataFrame, max_mae_increase: float = 1.2,
                  min_rule_decrease: float = 0.9, readability_tradeoff: float = 0.1, max_depth: int = 10,
@@ -50,10 +51,15 @@ class CRASH(Optimizer):
         patience = self.patience
         while patience > 0:
             print(f"{self.algorithm}. Depth: {depth}. Threshold = {threshold:.2f}. ", end="")
-            extractor = Extractor.creepy(self.predictor, depth, threshold, self.output, 10,
-                                         normalization=self.normalization) if self.algorithm == CRASH.Algorithm.CReEPy \
-                else Extractor.orchid(self.predictor, depth, threshold, self.output, 10,
-                                      normalization=self.normalization)
+            if self.algorithm == CRASH.Algorithm.CReEPy:
+                extractor = Extractor.creepy(self.predictor, depth, threshold, self.output, 10,
+                                             normalization=self.normalization)
+            elif self.algorithm == CRASH.Algorithm.ORCHiD:
+                extractor = Extractor.orchid(self.predictor, depth, threshold, self.output, 10,
+                                             normalization=self.normalization)
+            elif self.algorithm == CRASH.Algorithm.ORBIt:
+                extractor = Extractor.orbit(self.predictor, depth, threshold, 10,
+                                            normalization=self.normalization, steps=0, min_accuracy_increase=0)
             _ = extractor.extract(self.dataframe)
             mae, n = (extractor.mae(self.dataframe, self.predictor) if self.objective == Objective.MODEL else
                       extractor.mae(self.dataframe)), extractor.n_rules
