@@ -209,13 +209,13 @@ class Extractor(object):
               normalization: dict[str, tuple[float, float]] = None,
               steps: int=1000,
               min_accuracy_increase: float=0.01,
-              disequation_num: int = 4) -> Extractor:
+              max_disequation_num=4) -> Extractor:
         """
         Creates a new ORBIt extractor.
         """
         from psyke.clustering.orbit import ORBIt
         return ORBIt(predictor, depth, error_threshold, gauss_components, ranks, ignore_threshold,
-                      normalization, steps, min_accuracy_increase, disequation_num)
+                      normalization, steps, min_accuracy_increase, max_disequation_num)
 
     @staticmethod
     def real(predictor, discretization=None) -> Extractor:
