@@ -7,7 +7,7 @@ import pandas as pd
 
 from psyke.clustering.exact import ExACT
 from psyke.clustering.orbit.container import Container, ContainerNode
-from psyke.clustering.orbit.container_generator import generate_container
+from psyke.clustering.orbit.oblique_rules_generator import generate_container
 from psyke.extraction.hypercubic import Node, ClosedCube, HyperCube
 from sklearn.neighbors import KNeighborsClassifier, KNeighborsRegressor
 from sklearn.cluster import DBSCAN
@@ -17,8 +17,8 @@ from psyke.utils import Target
 from sklearn.metrics import accuracy_score
 
 
-class ConstraintGenerator:
-    # j = 0
+class MixedRulesExtractor:
+    """extractor for mixed rules: hyper-cubes and oblique rules"""
 
     def __init__(self, depth: int, error_threshold: float, gauss_components: int = 5, steps=1000,
                  min_accuracy_increase=0.01, max_disequation_num=4):

@@ -12,7 +12,7 @@ from tuprolog.theory import Theory
 
 from psyke import Extractor
 from psyke.utils import Target
-from psyke.clustering.orbit.constraint_generator import ConstraintGenerator
+from psyke.clustering.orbit.mixed_rules_extractor import MixedRulesExtractor
 from tuprolog.theory import Theory, mutable_theory
 from psyke import Extractor, logger
 from psyke.utils.logic import create_variable_list, create_head, to_var
@@ -54,7 +54,7 @@ class ORBIt(Extractor):
         self.error_threshold = error_threshold
         self.ranks = ranks
         self.ignore_threshold = ignore_threshold
-        self.clustering = ConstraintGenerator(depth, error_threshold, gauss_components, steps,
+        self.clustering = MixedRulesExtractor(depth, error_threshold, gauss_components, steps,
                                               min_accuracy_increase, max_disequation_num=max_disequation_num)
         self.containers: List[Container] = []
 
