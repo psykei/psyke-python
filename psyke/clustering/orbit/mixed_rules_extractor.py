@@ -43,7 +43,7 @@ class MixedRulesExtractor:
         self.steps = steps
         self.min_accuracy_increase = min_accuracy_increase
         self.inistial_dataset_size = 0
-        self.max_disequation_num = 4
+        self.max_disequation_num = max_disequation_num
 
     def extract(self, dataframe: pd.DataFrame) -> List[Container]:
         self._predictor.fit(dataframe.iloc[:, :-1], dataframe.iloc[:, -1])
