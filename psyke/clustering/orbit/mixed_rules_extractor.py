@@ -8,8 +8,8 @@ import pandas as pd
 from psyke.clustering.exact import ExACT
 from psyke.clustering.orbit.container import Container, ContainerNode
 from psyke.clustering.orbit.oblique_rules_generator import generate_container
-from psyke.extraction.hypercubic import Node, ClosedCube, HyperCube
-from sklearn.neighbors import KNeighborsClassifier, KNeighborsRegressor
+from psyke.extraction.hypercubic import ClosedCube, HyperCube
+from sklearn.neighbors import KNeighborsClassifier
 from sklearn.cluster import DBSCAN
 from psyke.clustering.utils import select_gaussian_mixture, select_dbscan_epsilon
 from collections import Counter
@@ -36,7 +36,6 @@ class MixedRulesExtractor:
         self.error_threshold = error_threshold
         self.gauss_components = gauss_components
         self._containers = None
-        # super(CREAM2, self).__init__(depth, error_threshold, output, gauss_components)
         self._predictor = KNeighborsClassifier()
         self._predictor.n_neighbors = 1
         self._output = Target.CLASSIFICATION
@@ -62,8 +61,7 @@ class MixedRulesExtractor:
             data.iloc[:, -1] = data.iloc[:, -1]
             gauss_params = select_gaussian_mixture(data, self.gauss_components)
             gauss_pred = gauss_params[2].predict(data)
-            # from utils.draw import draw_data, draw_clusters
-            # draw_clusters(node.dataframe.iloc[:, :-1], node.dataframe.iloc[:, -1])
+
             containers = self.__eligible_cubes(domain_data, gauss_pred, node, gauss_params[1])
             if len(containers) < 1:
                 continue
@@ -72,11 +70,6 @@ class MixedRulesExtractor:
             node.right = ContainerNode(node.dataframe[right_indices], right_container)
             node.container.update(node.dataframe[left_indices], self._predictor)
             node.left = ContainerNode(node.dataframe[left_indices], left_container)
-            # data = node.right.container._filter_dataframe(node.right.dataframe)
-            # draw_clusters(data.iloc[:, :-1], data.iloc[:, -1])
-            # data = node.left.container._filter_dataframe(node.left.dataframe)
-            # draw_clusters(data.iloc[:, :-1], data.iloc[:, -1])
-
 
             if depth < self.depth:
                 to_split += [
@@ -130,10 +123,6 @@ class MixedRulesExtractor:
                     if children_accuracy <= parent_accuracy:
                         exclude_cubes = True
                 if not exclude_cubes:
-                    # cubes.append((
-                    #     (max(right.diversity, left.diversity) / 2, right.volume(), left.volume(), i),
-                    #     (right, indices), (left, ~indices)
-                    # ))
                     cubes.append((
                         ((right.diversity + left.diversity) / 2, right.volume(), left.volume(), i),
                         (right, indices), (left, ~indices)
