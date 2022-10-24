@@ -24,8 +24,8 @@ class ORBItTuner:
         :param patience:
         :param normalization:
         :param gauss_components: gauss components used by ORBIt
-        :param max_time: maximum amount of time (in seconds) that the algorithm can take, this is NOT the time taken by the tuner,
-            but the time used when one execution of ORBIt is done
+        :param max_time: maximum amount of time (in seconds) that the algorithm can take,
+            this is NOT the time taken by the tuner, but the time used when one execution of ORBIt is done
         :param min_acc_range: min_accuracy_increase will be set between 0 and worse_min_acc
         """
         self.predictor = predictor

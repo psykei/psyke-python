@@ -114,37 +114,6 @@ def try_reducing_dimension(dimensions: dict, dim_name: str, disequations, true_p
     return reduce_dim_accuracy, reduced_dim
 
 
-# def refine_constraints(constraint: dict[tuple[str, str], list[tuple[float, float, float]]],
-#                        dimensions: dict[str, tuple],
-#                        df: pd.DataFrame,
-#                        true_predictions: np.ndarray,
-#                        accuracy: float)\
-#         -> tuple[dict[str, tuple], dict[tuple[str, str], list[tuple[float, float, float]]]]:
-#     """
-#     this function is not used anymore
-#     :param constraint:
-#     :param dimensions:
-#     :param df:
-#     :param true_predictions:
-#     :param accuracy:
-#     :return:
-#     """
-#     dimensions = dimensions.copy()
-#     final_constraints = {}
-#     for dim1, dim2 in constraint:
-#         reduced_dim = dimensions.copy()
-#         reduced_dim.pop(dim1, None)
-#         reduced_dim.pop(dim2, None)
-#         new_constr = {(dim1, dim2): constraint[(dim1, dim2)]}
-#         reduced_container = Container(dimension=reduced_dim, disequation=new_constr)
-#         new_container_predictions = reduced_container.filter_indices(df)
-#         new_container_accuracy = accuracy_score(true_predictions, new_container_predictions)
-#         if new_container_accuracy > accuracy:
-#             dimensions = reduced_dim
-#             final_constraints[(dim1, dim2)] = constraint[(dim1, dim2)]
-#     return dimensions, final_constraints
-
-
 def generate_constraint(df: pd.DataFrame, max_number_of_diequations: int = 10) \
         -> List[Tuple[List[Tuple[float, float, float]], List[Tuple]]]:
     """
