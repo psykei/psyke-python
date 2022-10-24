@@ -1,19 +1,16 @@
 from __future__ import annotations
-
 from collections import Iterable
-
 import numpy as np
 import pandas as pd
 from sklearn.base import ClassifierMixin
-from tuprolog.core import struct, clause
+from tuprolog.core import clause
 from tuprolog.theory import Theory
-
-from psyke import Extractor
+from psyke import Extractor, PedagogicalExtractor
 from psyke.extraction.hypercubic import HyperCubeExtractor
 from psyke.utils import Target
 
 
-class CReEPy(HyperCubeExtractor):
+class CReEPy(PedagogicalExtractor, HyperCubeExtractor):
     """
     Explanator implementing CReEPy algorithm.
     """
@@ -27,10 +24,8 @@ class CReEPy(HyperCubeExtractor):
         self.ranks = ranks
         self.ignore_threshold = ignore_threshold
 
-    def extract(self, dataframe: pd.DataFrame) -> Theory:
-        self._hypercubes = self.clustering.extract(dataframe.iloc[:, :-1].join(
-            pd.DataFrame(self.predictor.predict(dataframe.iloc[:, :-1]), index=dataframe.index)
-        ))
+    def _extract(self, dataframe: pd.DataFrame, mapping: dict[str: int] = None) -> Theory:
+        self._hypercubes = self.clustering.extract(dataframe)
         for cube in self._hypercubes:
             for dimension in self._ignore_dimensions():
                 cube[dimension] = [-np.inf, np.inf]

@@ -66,15 +66,15 @@ pip install psyke
 ```
 
 #### Requirements
-* numpy 1.21.3+
-* pandas 1.3.4+
-* scikit-learn 1.0.1+
-* 2ppy 0.3.3+
+* `numpy`
+* `pandas`
+* `scikit-learn`
+* `2ppy`
 
 ##### Test requirements
-* skl2onnx 1.10.0+
-* onnxruntime 1.9.0+
-* parameterized 0.8.1+
+* `skl2onnx`
+* `onnxruntime`
+* `parameterized`
 
 Once installed, it is possible to create an extractor from a predictor 
 (e.g. Neural Network, Support Vector Machine, K-Nearest Neighbor, Random Forest, etc.)
@@ -84,14 +84,14 @@ and from the dataset used to train the predictor.
 
 #### End users
 
-A brief example is presented in `demo.py` script in the `demo` folder.
-Using sklearn iris dataset we train a K-Nearest Neighbor to predict the correct output class.
+A brief example is presented in `demo.py` script in the `demo/` folder.
+Using `sklearn`'s Iris dataset we train a K-Nearest Neighbor to predict the correct output class.
 Before training, we make the dataset discrete.
 After that we create two different extractors: REAL and Trepan.
 We output the extracted theory for both extractors.
 
 REAL extracted rules:
-```text
+```
 iris(PetalLength, PetalWidth, SepalLength, SepalWidth, setosa) :- PetalWidth =< 1.0.
 iris(PetalLength1, PetalWidth1, SepalLength1, SepalWidth1, versicolor) :- PetalLength1 > 4.9, SepalWidth1 in [2.9, 3.2].
 iris(PetalLength2, PetalWidth2, SepalLength2, SepalWidth2, versicolor) :- PetalWidth2 > 1.6.
@@ -101,7 +101,7 @@ iris(PetalLength5, PetalWidth5, SepalLength5, SepalWidth5, virginica) :- PetalWi
 ```
 
 Trepan extracted rules:
-```text
+```
 iris(PetalLength6, PetalWidth6, SepalLength6, SepalWidth6, virginica) :- PetalLength6 > 3.0, PetalLength6 in [3.0, 4.9].
 iris(PetalLength7, PetalWidth7, SepalLength7, SepalWidth7, versicolor) :- PetalLength7 > 3.0.
 iris(PetalLength8, PetalWidth8, SepalLength8, SepalWidth8, setosa) :- true.
@@ -111,7 +111,9 @@ iris(PetalLength8, PetalWidth8, SepalLength8, SepalWidth8, setosa) :- true.
 ## Developers
 
 Working with PSyKE codebase requires a number of tools to be installed:
-* Python 3.9+
+* Python 3.9
+  + Python version greater than `3.9.x` are currently __not__ supported
+
 * JDK 11+ (please ensure the `JAVA_HOME` environment variable is properly configured)
 * Git 2.20+
 
