@@ -135,21 +135,9 @@ def generate_constraint(df: pd.DataFrame, max_number_of_diequations: int = 10) \
             if n_disequations not in simple_hull_net_dict:
                 continue
             simple_hull_net = simple_hull_net_dict[n_disequations]
-            # simple_hull = np.array(list(simple_hull_net.keys()))
             disequations = generate_disequations(simple_hull_net)
 
-            convex_hull_start = list(simple_hull_net.keys())[0]
-            # final_convex_hull = [convex_hull_start]
-            next_point = convex_hull_start
-            actual_point = None
-            final_hull_ordered = []
-            while next_point != convex_hull_start or actual_point is None:
-                prev_point = actual_point
-                actual_point = next_point
-                next_point = simple_hull_net[next_point][0] if prev_point != simple_hull_net[next_point][0] else \
-                    simple_hull_net[next_point][1]
-                final_hull_ordered.append(actual_point)
-            disequations_list.append((disequations, final_hull_ordered))
+            disequations_list.append((disequations, extract_points(simple_hull_net)))
         return disequations_list
     except:
         # the only reason i can think of for not being able to create the convex hull
@@ -181,9 +169,30 @@ def generate_constraint(df: pd.DataFrame, max_number_of_diequations: int = 10) \
             return []
 
 
+def extract_points(simple_hull_net:  dict[tuple[float, float], tuple[tuple, tuple]]) -> List[Tuple[float, float]]:
+    """
+    get ordered the points of the contour
+    :param simple_hull_net:
+    :return: list of point
+    """
+    convex_hull_start = list(simple_hull_net.keys())[0]
+    next_point = convex_hull_start
+    actual_point = None
+    final_hull_ordered = []
+    # ordering the disequations
+    while next_point != convex_hull_start or actual_point is None:
+        prev_point = actual_point
+        actual_point = next_point
+        next_point = simple_hull_net[next_point][0] if prev_point != simple_hull_net[next_point][0] else \
+            simple_hull_net[next_point][1]
+        final_hull_ordered.append(actual_point)
+    return final_hull_ordered
+
+
 def simplify_convex_hull(hull_lines, max_final_point_num: int = 10):
     """
-    reduce the number of points (or lines) of the initial convex hull until it has number_of_points points
+    reduce the number of points (or lines) of the initial convex hull until it is possible. Save only the contours
+        that have a number of points <= max_final_point_num
     :param hull_lines: set of lines representing the initial convex hull containing all points
     :param max_final_point_num: max number of points of the final polygon containing the points
     :return: a dictionary containing for each number of lines, a polygon with such number of line.
@@ -294,6 +303,9 @@ def eliminate_point(point: Tuple, contour_net: dict, elimination_cost: dict):
     new_p0, new_p1, extra_area_0, extra_area_1, extern_point_0, extern_point_1, p0, p1 \
         = get_new_points(point, contour_net)
 
+    # define the points as follows:
+    #   now there are the points in sequence: extern_point, inner_point_to_eliminate, point, inner_point_ok
+    #   after the elimination the points will be: extern_point, new_p, inner_point_ok
     if extra_area_0 < extra_area_1:
         extern_point = extern_point_0
         new_p = new_p0
