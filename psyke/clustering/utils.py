@@ -22,7 +22,7 @@ def select_dbscan_epsilon(data: pd.DataFrame, clusters: int) -> float:
     try:
         kn = KneeLocator([d for d in range(len(distances))], distances,
                          curve='convex', direction='decreasing', online=True)
-        if kn.knee is None:
+        if kn.knee is None or kn.knee_y is None:
             epsilon = max(distances[-1], 1e-3)
         else:
             epsilon = kn.knee_y
