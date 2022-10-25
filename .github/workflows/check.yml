@@ -20,30 +20,38 @@ jobs:
   create-test-predictors-if-needed:
     runs-on: ubuntu-latest
     name: Create test predictors if needed
-    if: ${{ github.repository == 'psykei/psyke-python' }}
+    # TODO: short circuit job as soon as it's possible:
+    # https://github.com/actions/runner/issues/662
+    # if: ${{ github.repository == 'psykei/psyke-python' }}
     steps:
       - name: Checkout code
+        if: ${{ github.repository == 'psykei/psyke-python' }}
         uses: actions/checkout@v3
         with:
           fetch-depth: 0
           submodules: recursive
 
       - name: Get Python Version
+        if: ${{ github.repository == 'psykei/psyke-python' }}
         id: get-python-version
         run: echo ::set-output name=version::$(cat .python-version)
 
       - name: Setup Python
+        if: ${{ github.repository == 'psykei/psyke-python' }}
         uses: actions/setup-python@v4
         with:
           python-version: ${{ steps.get-python-version.outputs.version }}
 
       - name: Restore Python dependencies
+        if: ${{ github.repository == 'psykei/psyke-python' }}
         run: pip install -r requirements.txt
 
       - name: Create missing predictors
+        if: ${{ github.repository == 'psykei/psyke-python' }}
         run: python setup.py create_test_predictors
 
       - name: Submodule update
+        if: ${{ github.repository == 'psykei/psyke-python' }}
         run: |
           pushd test/resources
           git config user.email "bot@noreply.github.com"
