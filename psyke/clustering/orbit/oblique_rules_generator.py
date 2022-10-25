@@ -1,14 +1,9 @@
 import pandas as pd
 from psyke.extraction.hypercubic.hypercube import ClosedCube
-from sklearn.mixture import GaussianMixture
-import heapq
-from scipy.spatial import ConvexHull, convex_hull_plot_2d
-from matplotlib import pyplot as plt
+from scipy.spatial import ConvexHull
 import numpy as np
-from utils.draw import draw_data, draw_clusters
 from typing import Tuple, List, Dict, Union
 from psyke.clustering.orbit.container import Container
-import math
 from sklearn.metrics import accuracy_score
 
 
@@ -50,15 +45,13 @@ def generate_container(whole_dataframe: pd.DataFrame,
                                        cube_predictions,
                                        initial_size)
 
-    all_data_size = masked_predictions.shape[0]
+    # all_data_size = masked_predictions.shape[0]
     reduced_df = reduced_df.copy()
     reduced_df = reduced_df[reduced_df.iloc[:, -1] == mode_cluster]
     reduced_df = reduced_df.iloc[:, :-1]
     covariance_matrix = reduced_df.cov().to_numpy()
     n_features = len(reduced_df.columns)
 
-    # best_covariance = heapq.nlargest(dim_num, [(abs(covariance_matrix[i, j]), covariance_matrix[i, j], i, j)
-    #                                      for i in range(n_features) for j in range(i+1, n_features)], key=lambda x: x[0])
     best_covariance = [(abs(covariance_matrix[i, j]), covariance_matrix[i, j], i, j)
                        for i in range(n_features) for j in range(i + 1, n_features)]
     best_covariance.sort(reverse=True, key=lambda x: x[0])
@@ -66,20 +59,18 @@ def generate_container(whole_dataframe: pd.DataFrame,
     dimensions = iper_cube.dimensions
     original_dimensions = dimensions.copy()
     disequations = {}
-    # kneel_accuracies = []
     previous_accuracy = cube_accuracy
-    # k = 0
-    precision = 2
     convex_hulls = {}
 
     for step, (_, cov, i, j) in enumerate(best_covariance):
-        # if abs(cov) > min_covariance:
         if step >= steps:
             break
         col_i_name = reduced_df.columns[i]
         col_j_name = reduced_df.columns[j]
+        reduced_dim = dimensions.copy()
+        reduced_dim.pop(col_i_name, None)
+        reduced_dim.pop(col_j_name, None)
         generated_disequations = generate_constraint(reduced_df[[col_i_name, col_j_name]], max_disequation_num)
-        conv_hull = []
         best_accuracy = previous_accuracy
         dis_num = 3
         new_diequations = None
@@ -87,9 +78,6 @@ def generate_container(whole_dataframe: pd.DataFrame,
         for new_dis_i_j, c_h in generated_disequations:
             new_diequations = disequations.copy()
             new_diequations[(col_i_name, col_j_name)] = new_dis_i_j
-            reduced_dim = dimensions.copy()
-            reduced_dim.pop(col_i_name, None)
-            reduced_dim.pop(col_j_name, None)
 
             new_container = Container(reduced_dim, new_diequations)
             new_accuracy = get_total_accuracy(true_predictions,
@@ -102,34 +90,12 @@ def generate_container(whole_dataframe: pd.DataFrame,
                 break
             best_accuracy = new_accuracy
             dis_num = len(new_dis_i_j)
-
-        if min_accuracy_increase < 0 or (best_accuracy - previous_accuracy > min_accuracy_increase * dis_num) and new_diequations is not None:
-            # reduce_dim_accuracy, reduced_dim = try_reducing_dimension(dimensions,
-            #                                                           col_i_name,
-            #                                                           new_diequations,
-            #                                                           true_predictions,
-            #                                                           initial_size,
-            #                                                           whole_dataframe)
-            # if reduce_dim_accuracy >= best_accuracy:
-            #     best_accuracy = reduce_dim_accuracy
-            #     dimensions = reduced_dim
-            # reduce_dim_accuracy, reduced_dim = try_reducing_dimension(dimensions,
-            #                                                           col_j_name,
-            #                                                           new_diequations,
-            #                                                           true_predictions,
-            #                                                           initial_size,
-            #                                                           whole_dataframe)
-            # if reduce_dim_accuracy >= best_accuracy:
-            #     best_accuracy = reduce_dim_accuracy
-            #     dimensions = reduced_dim
+        is_rule_worth = min_accuracy_increase < 0 or best_accuracy - previous_accuracy > min_accuracy_increase * dis_num
+        if is_rule_worth and new_diequations is not None:
             dimensions = reduced_dim
             previous_accuracy = best_accuracy
             disequations = new_diequations
             convex_hulls[(col_i_name, col_j_name)] = c_h
-
-        # if k % precision == 0:
-        #     kneel_accuracies.append(previous_accuracy)
-        # k += 1
 
     if remove_dimensions:
         new_container = Container(dimensions, disequations, convex_hulls=(convex_hulls, mode_cluster))
@@ -143,48 +109,48 @@ def try_reducing_dimension(dimensions: dict, dim_name: str, disequations, true_p
     reduced_dim.pop(dim_name, None)
     container_reduced_dims = Container(reduced_dim, disequations)
     reduce_dim_accuracy = get_total_accuracy(true_predictions,
-                                      container_reduced_dims.filter_indices(dataframe.iloc[:, :-1]),
-                                      initial_size)
+                                             container_reduced_dims.filter_indices(dataframe.iloc[:, :-1]),
+                                             initial_size)
     return reduce_dim_accuracy, reduced_dim
 
 
-def refine_constraints(constraint: dict[tuple[str, str], list[tuple[float, float, float]]],
-                       dimensions: dict[str, tuple],
-                       df: pd.DataFrame,
-                       true_predictions: np.ndarray,
-                       accuracy: float)\
-        -> tuple[dict[str, tuple], dict[tuple[str, str], list[tuple[float, float, float]]]]:
-    """
-    this function is not used anymore
-    :param constraint:
-    :param dimensions:
-    :param df:
-    :param true_predictions:
-    :param accuracy:
-    :return:
-    """
-    dimensions = dimensions.copy()
-    final_constraints = {}
-    for dim1, dim2 in constraint:
-        reduced_dim = dimensions.copy()
-        reduced_dim.pop(dim1, None)
-        reduced_dim.pop(dim2, None)
-        new_constr = {(dim1, dim2): constraint[(dim1, dim2)]}
-        reduced_container = Container(dimension=reduced_dim, disequation=new_constr)
-        new_container_predictions = reduced_container.filter_indices(df)
-        new_container_accuracy = accuracy_score(true_predictions, new_container_predictions)
-        if new_container_accuracy > accuracy:
-        # if True:
-            dimensions = reduced_dim
-            final_constraints[(dim1, dim2)] = constraint[(dim1, dim2)]
-    return dimensions, final_constraints
+# def refine_constraints(constraint: dict[tuple[str, str], list[tuple[float, float, float]]],
+#                        dimensions: dict[str, tuple],
+#                        df: pd.DataFrame,
+#                        true_predictions: np.ndarray,
+#                        accuracy: float)\
+#         -> tuple[dict[str, tuple], dict[tuple[str, str], list[tuple[float, float, float]]]]:
+#     """
+#     this function is not used anymore
+#     :param constraint:
+#     :param dimensions:
+#     :param df:
+#     :param true_predictions:
+#     :param accuracy:
+#     :return:
+#     """
+#     dimensions = dimensions.copy()
+#     final_constraints = {}
+#     for dim1, dim2 in constraint:
+#         reduced_dim = dimensions.copy()
+#         reduced_dim.pop(dim1, None)
+#         reduced_dim.pop(dim2, None)
+#         new_constr = {(dim1, dim2): constraint[(dim1, dim2)]}
+#         reduced_container = Container(dimension=reduced_dim, disequation=new_constr)
+#         new_container_predictions = reduced_container.filter_indices(df)
+#         new_container_accuracy = accuracy_score(true_predictions, new_container_predictions)
+#         if new_container_accuracy > accuracy:
+#             dimensions = reduced_dim
+#             final_constraints[(dim1, dim2)] = constraint[(dim1, dim2)]
+#     return dimensions, final_constraints
 
 
-def generate_constraint(df: pd.DataFrame, max_number_of_diequations: int=10) -> List[Tuple[List[Tuple[float, float, float]], List[Tuple]]]:
+def generate_constraint(df: pd.DataFrame, max_number_of_diequations: int = 10) \
+        -> List[Tuple[List[Tuple[float, float, float]], List[Tuple]]]:
     """
 
     :param df: dataframe with only 2 dimensions
-    :param number_of_diequations: number of diequations repreenting the points in df
+    :param max_number_of_diequations: number of diequations repreenting the points in df
     :return:
     """
     data = df.to_numpy()
@@ -205,15 +171,15 @@ def generate_constraint(df: pd.DataFrame, max_number_of_diequations: int=10) -> 
 
             convex_hull_start = list(simple_hull_net.keys())[0]
             # final_convex_hull = [convex_hull_start]
-            next = convex_hull_start
-            prev = None
-            actual = None
+            next_point = convex_hull_start
+            actual_point = None
             final_hull_ordered = []
-            while next != convex_hull_start or actual is None:
-                prev = actual
-                actual = next
-                next = simple_hull_net[next][0] if prev != simple_hull_net[next][0] else simple_hull_net[next][1]
-                final_hull_ordered.append(actual)
+            while next_point != convex_hull_start or actual_point is None:
+                prev_point = actual_point
+                actual_point = next_point
+                next_point = simple_hull_net[next_point][0] if prev_point != simple_hull_net[next_point][0] else \
+                    simple_hull_net[next_point][1]
+                final_hull_ordered.append(actual_point)
             disequations_list.append((disequations, final_hull_ordered))
         return disequations_list
     except:
@@ -244,21 +210,9 @@ def generate_constraint(df: pd.DataFrame, max_number_of_diequations: int=10) -> 
         else:
             print("Unable to build additional constraints.")
             return []
-    # plt.plot(simple_hull[:, 0], simple_hull[:, 1], 'ko')
-    # plt.xlabel(col_i_name)
-    # plt.ylabel(col_j_name)
-    # plt.show()
-
-    # fig = plt.figure()
-    # ax = fig.add_subplot(1, 1, 1)
-    # plt.scatter(df[col_i_name], df[col_j_name])
-    # plt.xlabel(col_i_name)
-    # plt.ylabel(col_j_name)
-    # convex_hull_plot_2d(hull, ax=ax)
-    # plt.show()
 
 
-def simplify_convex_hull(hull_lines, max_final_point_num: int=10):
+def simplify_convex_hull(hull_lines, max_final_point_num: int = 10):
     """
     reduce the number of points (or lines) of the initial convex hull until it has number_of_points points
     :param hull_lines: set of lines representing the initial convex hull containing all points
@@ -291,6 +245,11 @@ def simplify_convex_hull(hull_lines, max_final_point_num: int=10):
 
 
 def generate_contour_net(hull_lines: List[List]) -> Dict[Tuple[float, float], Tuple[Tuple, Tuple]]:
+    """
+    generate a network where each point of the contour is linked to its neighbours
+    :param hull_lines: list of lines of the contour
+    :return:
+    """
     contour_net = {}
     for line in hull_lines:
         p0 = tuple(line[0])
@@ -307,49 +266,64 @@ def generate_contour_net(hull_lines: List[List]) -> Dict[Tuple[float, float], Tu
     return contour_net
 
 
-def generate_disequations(contour_net: Dict[Tuple[float, float], Tuple[Tuple, Tuple]]) -> List[Tuple[float, float, float]]:
+def generate_disequations(contour_net: Dict[Tuple[float, float], Tuple[Tuple, Tuple]]) \
+        -> List[Tuple[float, float, float]]:
     """
 
     :param contour_net: dictionary which for each point in the contour gives 2 adjacent points
     :return: constraints in the form aX + bY <= c
     """
-    def get_disequation(p1, p2, p3):
-        """
-        returns the disequation of the rect passing from p1, p2, considering that p3 satisfies the constraint
-        """
-        a, b, c = get_rect(p1, p2)
-        x3, y3 = p3
-        if not (a * x3 + b * y3 <= c):
-            # in case the constraint aX + bY <= c, invert the constraint transforming it to aX + bY >= c,
-            #   or to keep it simpler, -aX - bY <= -c
-            a = -1 * a
-            b = -1 * b
-            # the additional Container.EPSILON value is a small margin to avoid excluding points due to approximation
-            c = -1 * c + max([abs(a), abs(b), abs(b)]) * Container.EPSILON
-        return a, b, c
-
-    equations = {}
+    disequations = {}
     for point in contour_net.keys():
         p1, p2 = contour_net[point]
-        if (p1, point) not in equations and (point, p1) not in equations:
+        if (p1, point) not in disequations and (point, p1) not in disequations:
             a, b, c = get_disequation(p1, point, p2)
-            equations[(p1, point)] = a, b, c
-        if (p2, point) not in equations and (point, p2) not in equations:
+            disequations[(p1, point)] = a, b, c
+        if (p2, point) not in disequations and (point, p2) not in disequations:
             a, b, c = get_disequation(p2, point, p1)
-            equations[(p2, point)] = a, b, c
-    return list(equations.values())
+            disequations[(p2, point)] = a, b, c
+    return list(disequations.values())
 
 
-def evaluate_elimination_cost(point, contour_net):
+def get_disequation(p1, p2, p3):
+    """
+    returns the disequation of the rect passing from p1, p2, considering that p3 satisfies the constraint
+    """
+    a, b, c = get_rect(p1, p2)
+    x3, y3 = p3
+    if not (a * x3 + b * y3 <= c):
+        # in case the constraint aX + bY <= c, invert the constraint transforming it to aX + bY >= c,
+        #   or to keep it simpler, -aX - bY <= -c
+        a = -1 * a
+        b = -1 * b
+        # the additional Container.EPSILON value is a small margin to avoid excluding points due to approximation
+        c = -1 * c + max([abs(a), abs(b), abs(b)]) * Container.EPSILON
+    return a, b, c
+
+
+def evaluate_elimination_cost(point: Tuple, contour_net: dict):
+    """
+    evaluate the cost of eliminating each point
+    :param point:
+    :param contour_net:
+    :return:
+    """
 
     _, _, extra_area_0, extra_area_1, _, _, _, _ = get_new_points(point, contour_net)
 
     return extra_area_0 if extra_area_0 < extra_area_1 else extra_area_1
 
 
-def eliminate_point(point, contour_net, elimination_cost):
-    new_p0, new_p1, extra_area_0, extra_area_1, extern_point_0, extern_point_1, p0, p1 = get_new_points(point, contour_net)
-
+def eliminate_point(point: Tuple, contour_net: dict, elimination_cost: dict):
+    """
+    eliminate a point in the contour net and adjust elimination cost
+    :param point:
+    :param contour_net:
+    :param elimination_cost:
+    :return:
+    """
+    new_p0, new_p1, extra_area_0, extra_area_1, extern_point_0, extern_point_1, p0, p1 \
+        = get_new_points(point, contour_net)
 
     if extra_area_0 < extra_area_1:
         extern_point = extern_point_0
@@ -394,7 +368,8 @@ def get_new_points(point: Tuple[float, float], contour_net: Dict):
     :return: given 2 directions (0 and 1) along the contour, starting from "point", the following values are returned:
     new_p0 and new_p1: 2 new possible points that could be used instead of "point" and "p0" or "p1"
     extra_area_0 and extra_area_1: the extra area added to the polygon inside the contour,
-        which would be added by using the point "new_p0" or "new_p1". The area is np.inf if it is not possible to get such points
+        which would be added by using the point "new_p0" or "new_p1". The area is np.inf if it is not possible to get
+        such points
     p0 and 01: the 2 closest points to "point"
     extern_point_0, extern_point_1: the other 2 points close to "p0" and "p1"
     """
@@ -434,7 +409,8 @@ def get_rect(p1: Tuple[float, float], p2: Tuple[float, float]) -> Tuple[float, f
     return a, b, c
 
 
-def get_intersection(r1: Tuple[float, float, float], r2: Tuple[float, float, float]) -> Union[Tuple[float, float], None]:
+def get_intersection(r1: Tuple[float, float, float], r2: Tuple[float, float, float]) \
+        -> Union[Tuple[float, float], None]:
     """
 
     :param r1: (a, b, c) representing rect ax + bx = c
@@ -456,6 +432,9 @@ def get_intersection(r1: Tuple[float, float, float], r2: Tuple[float, float, flo
 
 
 def get_area(p1: Tuple[float, float], p2: Tuple[float, float], p3: Tuple[float, float]) -> float:
+    """
+    get are of a triangle
+    """
     x1, y1 = p1
     x2, y2 = p2
     x3, y3 = p3
@@ -473,28 +452,30 @@ def is_middle_point(p_middle, p1, p2):
     x2, y2 = p2
 
     if x1 > x2:
-        x_is_between = x1 >= x_middle and x_middle >= x2
+        x_is_between = x1 >= x_middle >= x2
     else:
-        x_is_between = x2 >= x_middle and x_middle >= x1
+        x_is_between = x2 >= x_middle >= x1
 
     if y1 > y2:
-        y_is_between = y1 >= y_middle and y_middle >= y2
+        y_is_between = y1 >= y_middle >= y2
     else:
-        y_is_between = y2 >= y_middle and y_middle >= y1
+        y_is_between = y2 >= y_middle >= y1
 
     return x_is_between and y_is_between
 
+
 def get_total_accuracy(true_values: np.ndarray, pred_values: np.ndarray, initial_size: int):
+    """
+    get the total accuracy, considering all points outside the domain of true_values and pred_vlues as
+        correctly predicted
+    :param true_values:
+    :param pred_values:
+    :param initial_size: size of whole dataframe
+    :return:
+    """
     pred_size = len(true_values)
     accuracy = accuracy_score(true_values, pred_values)
     correct_num = accuracy * pred_size          # TP + TN
     correct_num = (initial_size - pred_size) + correct_num      # consider non predicted data as TN
     total_accuracy = correct_num / initial_size
     return total_accuracy
-
-
-
-
-
-
-

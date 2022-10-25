@@ -1,17 +1,7 @@
 from __future__ import annotations
-from sklearn.base import ClassifierMixin
-
-from psyke import Extractor
-from psyke.extraction.hypercubic.creepy import CReEPy
-from psyke.utils import Target
 from collections import Iterable
 import numpy as np
 import pandas as pd
-from tuprolog.core import clause
-from tuprolog.theory import Theory
-
-from psyke import Extractor
-from psyke.utils import Target
 from psyke.clustering.orbit.mixed_rules_extractor import MixedRulesExtractor
 from tuprolog.theory import Theory, mutable_theory
 from psyke import Extractor, logger
@@ -20,7 +10,8 @@ from tuprolog.core import Var, Struct, clause
 from sklearn.linear_model import LinearRegression
 from psyke.clustering.orbit.container import Container
 from typing import List, Tuple
-from psyke.utils import Target, get_int_precision
+from psyke.utils import get_int_precision
+
 
 class ORBIt(Extractor):
     """
@@ -32,7 +23,8 @@ class ORBIt(Extractor):
                  normalization=None, steps=1000, min_accuracy_increase=0.01, max_disequation_num=4):
         """
 
-        :param predictor: object that must contain a function predict in order to predict the cluster label, given a dataframe
+        :param predictor: object that must contain a function predict in order to predict the cluster label,
+            given a dataframe
         :param depth: depth of the tree of rules (contraints) that will be generated
         :param error_threshold:
         :param gauss_components: number of gaussian clusters used to split data into different hyper-cubes/oblique rules
@@ -67,10 +59,6 @@ class ORBIt(Extractor):
         self.containers = self.clustering.extract(dataframe=dataframe.iloc[:, :-1].join(
             pd.DataFrame(self.predictor.predict(dataframe.iloc[:, :-1]), index=dataframe.index)
         ))
-        # # is this part needed?
-        # for container in self.containers:
-        #     for dimension in self._ignore_dimensions():
-        #         container[dimension] = [-np.inf, np.inf]
         theory, disequations = self._create_theory(dataframe)
         last_clause = list(theory.clauses)[-1]
         theory.retract(last_clause)
@@ -78,7 +66,7 @@ class ORBIt(Extractor):
         last_cube = self.containers[-1]
         for dimension in last_cube.dimensions.keys():
             last_cube[dimension] = [-np.inf, np.inf]
-        return theory   #, [c.convex_hulls for c in self.containers]
+        return theory
 
     def _ignore_dimensions(self) -> List[str]:
         return [dimension for dimension, relevance in self.ranks if relevance < self.ignore_threshold]
@@ -100,7 +88,7 @@ class ORBIt(Extractor):
             variables = create_variable_list([], dataframe)
             variables[dataframe.columns[-1]] = to_var(dataframe.columns[-1])
             head = ORBIt._create_head(dataframe, list(variables.values()),
-                                                   self.unscale(cube.output, dataframe.columns[-1]))
+                                      self.unscale(cube.output, dataframe.columns[-1]))
             body = cube.body(variables, self._ignore_dimensions(), self.unscale, self.normalization)
             new_theory.assertZ(clause(head, body))
             disequations.append((cube.output, cube.diequations))
@@ -129,8 +117,3 @@ class ORBIt(Extractor):
             if container.__contains__(data):
                 return round(container.output, get_int_precision())
         return None
-
-    # @staticmethod
-    # def _get_cube_output(cube: HyperCube | RegressionCube, data: dict[str, float]) -> float:
-    #     return cube.output.predict(pd.DataFrame([data])).flatten()[0] if \
-    #         isinstance(cube, RegressionCube) else cube.output
