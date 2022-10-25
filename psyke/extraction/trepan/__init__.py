@@ -110,7 +110,7 @@ class Trepan(PedagogicalExtractor):
     def _internal_predict(x: pd.Series, node: Node, categories: Iterable) -> Any:
         for child in node.children:
             skip = False
-            for constraint, value in child.diequations:
+            for constraint, value in child.constraints:
                 if x[constraint] != value:
                     skip = True
                     continue
