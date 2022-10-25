@@ -20,6 +20,7 @@ jobs:
   create-test-predictors-if-needed:
     runs-on: ubuntu-latest
     name: Create test predictors if needed
+    if: ${{ github.repository == 'psykei/psyke-python' }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
