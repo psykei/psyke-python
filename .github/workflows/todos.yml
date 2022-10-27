@@ -1,5 +1,11 @@
 name: "TODOs finder"
-on: ["push"]
+on:
+  push:
+    branches-ignore:
+      - 'autodelivery**'
+      - 'bump-**'
+      - 'renovate/**'
+      - 'dependabot/**'
 jobs:
   build:
     runs-on: "ubuntu-latest"
