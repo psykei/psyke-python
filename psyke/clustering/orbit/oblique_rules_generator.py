@@ -70,7 +70,7 @@ def generate_container(whole_dataframe: pd.DataFrame,
         reduced_dim = dimensions.copy()
         reduced_dim.pop(col_i_name, None)
         reduced_dim.pop(col_j_name, None)
-        generated_disequations = generate_constraint(reduced_df[[col_i_name, col_j_name]], max_disequation_num)
+        generated_disequations = iterate_generate_disequations(reduced_df[[col_i_name, col_j_name]], max_disequation_num)
         best_accuracy = previous_accuracy
         dis_num = 3
         new_diequations = None
@@ -114,7 +114,7 @@ def try_reducing_dimension(dimensions: dict, dim_name: str, disequations, true_p
     return reduce_dim_accuracy, reduced_dim
 
 
-def generate_constraint(df: pd.DataFrame, max_number_of_diequations: int = 10) \
+def iterate_generate_disequations(df: pd.DataFrame, max_number_of_diequations: int = 10) \
         -> List[Tuple[List[Tuple[float, float, float]], List[Tuple]]]:
     """
 
@@ -263,7 +263,7 @@ def generate_disequations(contour_net: Dict[Tuple[float, float], Tuple[Tuple, Tu
     return list(disequations.values())
 
 
-def get_disequation(p1, p2, p3):
+def get_disequation(p1, p2, p3) -> tuple[float, float, float]:
     """
     returns the disequation of the rect passing from p1, p2, considering that p3 satisfies the constraint
     """
@@ -279,7 +279,7 @@ def get_disequation(p1, p2, p3):
     return a, b, c
 
 
-def evaluate_elimination_cost(point: Tuple, contour_net: dict):
+def evaluate_elimination_cost(point: Tuple, contour_net: dict) -> float:
     """
     evaluate the cost of eliminating each point
     :param point:
@@ -292,7 +292,7 @@ def evaluate_elimination_cost(point: Tuple, contour_net: dict):
     return extra_area_0 if extra_area_0 < extra_area_1 else extra_area_1
 
 
-def eliminate_point(point: Tuple, contour_net: dict, elimination_cost: dict):
+def eliminate_point(point: Tuple, contour_net: Dict[Tuple[float, float], Tuple[Tuple, Tuple]], elimination_cost: dict):
     """
     eliminate a point in the contour net and adjust elimination cost
     :param point:
@@ -332,7 +332,7 @@ def eliminate_point(point: Tuple, contour_net: dict, elimination_cost: dict):
     contour_net[inner_point_ok] = (inner_point_ok_p0, inner_point_ok_p1)
     contour_net.pop(inner_point_to_eliminate, None)
     contour_net.pop(point, None)
-    contour_net[new_p] = [extern_point, inner_point_ok]
+    contour_net[new_p] = (extern_point, inner_point_ok)
 
     elimination_cost.pop(point, None)
     elimination_cost.pop(inner_point_to_eliminate, None)
@@ -341,7 +341,8 @@ def eliminate_point(point: Tuple, contour_net: dict, elimination_cost: dict):
     elimination_cost[extern_point] = evaluate_elimination_cost(extern_point, contour_net)
 
 
-def get_new_points(point: Tuple[float, float], contour_net: Dict):
+def get_new_points(point: Tuple[float, float], contour_net: Dict[Tuple[float, float], Tuple[Tuple, Tuple]]) -> \
+        tuple[tuple, tuple, float, float, tuple, tuple, tuple, tuple]:
     """
 
     :param point: point that could be removed
