@@ -7,9 +7,9 @@ from tensorflow.python.saved_model.save import save
 from tuprolog.solve.prolog import prolog_solver
 from psyke.extraction.hypercubic import Grid, FeatureRanker
 from psyke.utils.dataframe import get_discrete_dataset
-from psyke.utils.logic import data_to_struct
+from psyke.utils.logic import data_to_struct, get_in_rule, get_not_in_rule
 from psyke.extraction.hypercubic.strategy import AdaptiveStrategy, FixedStrategy
-from test import get_dataset, get_extractor, get_schema, get_model, get_in_rule, get_not_in_rule
+from test import get_dataset, get_extractor, get_schema, get_model
 from test.resources.predictors import get_predictor_path
 from test.resources.tests import test_cases
 from tuprolog.theory import Theory, mutable_theory

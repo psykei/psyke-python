@@ -6,8 +6,7 @@ from matplotlib import colors, pyplot as plt
 from matplotlib.lines import Line2D
 from tuprolog.solve.prolog import prolog_solver
 from tuprolog.theory import Theory, mutable_theory
-from psyke.utils.logic import data_to_struct, pretty_theory
-from test import get_in_rule, get_not_in_rule
+from psyke.utils.logic import data_to_struct, pretty_theory, get_in_rule, get_not_in_rule
 
 
 def predict_from_theory(theory: Theory, data: pd.DataFrame) -> list[float or str]:

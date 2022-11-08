@@ -1,16 +1,19 @@
 from __future__ import annotations
-from typing import Iterable
+from typing import Iterable, Callable
 import pandas as pd
-from tuprolog.core import Var, Struct, Real, Term, Integer, Numeric, clause
+from tuprolog.core import Var, Struct, Real, Term, Integer, Numeric, clause, Clause
 import re
 from tuprolog.core import struct, real, atom, var, numeric, logic_list, Clause
 from tuprolog.core.operators import DEFAULT_OPERATORS, operator, operator_set, XFX
 from tuprolog.core.formatters import TermFormatter
 from tuprolog.core.visitors import AbstractTermVisitor
 from tuprolog.theory import mutable_theory, Theory
+from tuprolog.theory.parsing import DEFAULT_CLAUSES_PARSER
+
 from psyke.schema import Value, LessThan, GreaterThan, Between, Constant, term_to_value, Outside
 from psyke import DiscreteFeature
 from psyke.utils import get_int_precision
+from test import GE, G, LE, L
 
 PRECISION: int = get_int_precision()
 
@@ -284,3 +287,32 @@ def data_to_struct(data: pd.Series):
     terms = [numeric(item) for item in data.values[:-1]]
     terms.append(var('X'))
     return struct(head, terms)
+
+
+def get_in_rule(min_included: bool = True, max_included: bool = False) -> Clause:
+    """
+    Create the logic 'in' predicate in(X, [Min, Max]).
+    The predicate is true if X is in between Min and Max.
+    :param min_included: if X == Min then true
+    :param max_included: if X == Max then true
+    :return: the tuProlog clause for the 'in' predicate
+    """
+    in_textual_rule: Callable = lambda x, y: "in(X, [Min, Max]) :- !, X " + x + " Min, X " + y + " Max."
+    parser = DEFAULT_CLAUSES_PARSER
+    theory = parser.parse_clauses(in_textual_rule(GE if min_included else G, LE if max_included else L), operators=None)
+    return theory[0]
+
+
+def get_not_in_rule(min_included: bool = False, max_included: bool = True) -> Clause:
+    """
+    Create the logic 'not_in' predicate not_in(X, [Min, Max]).
+    The predicate is true if X is outside the range between Min and Max.
+    :param min_included: if X == Min then true
+    :param max_included: if X == Max then true
+    :return: the tuProlog clause for the 'not_in' predicate
+    """
+    not_in_textual_rule: Callable = lambda x, y: "not_in(X, [Min, Max]) :- X " + x + " Min; X " + y + " Max."
+    parser = DEFAULT_CLAUSES_PARSER
+    theory = parser.parse_clauses(not_in_textual_rule(LE if min_included else L, GE if max_included else G),
+                                  operators=None)
+    return theory[0]
