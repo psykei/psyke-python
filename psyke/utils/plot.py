@@ -2,11 +2,15 @@ from array import array
 from typing import Callable, Iterable
 import numpy as np
 import pandas as pd
-from matplotlib import colors, pyplot as plt
+from matplotlib import colors
+import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
 from tuprolog.solve.prolog import prolog_solver
 from tuprolog.theory import Theory, mutable_theory
 from psyke.utils.logic import data_to_struct, pretty_theory, get_in_rule, get_not_in_rule
+
+import matplotlib
+matplotlib.use('TkAgg')
 
 
 def predict_from_theory(theory: Theory, data: pd.DataFrame) -> list[float or str]:
@@ -70,7 +74,10 @@ def plot_theory(theory: Theory, data: pd.DataFrame = None, output: str = 'plot.p
 
     fig = plt.figure()
     fig.set_size_inches(10, 10)
-    ax = fig.add_subplot(projection='3d' if len(variables) == 3 else '2d')
+    if len(variables) == 3:
+        ax = fig.add_subplot(projection='3d')
+    else:
+        ax = fig.add_subplot()
 
     for x in xs:
         ax.scatter(*x[:-1], c=get_color(x[-1]), s=14)
@@ -85,7 +92,8 @@ def plot_theory(theory: Theory, data: pd.DataFrame = None, output: str = 'plot.p
     ax.elev = elevation
     ax.set_title('Predictions according to Prolog theory', fontsize=24)
     if show_theory:
-        ax.text2D(0., 0.88, pretty_theory(theory, new_line=False), transform=ax.transAxes, fontsize=8)
+        pass
+        # ax.text2D(0., 0.88, pretty_theory(theory, new_line=False), transform=ax.transAxes, fontsize=8)
     if isinstance(ys[0], str):
         custom_lines = [Line2D([0], [0], marker='o', markerfacecolor=get_color(c), markersize=20, color='w') for c in classes]
         ax.legend(custom_lines, classes, loc='upper left', numpoints=1, ncol=3, fontsize=18, bbox_to_anchor=(0, 0))

@@ -13,7 +13,8 @@ from tuprolog.theory.parsing import DEFAULT_CLAUSES_PARSER
 from psyke.schema import Value, LessThan, GreaterThan, Between, Constant, term_to_value, Outside
 from psyke import DiscreteFeature
 from psyke.utils import get_int_precision
-from test import GE, G, LE, L
+
+LE, GE, L, G = '=<', '>=', '<', '>'
 
 PRECISION: int = get_int_precision()
 
