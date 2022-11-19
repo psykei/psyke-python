@@ -9,7 +9,7 @@ onnxruntime==1.13.1
 tensorflow==2.7.2
 parameterized==0.8.1
 protobuf==3.20.3
-setuptools==65.5.1
+setuptools==65.6.0
 kneed==0.8.1
 kivy==2.1.0
 matplotlib==3.6.2
