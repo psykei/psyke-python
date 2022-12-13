@@ -55,12 +55,12 @@ class HyperCubeExtractor(Extractor, ABC):
     def _ignore_dimensions(self) -> Iterable[str]:
         return []
 
-    def _create_theory(self, dataframe: pd.DataFrame) -> Theory:
+    def _create_theory(self, dataframe: pd.DataFrame, sort: bool = True) -> Theory:
         new_theory = mutable_theory()
         for cube in self._hypercubes:
             logger.info(cube.output)
             logger.info(cube.dimensions)
-            variables = create_variable_list([], dataframe)
+            variables = create_variable_list([], dataframe, sort)
             variables[dataframe.columns[-1]] = to_var(dataframe.columns[-1])
             head = HyperCubeExtractor._create_head(dataframe, list(variables.values()),
                                                    self.unscale(cube.output, dataframe.columns[-1]))

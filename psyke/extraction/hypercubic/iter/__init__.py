@@ -170,7 +170,7 @@ class ITER(PedagogicalExtractor, HyperCubeExtractor):
                               min(overlapping_cube.get_first(feature), b) if direction == '+' else b)
         return cube.overlap(hypercubes)
 
-    def _extract(self, dataframe: pd.DataFrame, mapping: dict[str: int] = None) -> Theory:
+    def _extract(self, dataframe: pd.DataFrame, mapping: dict[str: int] = None, sort: bool = True) -> Theory:
         self._hypercubes, domain = self._initialize(dataframe)
         temp_train = dataframe.copy()
         fake = dataframe.copy()
@@ -193,4 +193,4 @@ class ITER(PedagogicalExtractor, HyperCubeExtractor):
                     ratio *= 2
                 if new_cube.has_volume():
                     self._hypercubes += [new_cube]
-        return self._create_theory(dataframe)
+        return self._create_theory(dataframe, sort)

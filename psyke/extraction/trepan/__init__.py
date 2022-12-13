@@ -72,10 +72,10 @@ class Trepan(PedagogicalExtractor):
                     splits.add(split)
         return splits
 
-    def _create_theory(self, name: str) -> MutableTheory:
+    def _create_theory(self, name: str, sort: bool = True) -> MutableTheory:
         theory = mutable_theory()
         for node in self._root:
-            variables = create_variable_list(self.discretization)
+            variables = create_variable_list(self.discretization, sort=sort)
             theory.assertZ(
                 clause(
                     create_head(name, list(variables.values()), str(node.dominant)),
@@ -135,7 +135,7 @@ class Trepan(PedagogicalExtractor):
                 nodes.append(child)
         return len(to_remove)
 
-    def _extract(self, dataframe: pd.DataFrame, mapping: dict[str: int] = None) -> Theory:
+    def _extract(self, dataframe: pd.DataFrame, mapping: dict[str: int] = None, sort: bool = True) -> Theory:
         queue = self._init(dataframe)
         while len(queue) > 0:
             node = queue.pop()
@@ -148,7 +148,7 @@ class Trepan(PedagogicalExtractor):
             queue.add_all(best)
             node.children += list(best)
         self._optimize()
-        return self._create_theory(dataframe.columns[-1])
+        return self._create_theory(dataframe.columns[-1], sort)
 
     def _predict(self, dataframe: pd.DataFrame) -> Iterable:
         return np.array(

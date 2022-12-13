@@ -45,7 +45,7 @@ class Cart(PedagogicalExtractor):
             simplified.append(nodes.pop(0))
         return simplified
 
-    def _create_theory(self, data: pd.DataFrame, mapping: dict[str: int]) -> Theory:
+    def _create_theory(self, data: pd.DataFrame, mapping: dict[str: int], sort: bool = True) -> Theory:
         new_theory = mutable_theory()
         nodes = [node for node in self._cart_predictor]
         nodes = Cart._simplify_nodes(nodes) if self._simplify else nodes
@@ -58,7 +58,7 @@ class Cart(PedagogicalExtractor):
                     if v == prediction:
                         prediction = k
                         break
-            variables = create_variable_list(self.discretization, data)
+            variables = create_variable_list(self.discretization, data, sort)
             new_theory.assertZ(
                 clause(
                     create_head(data.columns[-1], list(variables.values()), prediction),
@@ -67,7 +67,7 @@ class Cart(PedagogicalExtractor):
             )
         return new_theory
 
-    def _extract(self, data: pd.DataFrame, mapping: dict[str: int] = None) -> Theory:
+    def _extract(self, data: pd.DataFrame, mapping: dict[str: int] = None, sort: bool = True) -> Theory:
         self._cart_predictor.predictor = DecisionTreeClassifier(random_state=TREE_SEED) \
             if isinstance(data.iloc[0, -1], str) or mapping is not None else DecisionTreeRegressor(random_state=TREE_SEED)
         if mapping is not None:
@@ -75,7 +75,7 @@ class Cart(PedagogicalExtractor):
         self._cart_predictor.predictor.max_depth = self.depth
         self._cart_predictor.predictor.max_leaf_nodes = self.leaves
         self._cart_predictor.predictor.fit(data.iloc[:, :-1], data.iloc[:, -1])
-        return self._create_theory(data, mapping)
+        return self._create_theory(data, mapping, sort)
 
     def _predict(self, data) -> Iterable:
         return self._cart_predictor.predict(data)

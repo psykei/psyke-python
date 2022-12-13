@@ -32,12 +32,13 @@ class Extractor(object):
         self.discretization = [] if discretization is None else list(discretization)
         self.normalization = normalization
 
-    def extract(self, dataframe: pd.DataFrame, mapping: dict[str: int] = None) -> Theory:
+    def extract(self, dataframe: pd.DataFrame, mapping: dict[str: int] = None, sort: bool = True) -> Theory:
         """
         Extracts rules from the underlying predictor.
 
         :param dataframe: is the set of instances to be used for the extraction.
         :param mapping: for one-hot encoding.
+        :param sort: alphabetically sort the variables of the head of the rules.
         :return: the theory created from the extracted rules.
         """
         raise NotImplementedError('extract')
@@ -235,7 +236,7 @@ class Extractor(object):
 
 class PedagogicalExtractor(Extractor, ABC):
 
-    def extract(self, dataframe: pd.DataFrame, mapping: dict[str: int] = None) -> Theory:
+    def extract(self, dataframe: pd.DataFrame, mapping: dict[str: int] = None, sort: bool = True) -> Theory:
         new_y = self.predictor.predict(dataframe.iloc[:, :-1])
         if mapping is not None:
             if hasattr(new_y[0], 'shape'):
@@ -248,7 +249,7 @@ class PedagogicalExtractor(Extractor, ABC):
         new_y = pd.DataFrame(new_y).set_index(dataframe.index)
         data = dataframe.iloc[:, :-1].copy().join(new_y)
         data.columns = dataframe.columns
-        return self._extract(data, mapping)
+        return self._extract(data, mapping, sort)
 
-    def _extract(self, dataframe: pd.DataFrame, mapping: dict[str: int] = None) -> Theory:
+    def _extract(self, dataframe: pd.DataFrame, mapping: dict[str: int] = None, sort: bool = True) -> Theory:
         raise NotImplementedError('predict')
