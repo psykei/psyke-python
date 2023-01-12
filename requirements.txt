@@ -12,7 +12,7 @@ protobuf==3.20.3
 setuptools==65.7.0
 kneed==0.8.2
 kivy==2.1.0
-matplotlib==3.6.2
+matplotlib==3.6.3
 kivy-garden==0.1.5
 screeninfo==0.8.1
 sympy==1.11.1
