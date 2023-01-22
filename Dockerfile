@@ -9,11 +9,7 @@ ENV JUPYTER_CONF_FILE /root/.jupyter/jupyter_notebook_config.py
 RUN echo "c.NotebookApp.allow_origin = '*'" > $JUPYTER_CONF_FILE
 RUN echo "c.NotebookApp.ip = '0.0.0.0'" >> $JUPYTER_CONF_FILE
 RUN mkdir -p /notebook
-<<<<<<< HEAD
 COPY demo/*.ipynb /notebook/
 COPY test/resources/datasets/*.csv /notebook/datasets/
-=======
-COPY demo/DemoClassificationDisc.ipynb /notebook
->>>>>>> chore: move demos into demo/ directory
 WORKDIR /notebook
 CMD jupyter notebook --allow-root --no-browser
