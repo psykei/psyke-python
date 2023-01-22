@@ -193,9 +193,9 @@ class Extractor(object):
         return GridREx(predictor, grid, min_examples, threshold, normalization, seed)
 
     @staticmethod
-    def creepy(predictor, depth: int, error_threshold: float, output, gauss_components: int = 2,
+    def creepy(predictor, clustering, depth: int, error_threshold: float, output, gauss_components: int = 2,
                ranks: [(str, float)] = [], ignore_threshold: float = 0.0,
-               normalization: dict[str, tuple[float, float]] = None, clustering=exact) -> Extractor:
+               normalization: dict[str, tuple[float, float]] = None) -> Extractor:
         """
         Creates a new CReEPy extractor.
         """
