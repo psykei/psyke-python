@@ -10,12 +10,12 @@ from psyke.utils import Target
 
 class CRASH(Optimizer):
     class Algorithm(Enum):
-        CReEPy = 1,
-        ORCHiD = 2
+        ExACT = 1,
+        CREAM = 2
 
     def __init__(self, predictor, dataframe: pd.DataFrame, max_mae_increase: float = 1.2,
                  min_rule_decrease: float = 0.9, readability_tradeoff: float = 0.1, max_depth: int = 10,
-                 patience: int = 5, algorithm: Algorithm = Algorithm.ORCHiD, output: Target = Target.CONSTANT,
+                 patience: int = 5, algorithm: Algorithm = Algorithm.CREAM, output: Target = Target.CONSTANT,
                  objective: Objective = Objective.MODEL, normalization=None):
         super().__init__(predictor, algorithm, dataframe, max_mae_increase, min_rule_decrease, readability_tradeoff,
                          max_depth, patience, objective, normalization)
@@ -50,10 +50,10 @@ class CRASH(Optimizer):
         patience = self.patience
         while patience > 0:
             print(f"{self.algorithm}. Depth: {depth}. Threshold = {threshold:.2f}. ", end="")
-            extractor = Extractor.creepy(self.predictor, depth, threshold, self.output, 10,
-                                         normalization=self.normalization) if self.algorithm == CRASH.Algorithm.CReEPy \
-                else Extractor.orchid(self.predictor, depth, threshold, self.output, 10,
-                                      normalization=self.normalization)
+            extractor = Extractor.creepy(
+                self.predictor, depth, threshold, self.output, 10, normalization=self.normalization,
+                clustering=Extractor.cream if self.algorithm == CRASH.Algorithm.CREAM else Extractor.exact
+            )
             _ = extractor.extract(self.dataframe)
             mae, n = (extractor.mae(self.dataframe, self.predictor) if self.objective == Objective.MODEL else
                       extractor.mae(self.dataframe)), extractor.n_rules

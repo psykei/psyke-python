@@ -74,6 +74,8 @@ class MainScreen(View):
             RoundedRectangle(pos=[self.pad, self.height * (self.b + self.m) + self.pad],
                              size=[self.width - self.pad * 2, self.height * self.t - self.pad])
             Color(1, 1, 1)
+            RoundedRectangle(pos=[self.width * (self.l + self.r / 2) - self.pad * 5, self.height * .95 - self.pad * 4],
+                             size=[self.width * self.r / 2, self.height * .05])
             for i in range(3):
                 RoundedRectangle(pos=[self.width * (self.l + self.r * i / 3) + self.pad * (2 - i),
                                       self.height * self.b + self.pad * 2],

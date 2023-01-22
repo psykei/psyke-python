@@ -24,6 +24,7 @@ class TheoryPanel(RelativeLayout):
         if theory is not None:
             n_rules = len(list(theory.clauses))
             theory = pretty_theory(theory)
+            print(theory)
             if n_rules > 6:
                 self.theory_label.text = THEORY_ERROR_MESSAGE['amount']
             else:

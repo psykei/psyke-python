@@ -1,3 +1,5 @@
+import random
+
 import pandas as pd
 from matplotlib import pyplot as plt
 from sklearn.datasets import load_iris, load_wine, fetch_california_housing
@@ -10,9 +12,10 @@ from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
 
 from psyke import Extractor
 from psyke.extraction.hypercubic import Grid, FixedStrategy, FeatureRanker
-from psyke.gui.model import PREDICTORS, FIXED_PREDICTOR_PARAMS, EXTRACTORS, cast_param, DatasetError, SVMError, \
-    PredictorError
-from psyke.gui.model.plot import init_plot, plotSamples, create_grid, plot_regions
+from psyke.extraction.hypercubic.strategy import AdaptiveStrategy
+from psyke.gui.model import PREDICTORS, FIXED_PREDICTOR_PARAMS, EXTRACTORS, cast_param, DatasetError, PredictorError
+from psyke.gui.view import COLOR_MAPS
+from psyke.gui.view.plot import init_plot, plotSamples, create_grid, plot_regions
 from psyke.utils import Target
 from psyke.utils.dataframe import get_discrete_features_supervised, get_discrete_dataset, get_scaled_dataset, \
     scale_dataset
@@ -20,13 +23,16 @@ from psyke.utils.dataframe import get_discrete_features_supervised, get_discrete
 
 class Model:
 
-    def __init__(self):
+    def __init__(self, path):
+        self.path = f'{path}/plots'
         self.task = 'Classification'
         self.preprocessing_action = None
         self.preprocessing = None
         self.dataset = None
         self.data = None
         self.pruned_data = None
+        self.ranked_data = None
+        self.colormap = None
         self.train = None
         self.test = None
         self.predictor_name = None
@@ -42,9 +48,13 @@ class Model:
 
     def select_task(self, task):
         self.task = task
+        self.colormap = None
 
     def select_preprocessing(self, action):
         self.preprocessing_action = action
+
+    def select_colormap(self, cmap):
+        self.colormap = cmap
 
     def select_dataset(self, dataset):
         self.dataset = dataset
@@ -65,6 +75,7 @@ class Model:
         self.pruned_data = None
         self.train = None
         self.test = None
+        self.ranked_data = None
         self.data_plot = None
 
     def reset_predictor(self):
@@ -84,6 +95,9 @@ class Model:
         print(f'Loading {self.dataset}... ', end='')
         if self.dataset == 'Arti':
             data = pd.read_csv('test/resources/datasets/arti.csv')
+        elif self.dataset == 'Bank marketing':
+            data = pd.read_csv('test/resources/datasets/akbilgic.csv')
+            data = data.iloc[:, [i for i in range(len(data.columns) - 7, len(data.columns))] + [1]]
         else:
             if self.dataset == 'Iris':
                 x, y = load_iris(return_X_y=True, as_frame=True)
@@ -101,6 +115,7 @@ class Model:
         print('Done')
         if ret:
             return data
+        self.ranked_data = FeatureRanker(data.columns[:-1]).fit_on_data(data).rankings()
         if self.preprocessing_action == 'Discretize':
             self.preprocessing = get_discrete_features_supervised(data)
             self.data = get_discrete_dataset(data.iloc[:, :-1], self.preprocessing, False).join(data.iloc[:, -1])
@@ -117,6 +132,12 @@ class Model:
                        if discretization.name == variable] for variable in inputs]
             inputs = [item for sublist in inputs for item in sublist[0]]
         self.pruned_data = self.data[inputs].join(self.data[output])
+        data = self.load_dataset(True)
+        try:
+            self.ranked_data = FeatureRanker(data[inputs]).fit_on_data(data[inputs].join(data[output])).rankings()
+        except ValueError:
+            self.ranked_data = None
+            raise ValueError
 
     def train_predictor(self):
         self.read_predictor_param()
@@ -153,7 +174,12 @@ class Model:
 
         def get_rankings():
             data = (self.data if self.pruned_data is None else self.pruned_data)
-            return FeatureRanker(data.columns[:-1]).fit(self.predictor, data.iloc[:, :-1]).rankings()
+            return FeatureRanker(data.columns[:-1]).fit_on_data(data).rankings()
+
+        def get_strategy():
+            return FixedStrategy(self.extractor_params['Splits']) if not self.extractor_params['Adaptive'] else \
+                AdaptiveStrategy(get_rankings(), [(self.extractor_params['Adaptive threshold'],
+                                                   self.extractor_params['Splits'])])
 
         # GRIDEX, GRIDREX -> strategy
         self.read_extractor_param()
@@ -183,14 +209,12 @@ class Model:
         elif self.extractor_name == 'GridEx':
             self.extractor = Extractor.gridex(self.predictor, threshold=self.extractor_params['Threshold'],
                                               min_examples=self.extractor_params['Min examples'],
-                                              grid=Grid(self.extractor_params['Max depth'],
-                                                        FixedStrategy(self.extractor_params['Splits'])),
+                                              grid=Grid(self.extractor_params['Max depth'], get_strategy()),
                                               normalization=self.preprocessing)
         elif self.extractor_name == 'GridREx':
             self.extractor = Extractor.gridrex(self.predictor, threshold=self.extractor_params['Threshold'],
                                                min_examples=self.extractor_params['Min examples'],
-                                               grid=Grid(self.extractor_params['Max depth'],
-                                                         FixedStrategy(self.extractor_params['Splits'])),
+                                               grid=Grid(self.extractor_params['Max depth'], get_strategy()),
                                                normalization=self.preprocessing)
         elif self.extractor_name in ['CReEPy', 'ORCHiD']:
             extractor = Extractor.creepy if self.extractor_name == 'CReEPy' else Extractor.orchid
@@ -198,23 +222,29 @@ class Model:
                                        error_threshold=self.extractor_params['Threshold'],
                                        ignore_threshold=self.extractor_params['Feat threshold'],
                                        gauss_components=self.extractor_params['Max components'],
-                                       output=get_output(), ranks=get_rankings(), normalization=self.preprocessing)
+                                       output=Target.CLASSIFICATION if self.task == 'Classification' else get_output(),
+                                       ranks=get_rankings(), normalization=self.preprocessing)
         else:
             raise NotImplementedError
 
         self.theory = self.extractor.extract(self.train)
         print('Done')
 
-    def plot(self, inputs, output):
+    def plot(self, inputs, output, save=False):
         x = inputs[0]
         y = inputs[1] if len(inputs) > 1 else output
         z = output if len(inputs) > 1 else None
+
+        index = 0 if self.colormap is None else \
+            [i for i, (n, _) in enumerate(COLOR_MAPS[self.task]) if n == self.colormap][0]
+        cmap = COLOR_MAPS[self.task][index][1]
 
         data = self.load_dataset(True)
         actual_data = self.data if self.pruned_data is None else self.pruned_data
 
         init_plot(data[x], data[y], 'Data set')
-        plotSamples(data[x], data[y], data[z if z is not None else y])
+        plotSamples(data[x], data[y], data[z if z is not None else y], cmap, index,
+                    f'{self.path}/data.pdf' if save else None)
         self.data_plot = plt.gcf()
         plt.close()
 
@@ -243,8 +273,9 @@ class Model:
             outputs = grouped.agg(pd.Series.mode) if isinstance(grid_data.iloc[0, -1], str) else grouped.mean()
             grid_data = grid_data.groupby([x, y])[grid_data.columns[:-1]].mean().join(outputs)
             if z is not None:
-                plot_regions(grid_data[x].values, grid_data[y].values, grid_data[z].values)
-            plotSamples(data[x], data[y], data[z if z is not None else y])
+                plot_regions(grid_data[x].values, grid_data[y].values, grid_data[z].values, cmap)
+            plotSamples(data[x], data[y], data[z if z is not None else y], cmap, index,
+                        f'{self.path}/{name}.pdf' if save else None)
             if isinstance(model, Extractor):
                 self.extractor_plot = plt.gcf()
             else:

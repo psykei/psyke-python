@@ -12,10 +12,11 @@ def main(width=1500, height=770, resizable=False):
     Builder.load_file('view/style.kv')
 
     class PSyKEApp(App):
+        import os
         from psyke.gui.controller.Controller import Controller
         from psyke.gui.model.Model import Model
 
-        model = Model()
+        model = Model(os.getcwd())
         controller = Controller(model)
 
         def build(self):
