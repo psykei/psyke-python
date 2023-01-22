@@ -1,7 +1,6 @@
-from numpy import argmax
 from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
 from psyke.extraction.cart.predictor import CartPredictor, LeafConstraints, LeafSequence
-from psyke import Extractor, get_default_random_seed
+from psyke import get_default_random_seed, PedagogicalExtractor
 from psyke.schema import GreaterThan, DiscreteFeature
 from psyke.utils.logic import create_variable_list, create_head, create_term
 from tuprolog.core import clause, Var, Struct
@@ -13,7 +12,7 @@ import pandas as pd
 TREE_SEED = get_default_random_seed()
 
 
-class Cart(Extractor):
+class Cart(PedagogicalExtractor):
 
     def __init__(self, predictor, max_depth: int = 3, max_leaves: int = None,
                  discretization: Iterable[DiscreteFeature] = None,
@@ -46,7 +45,7 @@ class Cart(Extractor):
             simplified.append(nodes.pop(0))
         return simplified
 
-    def _create_theory(self, data: pd.DataFrame, mapping: dict[str: int]) -> Theory:
+    def _create_theory(self, data: pd.DataFrame, mapping: dict[str: int], sort: bool = True) -> Theory:
         new_theory = mutable_theory()
         nodes = [node for node in self._cart_predictor]
         nodes = Cart._simplify_nodes(nodes) if self._simplify else nodes
@@ -59,7 +58,7 @@ class Cart(Extractor):
                     if v == prediction:
                         prediction = k
                         break
-            variables = create_variable_list(self.discretization, data)
+            variables = create_variable_list(self.discretization, data, sort)
             new_theory.assertZ(
                 clause(
                     create_head(data.columns[-1], list(variables.values()), prediction),
@@ -68,32 +67,18 @@ class Cart(Extractor):
             )
         return new_theory
 
-    def extract(self, data: pd.DataFrame, mapping: dict[str: int] = None) -> Theory:
-        data = data.copy()
+    def _extract(self, data: pd.DataFrame, mapping: dict[str: int] = None, sort: bool = True) -> Theory:
         self._cart_predictor.predictor = DecisionTreeClassifier(random_state=TREE_SEED) \
-            if isinstance(data.iloc[0, -1], str) else DecisionTreeRegressor(random_state=TREE_SEED)
+            if isinstance(data.iloc[0, -1], str) or mapping is not None else DecisionTreeRegressor(random_state=TREE_SEED)
         if mapping is not None:
             data.iloc[:, -1] = data.iloc[:, -1].apply(lambda x: mapping[x] if x in mapping.keys() else x)
         self._cart_predictor.predictor.max_depth = self.depth
         self._cart_predictor.predictor.max_leaf_nodes = self.leaves
-        new_y = self.predictor.predict(data.iloc[:, :-1])
-        if mapping is not None:
-            if hasattr(new_y[0], 'shape'):
-                # One-hot encoding for multi-class tasks
-                if len(new_y[0].shape) > 0 and new_y[0].shape[0] > 1:
-                    new_y = [argmax(y, axis=0) for y in new_y]
-                # One-hot encoding for binary class tasks
-                else:
-                    new_y = [round(y[0]) for y in new_y]
-        self._cart_predictor.predictor.fit(data.iloc[:, :-1], new_y)
-        return self._create_theory(data, mapping)
+        self._cart_predictor.predictor.fit(data.iloc[:, :-1], data.iloc[:, -1])
+        return self._create_theory(data, mapping, sort)
 
-    def predict(self, data, mapping: dict[str: int] = None) -> Iterable:
-        ys = self._cart_predictor.predict(data)
-        if mapping is not None:
-            inverse_mapping = {v: k for k, v in mapping.items()}
-            ys = [inverse_mapping[y] for y in ys]
-        return ys
+    def _predict(self, data) -> Iterable:
+        return self._cart_predictor.predict(data)
 
     @property
     def n_rules(self) -> int:

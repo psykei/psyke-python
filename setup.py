@@ -19,13 +19,13 @@ long_description = (here / 'README.md').read_text(encoding='utf-8')
 EPOCHS: int = 50
 BATCH_SIZE: int = 16
 REQUIREMENTS = [
-    'numpy~=1.23.2',
-    'pandas~=1.4.3',
-    'scikit-learn~=1.1.2',
+    'numpy~=1.24.0',
+    'pandas~=1.5.0',
+    'scikit-learn~=1.2.0',
     '2ppy~=0.4.0',
     'kneed~=0.8.1',
     'kivy~=2.1.0',
-    'matplotlib~=3.5.3',
+    'matplotlib~=3.6.0',
     'kivy-garden~=0.1.5',
     'screeninfo~=0.8',
     'sympy~=1.11'

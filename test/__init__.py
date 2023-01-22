@@ -1,4 +1,4 @@
-from typing import Iterable, Union, Callable
+from typing import Iterable, Union
 import numpy as np
 import pandas as pd
 from sklearn.ensemble import RandomForestRegressor
@@ -7,8 +7,6 @@ from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
 from tensorflow.python.framework.random_seed import set_seed
 from tensorflow.keras import Input, Model
 from tensorflow.keras.layers import Dense
-from tuprolog.core import Clause
-from tuprolog.theory.parsing import DEFAULT_CLAUSES_PARSER
 from psyke.schema import DiscreteFeature, Value
 from psyke.utils import get_default_random_seed
 from sklearn.datasets import fetch_california_housing, load_iris
@@ -64,35 +62,6 @@ def get_simple_neural_network(input: int = 4, output: int = 3, layers: int = 3, 
     model = Model(input_layer, x)
     model.compile('adam', loss='sparse_categorical_crossentropy', metrics=['accuracy'])
     return model
-
-
-def get_in_rule(min_included: bool = True, max_included: bool = False) -> Clause:
-    """
-    Create the logic 'in' predicate in(X, [Min, Max]).
-    The predicate is true if X is in between Min and Max.
-    :param min_included: if X == Min then true
-    :param max_included: if X == Max then true
-    :return: the tuProlog clause for the 'in' predicate
-    """
-    in_textual_rule: Callable = lambda x, y: "in(X, [Min, Max]) :- !, X " + x + " Min, X " + y + " Max."
-    parser = DEFAULT_CLAUSES_PARSER
-    theory = parser.parse_clauses(in_textual_rule(GE if min_included else G, LE if max_included else L), operators=None)
-    return theory[0]
-
-
-def get_not_in_rule(min_included: bool = False, max_included: bool = True) -> Clause:
-    """
-    Create the logic 'not_in' predicate not_in(X, [Min, Max]).
-    The predicate is true if X is outside the range between Min and Max.
-    :param min_included: if X == Min then true
-    :param max_included: if X == Max then true
-    :return: the tuProlog clause for the 'not_in' predicate
-    """
-    not_in_textual_rule: Callable = lambda x, y: "not_in(X, [Min, Max]) :- X " + x + " Min; X " + y + " Max."
-    parser = DEFAULT_CLAUSES_PARSER
-    theory = parser.parse_clauses(not_in_textual_rule(LE if min_included else L, GE if max_included else G),
-                                  operators=None)
-    return theory[0]
 
 
 def get_dataset(name: str):

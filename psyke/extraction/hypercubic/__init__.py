@@ -1,4 +1,5 @@
 from __future__ import annotations
+from abc import ABC
 from typing import Iterable
 import numpy as np
 import pandas as pd
@@ -9,25 +10,22 @@ from tuprolog.core import Var, Struct, clause
 from tuprolog.theory import Theory, mutable_theory
 from psyke import Extractor, logger
 from psyke.extraction.hypercubic.hypercube import HyperCube, RegressionCube, ClassificationCube, ClosedCube
-from psyke.utils.logic import create_variable_list, create_head, to_var
+from psyke.utils.logic import create_variable_list, create_head, to_var, Simplifier
 from psyke.utils import Target, get_int_precision
 from psyke.extraction.hypercubic.strategy import Strategy, FixedStrategy
 
 
-class HyperCubeExtractor(Extractor):
+class HyperCubeExtractor(Extractor, ABC):
 
     def __init__(self, predictor, normalization):
         super().__init__(predictor, normalization=normalization)
         self._hypercubes = []
         self._output = Target.CONSTANT
 
-    def extract(self, dataframe: pd.DataFrame) -> Theory:
-        raise NotImplementedError('extract')
+    def _predict(self, dataframe: pd.DataFrame) -> Iterable:
+        return np.array([self._predict_from_cubes(dict(row.to_dict())) for _, row in dataframe.iterrows()])
 
-    def predict(self, dataframe: pd.DataFrame) -> Iterable:
-        return np.array([self._predict(dict(row.to_dict())) for _, row in dataframe.iterrows()])
-
-    def _predict(self, data: dict[str, float]) -> float | None:
+    def _predict_from_cubes(self, data: dict[str, float]) -> float | None:
         data = {k: v for k, v in data.items()}
         for cube in self._hypercubes:
             if cube.__contains__(data):
@@ -58,18 +56,31 @@ class HyperCubeExtractor(Extractor):
     def _ignore_dimensions(self) -> Iterable[str]:
         return []
 
-    def _create_theory(self, dataframe: pd.DataFrame) -> Theory:
+    def _create_theory(self, dataframe: pd.DataFrame, sort: bool = True) -> Theory:
         new_theory = mutable_theory()
         for cube in self._hypercubes:
             logger.info(cube.output)
             logger.info(cube.dimensions)
-            variables = create_variable_list([], dataframe)
+            variables = create_variable_list([], dataframe, sort)
             variables[dataframe.columns[-1]] = to_var(dataframe.columns[-1])
             head = HyperCubeExtractor._create_head(dataframe, list(variables.values()),
                                                    self.unscale(cube.output, dataframe.columns[-1]))
             body = cube.body(variables, self._ignore_dimensions(), self.unscale, self.normalization)
             new_theory.assertZ(clause(head, body))
-        return new_theory
+        return HyperCubeExtractor._prettify_theory(new_theory)
+
+    @staticmethod
+    def _prettify_theory(theory: Theory) -> Theory:
+        visitor = Simplifier()
+        new_clauses = []
+        for c in theory.clauses:
+            body = c.body
+            structs = body.unfolded if c.body_size > 1 else [body]
+            new_structs = []
+            for s in structs:
+                new_structs.append(s.accept(visitor))
+            new_clauses.append(clause(c.head, new_structs))
+        return mutable_theory(new_clauses)
 
     @property
     def n_rules(self):

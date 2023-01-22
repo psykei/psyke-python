@@ -1,6 +1,6 @@
 from functools import lru_cache
 from psyke.extraction.real.utils import Rule, IndexedRuleSet
-from psyke import Extractor
+from psyke import PedagogicalExtractor
 from psyke.schema import DiscreteFeature
 from psyke.utils.dataframe import HashableDataFrame
 from psyke.utils.logic import create_term, create_head, create_variable_list
@@ -11,7 +11,7 @@ import pandas as pd
 import numpy as np
 
 
-class REAL(Extractor):
+class REAL(PedagogicalExtractor):
     """
     Explanator implementing Rule Extraction As Learning (REAL) algorithm, doi:10.1016/B978-1-55860-335-6.50013-1.
     The algorithm is sensible to features' order in the provided dataset during extraction.
@@ -20,18 +20,18 @@ class REAL(Extractor):
 
     def __init__(self, predictor, discretization: Iterable[DiscreteFeature]):
         super().__init__(predictor, discretization)
-        self.__ruleset: IndexedRuleSet = IndexedRuleSet()
-        self.__output_mapping = {}
+        self._ruleset: IndexedRuleSet = IndexedRuleSet()
+        self._output_mapping = {}
 
     @property
     def n_rules(self):
-        return len(self.__ruleset.flatten())
+        return len(self._ruleset.flatten())
 
-    def __covers(self, sample: pd.Series, rules: list[Rule]) -> bool:
-        new_rule = self.__rule_from_example(sample)
+    def _covers(self, sample: pd.Series, rules: list[Rule]) -> bool:
+        new_rule = self._rule_from_example(sample)
         return any([new_rule in rule for rule in rules])
 
-    def __create_body(self, variables: dict[str, Var], rule: Rule) -> list[Struct]:
+    def _create_body(self, variables: dict[str, Var], rule: Rule) -> list[Struct]:
         result = []
         for predicates, truth_value in zip(rule.to_lists(), [True, False]):
             for predicate in predicates:
@@ -39,40 +39,40 @@ class REAL(Extractor):
                 result.append(create_term(variables[feature.name], feature.admissible_values[predicate], truth_value))
         return result
 
-    def __create_clause(self, dataset: pd.DataFrame, variables: dict[str, Var], key: int, rule: Rule) -> Clause:
+    def _create_clause(self, dataset: pd.DataFrame, variables: dict[str, Var], key: int, rule: Rule) -> Clause:
         head = create_head(dataset.columns[-1],
                            sorted(list(variables.values())),
                            str(sorted(list(set(dataset.iloc[:, -1])))[key]))
-        return clause(head, self.__create_body(variables, rule))
+        return clause(head, self._create_body(variables, rule))
 
-    def __create_new_rule(self, sample: pd.Series) -> Rule:
-        rule = self.__rule_from_example(sample)
-        return self.__generalise(rule, sample)
+    def _create_new_rule(self, sample: pd.Series) -> Rule:
+        rule = self._rule_from_example(sample)
+        return self._generalise(rule, sample)
 
-    def __create_ruleset(self, dataset: pd.DataFrame) -> IndexedRuleSet:
+    def _create_ruleset(self, dataset: pd.DataFrame) -> IndexedRuleSet:
         ruleset = IndexedRuleSet.create_indexed_ruleset(dataset)
         for index, sample in dataset.iloc[:, :-1].iterrows():
             prediction = list(self.predictor.predict(sample.to_frame().transpose()))[0]
-            rules = ruleset.get(self.__output_mapping[prediction])
-            if not self.__covers(sample, rules):
-                rules.append(self.__create_new_rule(sample))
+            rules = ruleset.get(self._output_mapping[prediction])
+            if not self._covers(sample, rules):
+                rules.append(self._create_new_rule(sample))
         return ruleset.optimize()
 
-    def __create_theory(self, dataset: pd.DataFrame, ruleset: IndexedRuleSet) -> MutableTheory:
+    def _create_theory(self, dataset: pd.DataFrame, ruleset: IndexedRuleSet, sort: bool = True) -> MutableTheory:
         theory = mutable_theory()
         for key, rule in ruleset.flatten():
-            variables = create_variable_list(self.discretization)
-            theory.assertZ(self.__create_clause(dataset, variables, key, rule))
+            variables = create_variable_list(self.discretization, sort=sort)
+            theory.assertZ(self._create_clause(dataset, variables, key, rule))
         return theory
 
-    def __generalise(self, rule: Rule, sample: pd.Series) -> Rule:
+    def _generalise(self, rule: Rule, sample: pd.Series) -> Rule:
         mutable_rule = rule.to_lists()
         samples = sample.to_frame().transpose()
         for predicate in rule.true_predicates:
-            samples = self.__remove_antecedent(samples.copy(), predicate, mutable_rule)
+            samples = self._remove_antecedent(samples.copy(), predicate, mutable_rule)
         return Rule(mutable_rule[0], mutable_rule[1]).reduce(self.discretization)
 
-    def __remove_antecedent(self, samples: pd.DataFrame, predicate: str, rule: list[list[str]]) -> (pd.DataFrame, bool):
+    def _remove_antecedent(self, samples: pd.DataFrame, predicate: str, rule: list[list[str]]) -> (pd.DataFrame, bool):
         feature = [feature for feature in self.discretization if predicate in feature.admissible_values][0]
         output = np.array(self.predictor.predict(samples))
         copies = [samples.copy()]
@@ -88,21 +88,22 @@ class REAL(Extractor):
         return pd.concat([df for df in copies], ignore_index=True)
 
     @lru_cache(maxsize=512)
-    def __get_or_set(self, dataset: HashableDataFrame) -> IndexedRuleSet:
-        return self.__create_ruleset(dataset)
+    def _get_or_set(self, dataset: HashableDataFrame) -> IndexedRuleSet:
+        return self._create_ruleset(dataset)
 
-    def __predict(self, sample: pd.Series):
-        x = [index for index, rule in self.__ruleset.flatten() if self.__rule_from_example(sample) in rule]
-        reverse_mapping = dict((v, k) for k, v in self.__output_mapping.items())
+    def _internal_predict(self, sample: pd.Series):
+        x = [index for index, rule in self._ruleset.flatten() if REAL._rule_from_example(sample) in rule]
+        reverse_mapping = dict((v, k) for k, v in self._output_mapping.items())
         return reverse_mapping[x[0]] if len(x) > 0 else None
 
-    def __rule_from_example(self, sample: pd.Series) -> Rule:
+    @staticmethod
+    def _rule_from_example(sample: pd.Series) -> Rule:
         true_predicates, false_predicates = [], []
         for feature, value in sample.items():
             true_predicates.append(str(feature)) if value == 1 else false_predicates.append(str(feature))
         return Rule(sorted(true_predicates), sorted(false_predicates))
 
-    def __subset(self, samples: pd.DataFrame, predicate: str) -> (pd.DataFrame, bool):
+    def _subset(self, samples: pd.DataFrame, predicate: str) -> (pd.DataFrame, bool):
         samples_0 = samples.copy()
         samples_0[predicate].values[:] = 0
         samples_1 = samples.copy()
@@ -110,13 +111,16 @@ class REAL(Extractor):
         samples_all = samples_0.append(samples_1)
         return samples_all, len(set(self.predictor.predict(samples_all))) == 1
 
-    def extract(self, dataframe: pd.DataFrame) -> Theory:
+    def _extract(self, dataframe: pd.DataFrame, mapping: dict[str: int] = None, sort: bool = True) -> Theory:
         # Order the dataset by column to preserve reproducibility.
         dataframe = dataframe.sort_values(by=list(dataframe.columns.values), ascending=False)
         # Always perform output mapping in the same (sorted) way to preserve reproducibility.
-        self.__output_mapping = {value: index for index, value in enumerate(sorted(set(dataframe.iloc[:, -1])))}
-        self.__ruleset = self.__get_or_set(HashableDataFrame(dataframe))
-        return self.__create_theory(dataframe, self.__ruleset)
+        if mapping is None:
+            self._output_mapping = {value: index for index, value in enumerate(sorted(set(dataframe.iloc[:, -1])))}
+        else:
+            self._output_mapping = {value: index for index, value in enumerate(sorted(set(mapping[dataframe.iloc[:, -1]])))}
+        self._ruleset = self._get_or_set(HashableDataFrame(dataframe))
+        return self._create_theory(dataframe, self._ruleset, sort)
 
-    def predict(self, dataframe) -> Iterable:
-        return np.array([self.__predict(data.transpose()) for _, data in dataframe.iterrows()])
+    def _predict(self, dataframe) -> Iterable:
+        return np.array([self._internal_predict(data.transpose()) for _, data in dataframe.iterrows()])

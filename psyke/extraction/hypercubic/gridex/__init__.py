@@ -5,12 +5,12 @@ from typing import Iterable
 import numpy as np
 import pandas as pd
 from tuprolog.theory import Theory
-from psyke import get_default_random_seed
+from psyke import get_default_random_seed, PedagogicalExtractor
 from psyke.utils import Target
 from psyke.extraction.hypercubic import HyperCubeExtractor, Grid, HyperCube
 
 
-class GridEx(HyperCubeExtractor):
+class GridEx(PedagogicalExtractor, HyperCubeExtractor):
     """
     Explanator implementing GridEx algorithm, doi:10.1007/978-3-030-82017-6_2.
     """
@@ -23,13 +23,13 @@ class GridEx(HyperCubeExtractor):
         self.threshold = threshold
         self.__generator = rnd.Random(seed)
 
-    def extract(self, dataframe: pd.DataFrame) -> Theory:
+    def _extract(self, dataframe: pd.DataFrame, mapping: dict[str: int] = None, sort: bool = True) -> Theory:
         if isinstance(np.array(self.predictor.predict(dataframe.iloc[0:1, :-1])).flatten()[0], str):
             self._output = Target.CLASSIFICATION
         surrounding = HyperCube.create_surrounding_cube(dataframe, output=self._output)
         surrounding.init_std(2 * self.threshold)
         self._iterate(surrounding, dataframe)
-        return self._create_theory(dataframe)
+        return self._create_theory(dataframe, sort)
 
     def _ignore_dimensions(self) -> Iterable[str]:
         cube = self._hypercubes[0]
@@ -63,7 +63,7 @@ class GridEx(HyperCubeExtractor):
                         cube.update_dimension(f, p[i])
                     n = cube.count(dataframe)
                     if n > 0:
-                        fake = fake.append(cube.create_samples(self.min_examples - n, self.__generator))
+                        fake = pd.concat([fake, cube.create_samples(self.min_examples - n, self.__generator)])
                         cube.update(fake, self.predictor)
                         to_split += [cube]
                 to_split = self._merge(to_split, fake)

@@ -8,8 +8,8 @@ from tuprolog.theory import mutable_theory
 
 from psyke import Extractor
 from psyke.utils import get_default_precision
-from psyke.utils.logic import data_to_struct
-from test import get_dataset, get_model, get_in_rule, get_not_in_rule
+from psyke.utils.logic import data_to_struct, get_in_rule, get_not_in_rule
+from test import get_dataset, get_model
 import unittest
 
 

@@ -1,7 +1,8 @@
 from __future__ import annotations
-
+from abc import ABC
 import numpy as np
 import pandas as pd
+from numpy import argmax
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score, f1_score, accuracy_score
 from psyke.schema import DiscreteFeature
@@ -31,22 +32,32 @@ class Extractor(object):
         self.discretization = [] if discretization is None else list(discretization)
         self.normalization = normalization
 
-    def extract(self, dataframe: pd.DataFrame) -> Theory:
+    def extract(self, dataframe: pd.DataFrame, mapping: dict[str: int] = None, sort: bool = True) -> Theory:
         """
         Extracts rules from the underlying predictor.
 
         :param dataframe: is the set of instances to be used for the extraction.
+        :param mapping: for one-hot encoding.
+        :param sort: alphabetically sort the variables of the head of the rules.
         :return: the theory created from the extracted rules.
         """
         raise NotImplementedError('extract')
 
-    def predict(self, dataframe: pd.DataFrame) -> Iterable:
+    def predict(self, dataframe: pd.DataFrame, mapping: dict[str: int] = None) -> Iterable:
         """
         Predicts the output values of every sample in dataset.
 
         :param dataframe: is the set of instances to predict.
+        :param mapping: for one-hot encoding.
         :return: a list of predictions.
         """
+        ys = self._predict(dataframe)
+        if mapping is not None:
+            inverse_mapping = {v: k for k, v in mapping.items()}
+            ys = [inverse_mapping[y] for y in ys]
+        return ys
+
+    def _predict(self, dataframe: pd.DataFrame) -> Iterable:
         raise NotImplementedError('predict')
 
     def unscale(self, values, name):
@@ -221,3 +232,24 @@ class Extractor(object):
         if split_logic is None:
             split_logic = SplitLogic.DEFAULT
         return Trepan(predictor, [] if discretization is None else discretization, min_examples, max_depth, split_logic)
+
+
+class PedagogicalExtractor(Extractor, ABC):
+
+    def extract(self, dataframe: pd.DataFrame, mapping: dict[str: int] = None, sort: bool = True) -> Theory:
+        new_y = self.predictor.predict(dataframe.iloc[:, :-1])
+        if mapping is not None:
+            if hasattr(new_y[0], 'shape'):
+                # One-hot encoding for multi-class tasks
+                if len(new_y[0].shape) > 0 and new_y[0].shape[0] > 1:
+                    new_y = [argmax(y, axis=0) for y in new_y]
+                # One-hot encoding for binary class tasks
+                else:
+                    new_y = [round(y[0]) for y in new_y]
+        new_y = pd.DataFrame(new_y).set_index(dataframe.index)
+        data = dataframe.iloc[:, :-1].copy().join(new_y)
+        data.columns = dataframe.columns
+        return self._extract(data, mapping, sort)
+
+    def _extract(self, dataframe: pd.DataFrame, mapping: dict[str: int] = None, sort: bool = True) -> Theory:
+        raise NotImplementedError('predict')

@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 from sklearn.base import ClassifierMixin
 from tuprolog.theory import Theory
-
+from psyke import PedagogicalExtractor
 from psyke.extraction.hypercubic import HyperCube, HyperCubeExtractor
 from psyke.extraction.hypercubic.hypercube import GenericCube
 from psyke.extraction.hypercubic.utils import MinUpdate, Expansion
@@ -14,7 +14,7 @@ from psyke.utils import get_default_random_seed, Target
 DomainProperties = (Iterable[MinUpdate], GenericCube)
 
 
-class ITER(HyperCubeExtractor):
+class ITER(PedagogicalExtractor, HyperCubeExtractor):
     """
     Explanator implementing ITER algorithm, doi:10.1007/11823728_26.
     """
@@ -39,8 +39,6 @@ class ITER(HyperCubeExtractor):
         expansions = []
         for limit in cubes:
             count = limit.cube.count(dataframe)
-            # if count == 0:
-            #    continue
             dataframe = dataframe.append(limit.cube.create_samples(self.min_examples - count, self.__generator))
             limit.cube.update(dataframe, self.predictor)
             expansions.append(Expansion(
@@ -129,7 +127,7 @@ class ITER(HyperCubeExtractor):
                 for point in points]
 
     def _initialize(self, dataframe: pd.DataFrame) -> tuple[Iterable[GenericCube], DomainProperties]:
-        self.__fake_dataframe = dataframe.copy()
+        self._fake_dataframe = dataframe.copy()
         surrounding = HyperCube.create_surrounding_cube(dataframe, output=self._output)
         min_updates = self._calculate_min_updates(surrounding)
         self._hypercubes = self._init_hypercubes(dataframe, min_updates, surrounding)
@@ -172,7 +170,7 @@ class ITER(HyperCubeExtractor):
                               min(overlapping_cube.get_first(feature), b) if direction == '+' else b)
         return cube.overlap(hypercubes)
 
-    def extract(self, dataframe: pd.DataFrame) -> Theory:
+    def _extract(self, dataframe: pd.DataFrame, mapping: dict[str: int] = None, sort: bool = True) -> Theory:
         self._hypercubes, domain = self._initialize(dataframe)
         temp_train = dataframe.copy()
         fake = dataframe.copy()
@@ -195,4 +193,4 @@ class ITER(HyperCubeExtractor):
                     ratio *= 2
                 if new_cube.has_volume():
                     self._hypercubes += [new_cube]
-        return self._create_theory(dataframe)
+        return self._create_theory(dataframe, sort)

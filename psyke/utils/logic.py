@@ -1,6 +1,5 @@
 from __future__ import annotations
-
-from typing import Iterable
+from typing import Iterable, Callable
 import pandas as pd
 from tuprolog.core import Var, Struct, Real, Term, Integer, Numeric, clause
 import re
@@ -9,9 +8,13 @@ from tuprolog.core.operators import DEFAULT_OPERATORS, operator, operator_set, X
 from tuprolog.core.formatters import TermFormatter
 from tuprolog.core.visitors import AbstractTermVisitor
 from tuprolog.theory import mutable_theory, Theory
+from tuprolog.theory.parsing import DEFAULT_CLAUSES_PARSER
+
 from psyke.schema import Value, LessThan, GreaterThan, Between, Constant, term_to_value, Outside
 from psyke import DiscreteFeature
 from psyke.utils import get_int_precision
+
+LE, GE, L, G = '=<', '>=', '<', '>'
 
 PRECISION: int = get_int_precision()
 
@@ -55,7 +58,7 @@ def is_zero(term: Term) -> bool:
 def absolute(term: Term) -> bool:
     if is_negative(term):
         if isinstance(term, Numeric):
-            return numeric(term.getValue().unaryMinus())
+            return numeric(float(str(term.getValue().unaryMinus())))
         return struct(term.getFunctor(), map(absolute, term.getArgs()))
     return term
 
@@ -120,9 +123,14 @@ def to_var(name: str) -> Var:
     return var(name[0].upper() + name[1:])
 
 
-def create_variable_list(features: list[DiscreteFeature], dataset: pd.DataFrame = None) -> dict[str, Var]:
-    values = {feature.name: to_var(feature.name) for feature in sorted(features, key=lambda x: x.name)} \
-        if len(features) > 0 else {name: to_var(name) for name in sorted(dataset.columns[:-1])}
+def create_variable_list(features: list[DiscreteFeature], dataset: pd.DataFrame = None, sort: bool = True) -> dict[str, Var]:
+    if sort:
+        features = sorted(features, key=lambda x: x.name)
+        dataset = sorted(dataset.columns[:-1]) if dataset is not None else None
+    else:
+        dataset = dataset.columns[:-1] if dataset is not None else None
+    values = {feature.name: to_var(feature.name) for feature in features} \
+        if len(features) > 0 else {name: to_var(name) for name in dataset}
     return values
 
 
@@ -285,3 +293,32 @@ def data_to_struct(data: pd.Series):
     terms = [numeric(item) for item in data.values[:-1]]
     terms.append(var('X'))
     return struct(head, terms)
+
+
+def get_in_rule(min_included: bool = True, max_included: bool = False) -> Clause:
+    """
+    Create the logic 'in' predicate in(X, [Min, Max]).
+    The predicate is true if X is in between Min and Max.
+    :param min_included: if X == Min then true
+    :param max_included: if X == Max then true
+    :return: the tuProlog clause for the 'in' predicate
+    """
+    in_textual_rule: Callable = lambda x, y: "in(X, [Min, Max]) :- !, X " + x + " Min, X " + y + " Max."
+    parser = DEFAULT_CLAUSES_PARSER
+    theory = parser.parse_clauses(in_textual_rule(GE if min_included else G, LE if max_included else L), operators=None)
+    return theory[0]
+
+
+def get_not_in_rule(min_included: bool = False, max_included: bool = True) -> Clause:
+    """
+    Create the logic 'not_in' predicate not_in(X, [Min, Max]).
+    The predicate is true if X is outside the range between Min and Max.
+    :param min_included: if X == Min then true
+    :param max_included: if X == Max then true
+    :return: the tuProlog clause for the 'not_in' predicate
+    """
+    not_in_textual_rule: Callable = lambda x, y: "not_in(X, [Min, Max]) :- X " + x + " Min; X " + y + " Max."
+    parser = DEFAULT_CLAUSES_PARSER
+    theory = parser.parse_clauses(not_in_textual_rule(LE if min_included else L, GE if max_included else G),
+                                  operators=None)
+    return theory[0]
