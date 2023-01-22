@@ -24,7 +24,7 @@ class CReEPy(PedagogicalExtractor, HyperCubeExtractor):
         self.ranks = ranks
         self.ignore_threshold = ignore_threshold
 
-    def _extract(self, dataframe: pd.DataFrame, mapping: dict[str: int] = None) -> Theory:
+    def _extract(self, dataframe: pd.DataFrame, mapping: dict[str: int] = None, sort: bool = True) -> Theory:
         self._hypercubes = self.clustering.extract(dataframe)
         for cube in self._hypercubes:
             for dimension in self._ignore_dimensions():

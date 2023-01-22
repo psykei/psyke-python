@@ -195,24 +195,13 @@ class Extractor(object):
     @staticmethod
     def creepy(predictor, depth: int, error_threshold: float, output, gauss_components: int = 2,
                ranks: [(str, float)] = [], ignore_threshold: float = 0.0,
-               normalization: dict[str, tuple[float, float]] = None) -> Extractor:
+               normalization: dict[str, tuple[float, float]] = None, clustering=exact) -> Extractor:
         """
         Creates a new CReEPy extractor.
         """
         from psyke.extraction.hypercubic.creepy import CReEPy
         return CReEPy(predictor, depth, error_threshold, output, gauss_components, ranks, ignore_threshold,
-                      normalization)
-
-    @staticmethod
-    def orchid(predictor, depth: int, error_threshold: float, output, gauss_components: int = 2,
-               ranks: [(str, float)] = [], ignore_threshold: float = 0.0,
-               normalization: dict[str, tuple[float, float]] = None) -> Extractor:
-        """
-        Creates a new ORCHiD extractor.
-        """
-        from psyke.extraction.hypercubic.orchid import ORCHiD
-        return ORCHiD(predictor, depth, error_threshold, output, gauss_components, ranks, ignore_threshold,
-                      normalization)
+                      normalization, clustering)
 
     @staticmethod
     def real(predictor, discretization=None) -> Extractor:
