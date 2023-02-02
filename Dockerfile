@@ -1,4 +1,4 @@
-FROM python:3.9
+FROM python:3.11
 ARG PSYKE_VERSION
 EXPOSE 8888
 RUN apt update; apt install -y -q openjdk-17-jdk
