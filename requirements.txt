@@ -1,6 +1,6 @@
 build==0.10.0
 twine==4.0.2
-numpy==1.24.1
+numpy==1.24.2
 pandas==1.5.3
 scikit-learn==1.2.1
 2ppy==0.4.0
