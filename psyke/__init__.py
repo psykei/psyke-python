@@ -152,6 +152,14 @@ class Extractor(object):
         return CREAM(depth, error_threshold, output, gauss_components)
 
     @staticmethod
+    def imm(n_clusters: int):
+        """
+        Creates a new IMM instance.
+        """
+        from psyke.clustering.imm import IMM
+        return IMM(n_clusters)
+
+    @staticmethod
     def cart(predictor, max_depth: int = 3, max_leaves: int = 3,
              discretization: Iterable[DiscreteFeature] = None, normalization=None, simplify: bool = True) -> Extractor:
         """
