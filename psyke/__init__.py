@@ -158,6 +158,18 @@ class Extractor(object):
         """
         from psyke.clustering.imm import IMM
         return IMM(n_clusters)
+    
+    @staticmethod
+    def classix(minPts: int = 0, 
+                radius: float = 0.5, 
+                group_merging_mode: str = "distance", 
+                scale: float = 1.5, 
+                reassign_outliers: bool = True):
+        """
+        Creates a new CLASSIX instance.
+        """
+        from psyke.clustering.classix import CLASSIX
+        return CLASSIX(minPts, radius, group_merging_mode, scale, reassign_outliers)
 
     @staticmethod
     def cart(predictor, max_depth: int = 3, max_leaves: int = 3,

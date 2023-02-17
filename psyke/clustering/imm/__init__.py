@@ -3,9 +3,8 @@ from sklearn.cluster import KMeans
 import numpy as np
 import matplotlib.pylab as pl
 import networkx as nx
-
 import warnings
-warnings.filterwarnings("ignore", category=DeprecationWarning) 
+
 
 
 class Node:
@@ -168,6 +167,8 @@ class IMM(object):
         if self.tree is None:
             raise TypeError('Model is untrained.')
         else:
+            warnings.filterwarnings("ignore", category=DeprecationWarning) #to draw the tree with no deprecation warning
+
             allNodes, allEdges = self.explore(self.tree)
             nodeDict = {i.reference: i for i in allNodes}
 
@@ -206,3 +207,5 @@ class IMM(object):
 
             pl.axis("off")  # turn off frame
             pl.show()
+
+            warnings.resetwarnings()    #reset warning to default 
