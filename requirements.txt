@@ -16,7 +16,5 @@ matplotlib==3.6.3
 kivy-garden==0.1.5
 screeninfo==0.8.1
 sympy==1.11.1
-networkx==3.0
-graphviz==2.38
-pydot==1.4.2
-pyparsing==2.4.7
+igraph==0.10.4
+plotly==5.13.0

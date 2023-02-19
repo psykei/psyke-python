@@ -1,11 +1,8 @@
 from scipy.optimize import minimize
 from sklearn.cluster import KMeans
 import numpy as np
-import matplotlib.pylab as pl
-import networkx as nx
-import warnings
-
-
+from igraph import Graph
+import plotly.graph_objects as go
 
 class Node:
     
@@ -30,7 +27,7 @@ class IMM(object):
     def fit(self,x):
         
         #perform kmeans clustering on dataset        
-        clt = KMeans(n_clusters = self.k, random_state = 0)
+        clt = KMeans(n_clusters = self.k, random_state = 0, n_init=10)
         clusterK = clt.fit(x)
         
         u = np.array(clusterK.cluster_centers_)   #clusters' centers
@@ -162,50 +159,173 @@ class IMM(object):
             edgeList = [(node, node.left), (node, node.right)] + edgeBelowListLeft + edgeBelowListRight
 
             return nodeList, edgeList
-            
+        
     def drawTree(self):
+        def make_annotations(pos, text, pos_mid_edge, text_edge, vertices_font_size=15, vertices_font_color='rgb(250,250,250)', edges_font_size=15, edges_label_color = ('rgb(255,0,0)', 'rgb(0,128,0)')):
+            L = len(pos)
+            Le = len(pos_mid_edge)
+            if len(text) != L:
+                raise ValueError('The lists pos and text must have the same len')
+            if len(text_edge) != Le:
+                raise ValueError('The lists pos_mid_edge and text_edge must have the same len')
+            annotations = []
+            for k in range(L):
+                annotations.append(
+                    dict(
+                        text=text[k], # or replace labels with a different list for the text within the circle
+                        x=pos[k][0], y=2*M-position[k][1],
+                        xref='x1', yref='y1',
+                        font=dict(color=vertices_font_color, size=vertices_font_size),
+                        showarrow=False)
+                )
+            for k in range(Le):
+                annotations.append(
+                    dict(
+                        text=text_edge[k], # or replace labels with a different list for the text within the circle
+                        x=pos_mid_edge[k][0], y=pos_mid_edge[k][1],
+                        xref='x1', yref='y1',
+                        font=dict(color=edges_label_color[0] if text_edge[k] == '<=' else edges_label_color[1], 
+                                  size=edges_font_size),
+                        showarrow=False)
+                )
+            return annotations
+        
         if self.tree is None:
             raise TypeError('Model is untrained.')
         else:
-            warnings.filterwarnings("ignore", category=DeprecationWarning) #to draw the tree with no deprecation warning
 
             allNodes, allEdges = self.explore(self.tree)
             nodeDict = {i.reference: i for i in allNodes}
 
-            #edges' labels are "less than or equal" (<=) and "greater than" (>)
-            edgeLabelDict = {(e[0].reference, e[1].reference): "<=" if e[1]==e[0].left else ">" for e in allEdges}
-
-            #Create the tree as a networkx Graph
-            T = nx.Graph([(i[0].reference,i[1].reference) for i in allEdges])
-
-            pos = nx.drawing.nx_pydot.graphviz_layout(T, prog="dot")  #extract positions where nodes will be displayed
-            pl.figure(figsize=(2*self.k,1.5*self.k)) 
-
-
             labels = {}
+            
             for i, node in nodeDict.items():
                 if node.isLeaf():
                     labels[i] = f"Cluster {node.cluster}" #leaves' lables contain clusters 
                 else:
-                    labels[i] = f"Feature {node.feature}\n\u03B8 = {node.value:.2f}"  #inner nodes' lables contain the feature and the threshold of the split
+                    labels[i] = f"Feature {node.feature}<br>\u03B8 = {node.value:.2f}"
 
-            #draw nodes
-            nx.draw(T, 
-                    pos=pos, 
-                    with_labels=True,  
-                    labels=labels, 
-                    node_shape="s",  
-                    node_color="none", 
-                    bbox=dict(facecolor="skyblue", edgecolor='black', boxstyle='round,pad=0.2'))
+            graphVertices = [{'name': i, 'label': labels[i]} for i in nodeDict.keys()]
+            graphEdges = [{'source': e[0].reference, 'target': e[1].reference, 'label': "<=" if e[1]==e[0].left else ">" } for e in allEdges]
 
-            #draw edge labels
-            nx.draw_networkx_edge_labels(T, 
-                                        pos,
-                                        edge_labels=edgeLabelDict,
-                                        font_color='blue',
-                                        rotate=False)
+            T = Graph.DictList(graphVertices, graphEdges, directed=True)
+            
+            lay = T.layout('rt')
 
-            pl.axis("off")  # turn off frame
-            pl.show()
+            position = {k: pos for k, pos in enumerate(lay)}
+            M = max(lay, key=lambda x:x[1])[1]  #maximum Y value
+            E = [e.tuple for e in T.es] # list of edges
+            L = len(position)
 
-            warnings.resetwarnings()    #reset warning to default 
+            Xn = [position[k][0] for k in range(L)]
+            Yn = [2*M-position[k][1] for k in range(L)]
+            Xe, Ye, Pos_mid_edge = [], [], []
+
+            for idx, edge in enumerate(E):
+                Xe+=[position[edge[0]][0], position[edge[1]][0], None]
+                Ye+=[2*M-position[edge[0]][1],2*M-position[edge[1]][1], None]
+                Pos_mid_edge.append([0.5*(Xe[3*idx] + Xe[3*idx+1]), 0.5*(Ye[3*idx] + Ye[3*idx+1])])
+
+            vertex_labels = T.vs["label"]
+            edge_labels = T.es['label']
+
+            fig = go.Figure()
+            fig.add_trace(go.Scatter(x=Xe,
+                            y=Ye,
+                            mode='lines',
+                            line=dict(color='rgb(210,210,210)', width=1),
+                            hoverinfo='none'
+                            ))
+            fig.add_trace(go.Scatter(x=Xn,
+                            y=Yn,
+                            mode='markers',
+                            name='bla',
+                            marker=dict(symbol='square',
+                                            size=80,
+                                            color='#6175c1',    #'#DB4551',
+                                            line=dict(color='rgb(50,50,50)', width=1)
+                                            ),
+                            text=vertex_labels,
+                            hoverinfo='none',
+                            opacity=0.8
+                            ))
+            fig.add_trace(go.Scatter(x=[i[0] for i in Pos_mid_edge],
+                            y=[i[1] for i in Pos_mid_edge],
+                            mode='markers',
+                            name='bla',
+                            marker=dict(symbol='square',
+                                            size=25,
+                                            color='#FFFFFF',    #'#DB4551',
+                                            line=dict(color='rgb(250,250,250)', width=0)
+                                            ),
+                            hoverinfo='none',
+                            opacity=1
+                            ))
+
+            axis = dict(showline=False, # hide axis line, grid, ticklabels and  title
+                        zeroline=False,
+                        showgrid=False,
+                        showticklabels=False,
+                        )
+
+            fig.update_layout(title= 'IMM Tree',
+                        annotations=make_annotations(position, vertex_labels, Pos_mid_edge, edge_labels),
+                        font_size=12,
+                        showlegend=False,
+                        xaxis=axis,
+                        yaxis=axis,
+                        margin=dict(l=40, r=40, b=85, t=100),
+                        hovermode='closest',
+                        plot_bgcolor='rgb(248,248,248)',
+                        uniformtext_minsize=8, 
+                        )
+
+            fig.show()
+
+    # PREVIOUS VERSION OF drawTree USING NETWORKX        
+    # def drawTree(self):
+    #     if self.tree is None:
+    #         raise TypeError('Model is untrained.')
+    #     else:
+    #         warnings.filterwarnings("ignore", category=DeprecationWarning) #to draw the tree with no deprecation warning
+
+    #         allNodes, allEdges = self.explore(self.tree)
+    #         nodeDict = {i.reference: i for i in allNodes}
+
+    #         #edges' labels are "less than or equal" (<=) and "greater than" (>)
+    #         edgeLabelDict = {(e[0].reference, e[1].reference): "<=" if e[1]==e[0].left else ">" for e in allEdges}
+
+    #         #Create the tree as a networkx Graph
+    #         T = nx.Graph([(i[0].reference,i[1].reference) for i in allEdges])
+
+    #         pos = nx.drawing.nx_pydot.graphviz_layout(T, prog="dot")  #extract positions where nodes will be displayed
+    #         pl.figure(figsize=(2*self.k,1.5*self.k)) 
+
+
+    #         labels = {}
+    #         for i, node in nodeDict.items():
+    #             if node.isLeaf():
+    #                 labels[i] = f"Cluster {node.cluster}" #leaves' lables contain clusters 
+    #             else:
+    #                 labels[i] = f"Feature {node.feature}\n\u03B8 = {node.value:.2f}"  #inner nodes' lables contain the feature and the threshold of the split
+
+    #         #draw nodes
+    #         nx.draw(T, 
+    #                 pos=pos, 
+    #                 with_labels=True,  
+    #                 labels=labels, 
+    #                 node_shape="s",  
+    #                 node_color="none", 
+    #                 bbox=dict(facecolor="skyblue", edgecolor='black', boxstyle='round,pad=0.2'))
+
+    #         #draw edge labels
+    #         nx.draw_networkx_edge_labels(T, 
+    #                                     pos,
+    #                                     edge_labels=edgeLabelDict,
+    #                                     font_color='blue',
+    #                                     rotate=False)
+
+    #         pl.axis("off")  # turn off frame
+    #         pl.show()
+
+    #         warnings.resetwarnings()    #reset warning to default 
