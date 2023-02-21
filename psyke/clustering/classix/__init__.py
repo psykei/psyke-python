@@ -5,8 +5,10 @@ from scipy.special import betainc, gamma
 import copy
 import collections
 
+from psyke import Clustering
 
-class CLASSIX():
+
+class CLASSIX(Clustering):
     def __init__(self, minPts=0, radius=0.5,  group_merging_mode="distance", scale=1.5, reassign_outliers=True):     
         """
         Parameters:
@@ -66,8 +68,7 @@ class CLASSIX():
             if len(data.shape) == 1:
                 data = data.reshape(-1,1)
                 
-        if data.dtype !=  'float64':
-            data = data.astype('float64')
+        data = data.astype('float64')
 
         self.mu = data.mean(axis=0)    #empirical mean value of each feature
         data = data - self.mu     #center all self.data points by taking off the empirical mean value of each feature

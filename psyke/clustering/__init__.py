@@ -1,27 +1,14 @@
-from typing import Union
+from abc import ABC
+from typing import Iterable
 
-import pandas as pd
-from tuprolog.theory import Theory
-
-from psyke.extraction.hypercubic.hypercube import ClosedRegressionCube, ClosedClassificationCube, ClosedCube
-from psyke.utils import Target
+from psyke import Clustering, HyperCubePredictor, Target
+from psyke.extraction.hypercubic import HyperCube
 
 
-class InterpretableClustering:
+class HyperCubeClustering(HyperCubePredictor, Clustering, ABC):
 
-    def __init__(self, depth: int, error_threshold: float, output: Target = Target.CONSTANT, gauss_components: int = 2):
-        self.depth = depth
-        self.error_threshold = error_threshold
-        self.gauss_components = gauss_components
-        self._output = output
-        self._hypercubes = []
+    def __init__(self, output: Target = Target.CONSTANT):
+        HyperCubePredictor.__init__(self, output=output)
 
-    def extract(self, dataframe: pd.DataFrame) -> Theory:
-        raise NotImplementedError('extract')
-
-    def _default_cube(self) -> Union[ClosedCube, ClosedRegressionCube, ClosedClassificationCube]:
-        if self._output == Target.CONSTANT:
-            return ClosedCube()
-        if self._output == Target.REGRESSION:
-            return ClosedRegressionCube()
-        return ClosedClassificationCube()
+    def get_hypercubes(self) -> Iterable[HyperCube]:
+        raise NotImplementedError('predict')

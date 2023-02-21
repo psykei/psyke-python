@@ -3,37 +3,23 @@ from abc import ABC
 from typing import Iterable
 import numpy as np
 import pandas as pd
-from sklearn.base import ClassifierMixin, RegressorMixin
+from sklearn.base import ClassifierMixin
 from sklearn.feature_selection import SelectKBest, f_regression, f_classif
 from sklearn.linear_model import LinearRegression
 from tuprolog.core import Var, Struct, clause
 from tuprolog.theory import Theory, mutable_theory
-from psyke import Extractor, logger
+from psyke import Extractor, logger, HyperCubePredictor, PedagogicalExtractor
 from psyke.extraction.hypercubic.hypercube import HyperCube, RegressionCube, ClassificationCube, ClosedCube
 from psyke.utils.logic import create_variable_list, create_head, to_var, Simplifier
-from psyke.utils import Target, get_int_precision
+from psyke.utils import Target
 from psyke.extraction.hypercubic.strategy import Strategy, FixedStrategy
 
 
-class HyperCubeExtractor(Extractor, ABC):
+class HyperCubeExtractor(HyperCubePredictor, PedagogicalExtractor, ABC):
 
     def __init__(self, predictor, normalization):
-        super().__init__(predictor, normalization=normalization)
-        self._hypercubes = []
-        self._output = Target.CONSTANT
-
-    def _predict(self, dataframe: pd.DataFrame) -> Iterable:
-        return np.array([self._predict_from_cubes(dict(row.to_dict())) for _, row in dataframe.iterrows()])
-
-    def _predict_from_cubes(self, data: dict[str, float]) -> float | None:
-        data = {k: v for k, v in data.items()}
-        for cube in self._hypercubes:
-            if cube.__contains__(data):
-                if self._output == Target.CLASSIFICATION:
-                    return HyperCubeExtractor._get_cube_output(cube, data)
-                else:
-                    return round(HyperCubeExtractor._get_cube_output(cube, data), get_int_precision())
-        return None
+        PedagogicalExtractor.__init__(self, predictor, normalization=normalization)
+        HyperCubePredictor.__init__(self)
 
     def _default_cube(self) -> HyperCube | RegressionCube | ClassificationCube:
         if self._output == Target.CONSTANT:
@@ -41,11 +27,6 @@ class HyperCubeExtractor(Extractor, ABC):
         if self._output == Target.REGRESSION:
             return RegressionCube()
         return ClassificationCube()
-
-    @staticmethod
-    def _get_cube_output(cube: HyperCube | RegressionCube, data: dict[str, float]) -> float:
-        return cube.output.predict(pd.DataFrame([data])).flatten()[0] if \
-            isinstance(cube, RegressionCube) else cube.output
 
     @staticmethod
     def _create_head(dataframe: pd.DataFrame, variables: list[Var], output: float | LinearRegression) -> Struct:

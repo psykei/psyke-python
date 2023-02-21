@@ -10,7 +10,7 @@ from psyke.utils import Target
 from psyke.extraction.hypercubic import HyperCubeExtractor, Grid, HyperCube
 
 
-class GridEx(PedagogicalExtractor, HyperCubeExtractor):
+class GridEx(HyperCubeExtractor):
     """
     Explanator implementing GridEx algorithm, doi:10.1007/978-3-030-82017-6_2.
     """

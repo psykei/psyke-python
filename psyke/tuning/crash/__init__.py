@@ -3,7 +3,7 @@ from enum import Enum
 import numpy as np
 import pandas as pd
 
-from psyke import Extractor
+from psyke import Extractor, Clustering
 from psyke.tuning import Objective, Optimizer
 from psyke.utils import Target
 
@@ -51,8 +51,9 @@ class CRASH(Optimizer):
         while patience > 0:
             print(f"{self.algorithm}. Depth: {depth}. Threshold = {threshold:.2f}. ", end="")
             extractor = Extractor.creepy(
-                self.predictor, depth, threshold, self.output, 10, normalization=self.normalization,
-                clustering=Extractor.cream if self.algorithm == CRASH.Algorithm.CREAM else Extractor.exact
+                self.predictor, depth=depth, error_threshold=threshold, output=self.output,
+                gauss_components=10, normalization=self.normalization,
+                clustering=Clustering.cream if self.algorithm == CRASH.Algorithm.CREAM else Clustering.exact
             )
             _ = extractor.extract(self.dataframe)
             mae, n = (extractor.mae(self.dataframe, self.predictor) if self.objective == Objective.MODEL else

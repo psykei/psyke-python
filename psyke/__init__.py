@@ -5,8 +5,9 @@ import pandas as pd
 from numpy import argmax
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score, f1_score, accuracy_score
+
 from psyke.schema import DiscreteFeature
-from psyke.utils import get_default_random_seed
+from psyke.utils import get_default_random_seed, Target, get_int_precision
 from tuprolog.theory import Theory
 from typing import Iterable
 import logging
@@ -136,42 +137,6 @@ class Extractor(object):
                         predictions[idx], average='weighted')
 
     @staticmethod
-    def exact(depth: int, error_threshold: float, output, gauss_components: int = 2):
-        """
-        Creates a new ExACT instance.
-        """
-        from psyke.clustering.exact import ExACT
-        return ExACT(depth, error_threshold, output, gauss_components)
-
-    @staticmethod
-    def cream(depth: int, error_threshold: float, output, gauss_components: int = 2):
-        """
-        Creates a new CREAM instance.
-        """
-        from psyke.clustering.cream import CREAM
-        return CREAM(depth, error_threshold, output, gauss_components)
-
-    @staticmethod
-    def imm(n_clusters: int):
-        """
-        Creates a new IMM instance.
-        """
-        from psyke.clustering.imm import IMM
-        return IMM(n_clusters)
-    
-    @staticmethod
-    def classix(minPts: int = 0, 
-                radius: float = 0.5, 
-                group_merging_mode: str = "distance", 
-                scale: float = 1.5, 
-                reassign_outliers: bool = True):
-        """
-        Creates a new CLASSIX instance.
-        """
-        from psyke.clustering.classix import CLASSIX
-        return CLASSIX(minPts, radius, group_merging_mode, scale, reassign_outliers)
-
-    @staticmethod
     def cart(predictor, max_depth: int = 3, max_leaves: int = 3,
              discretization: Iterable[DiscreteFeature] = None, normalization=None, simplify: bool = True) -> Extractor:
         """
@@ -243,7 +208,91 @@ class Extractor(object):
         return Trepan(predictor, [] if discretization is None else discretization, min_examples, max_depth, split_logic)
 
 
+class Clustering:
+    def fit(self, dataframe: pd.DataFrame) -> Theory:
+        raise NotImplementedError('extract')
+
+    def explain(self):
+        raise NotImplementedError('extract')
+
+    def predict(self, dataframe: pd.DataFrame) -> Iterable:
+        """
+        Predicts the output values of every sample in dataset.
+
+        :param dataframe: is the set of instances to predict.
+        :return: a list of predictions.
+        """
+        return self._predict(dataframe)
+
+    def _predict(self, dataframe: pd.DataFrame) -> Iterable:
+        raise NotImplementedError('predict')
+
+    @staticmethod
+    def exact(depth: int, error_threshold: float, output, gauss_components: int = 2) -> Clustering:
+        """
+        Creates a new ExACT instance.
+        """
+        from psyke.clustering.exact import ExACT
+        return ExACT(depth, error_threshold, output, gauss_components)
+
+    @staticmethod
+    def cream(depth: int, error_threshold: float, output, gauss_components: int = 2) -> Clustering:
+        """
+        Creates a new CREAM instance.
+        """
+        from psyke.clustering.cream import CREAM
+        return CREAM(depth, error_threshold, output, gauss_components)
+
+    @staticmethod
+    def imm(n_clusters: int) -> Clustering:
+        """
+        Creates a new IMM instance.
+        """
+        from psyke.clustering.imm import IMM
+        return IMM(n_clusters)
+
+    @staticmethod
+    def classix(minPts: int = 0,
+                radius: float = 0.5,
+                group_merging_mode: str = "distance",
+                scale: float = 1.5,
+                reassign_outliers: bool = True) -> Clustering:
+        """
+        Creates a new CLASSIX instance.
+        """
+        from psyke.clustering.classix import CLASSIX
+        return CLASSIX(minPts, radius, group_merging_mode, scale, reassign_outliers)
+
+
+class HyperCubePredictor:
+    def __init__(self, cubes=[], output=Target.CONSTANT):
+        self._hypercubes = cubes
+        self._output = output
+
+    def _predict(self, dataframe: pd.DataFrame) -> Iterable:
+        return np.array([self._predict_from_cubes(dict(row.to_dict())) for _, row in dataframe.iterrows()])
+
+    def _predict_from_cubes(self, data: dict[str, float]) -> float | None:
+        data = {k: v for k, v in data.items()}
+        for cube in self._hypercubes:
+            if cube.__contains__(data):
+                if self._output == Target.CLASSIFICATION:
+                    return HyperCubePredictor._get_cube_output(cube, data)
+                else:
+                    return round(HyperCubePredictor._get_cube_output(cube, data), get_int_precision())
+        return None
+
+    @staticmethod
+    def _get_cube_output(cube, data: dict[str, float]) -> float:
+        from psyke.extraction.hypercubic import HyperCube, RegressionCube
+        return cube.output.predict(pd.DataFrame([data])).flatten()[0] if \
+            isinstance(cube, RegressionCube) else cube.output
+
+
 class PedagogicalExtractor(Extractor, ABC):
+
+    def __init__(self, predictor, discretization=None, normalization=None):
+        Extractor.__init__(self, predictor=predictor, discretization=discretization, normalization=normalization)
 
     def extract(self, dataframe: pd.DataFrame, mapping: dict[str: int] = None, sort: bool = True) -> Theory:
         new_y = self.predictor.predict(dataframe.iloc[:, :-1])
