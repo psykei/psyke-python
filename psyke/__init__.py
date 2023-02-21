@@ -65,8 +65,8 @@ class Extractor(object):
         if self.normalization is None or isinstance(values, LinearRegression):
             return values
         if isinstance(values, Iterable):
-            idx = [value is not None for value in values]
-            values[idx] = values[idx] * self.normalization[name][1] + self.normalization[name][0]
+            values = [None if value is None else
+                      value * self.normalization[name][1] + self.normalization[name][0] for value in values]
         else:
             values = values * self.normalization[name][1] + self.normalization[name][0]
         return values
