@@ -141,6 +141,7 @@ class HyperCube:
         return self._filter_dataframe(dataset.iloc[:, :-1]).shape[0]
 
     def body(self, variables: dict[str, Var], ignore: list[str], unscale=None, normalization=None) -> Iterable[Struct]:
+        print((variables.keys()))
         dimensions = dict(self.dimensions)
         for dimension in ignore:
             del dimensions[dimension]
