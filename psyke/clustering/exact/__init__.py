@@ -1,26 +1,32 @@
 from __future__ import annotations
 
+from abc import ABC
 from collections import Counter
-from typing import Iterable
+from typing import Iterable, Union
 
 import numpy as np
 import pandas as pd
 from sklearn.cluster import DBSCAN
 from sklearn.neighbors import KNeighborsClassifier, KNeighborsRegressor
 
-from psyke.clustering import InterpretableClustering
+from psyke import HyperCubePredictor
+from psyke.clustering import HyperCubeClustering
 from psyke.extraction.hypercubic import Node, ClosedCube, HyperCube
 from psyke.clustering.utils import select_gaussian_mixture, select_dbscan_epsilon
+from psyke.extraction.hypercubic.hypercube import ClosedRegressionCube, ClosedClassificationCube
 from psyke.utils import Target
 
 
-class ExACT(InterpretableClustering):
+class ExACT(HyperCubeClustering, ABC):
     """
     Explanator implementing ExACT algorithm.
     """
 
     def __init__(self, depth: int, error_threshold: float, output: Target = Target.CONSTANT, gauss_components: int = 5):
-        super().__init__(depth, error_threshold, output, gauss_components)
+        super().__init__(output)
+        self.depth = depth
+        self.error_threshold = error_threshold
+        self.gauss_components = gauss_components
         self._predictor = KNeighborsClassifier() if output == Target.CLASSIFICATION else KNeighborsRegressor()
         self._predictor.n_neighbors = 1
 
@@ -49,13 +55,15 @@ class ExACT(InterpretableClustering):
             True, self._output
         )
 
-    def extract(self, dataframe: pd.DataFrame) -> Iterable[HyperCube]:
+    def fit(self, dataframe: pd.DataFrame):
         self._predictor.fit(dataframe.iloc[:, :-1], dataframe.iloc[:, -1])
         self._hypercubes = \
             self._iterate(Node(dataframe, HyperCube.create_surrounding_cube(dataframe, True, self._output)))
+
+    def get_hypercubes(self) -> Iterable[HyperCube]:
         return list(self._hypercubes)
 
-    def print(self):
+    def explain(self):
         for cube in self._hypercubes:
             print(f'Output is {cube.output} if:')
             for feature in cube.dimensions:
@@ -101,3 +109,10 @@ class ExACT(InterpretableClustering):
     @property
     def n_rules(self):
         return len(list(self._hypercubes))
+
+    def _default_cube(self) -> Union[ClosedCube, ClosedRegressionCube, ClosedClassificationCube]:
+        if self._output == Target.CONSTANT:
+            return ClosedCube()
+        if self._output == Target.REGRESSION:
+            return ClosedRegressionCube()
+        return ClosedClassificationCube()

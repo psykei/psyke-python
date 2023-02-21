@@ -18,7 +18,7 @@ import numpy as np
 class FeatureNotFoundException(Exception):
 
     def __init__(self, feature: str):
-        super().__init__('Feature "' + feature + '" not found.')
+        super().__init__(f'Feature {feature} not found.')
 
 
 class HyperCube:

@@ -14,7 +14,7 @@ from psyke.utils import get_default_random_seed, Target
 DomainProperties = (Iterable[MinUpdate], GenericCube)
 
 
-class ITER(PedagogicalExtractor, HyperCubeExtractor):
+class ITER(HyperCubeExtractor):
     """
     Explanator implementing ITER algorithm, doi:10.1007/11823728_26.
     """
