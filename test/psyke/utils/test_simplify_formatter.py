@@ -9,8 +9,8 @@ from test import get_dataset
 class TestSimplifyFormatter(unittest.TestCase):
 
     def test_simplify_formatter(self):
-        iris_data = get_dataset('house')
-        train, test = train_test_split(iris_data, test_size=0.5, random_state=get_default_random_seed())
+        data = get_dataset('house')
+        train, test = train_test_split(data, test_size=0.5, random_state=get_default_random_seed())
         predictor = DecisionTreeRegressor()
         predictor.fit(train.iloc[:, :-1], train.iloc[:, -1])
         extractor = Extractor.gridrex(predictor, Grid())

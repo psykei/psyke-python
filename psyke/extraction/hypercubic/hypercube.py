@@ -142,7 +142,8 @@ class HyperCube:
 
     def body(self, variables: dict[str, Var], ignore: list[str], unscale=None, normalization=None) -> Iterable[Struct]:
         dimensions = dict(self.dimensions)
-        print('search', [(name, name in variables.keys()) for name in dimensions.keys()], 'in', (variables.keys()))
+        # TODO: there is something strange in the tests here
+        # print('search', [name for name in dimensions.keys()], 'in', (variables.keys()))
         for dimension in ignore:
             del dimensions[dimension]
         return [create_term(variables[name], Between(unscale(values[0], name), unscale(values[1], name)))
