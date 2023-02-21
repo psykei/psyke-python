@@ -141,8 +141,8 @@ class HyperCube:
         return self._filter_dataframe(dataset.iloc[:, :-1]).shape[0]
 
     def body(self, variables: dict[str, Var], ignore: list[str], unscale=None, normalization=None) -> Iterable[Struct]:
-        print((variables.keys()))
         dimensions = dict(self.dimensions)
+        print('search', [(name, name in variables.keys()) for name in dimensions.keys()], 'in', (variables.keys()))
         for dimension in ignore:
             del dimensions[dimension]
         return [create_term(variables[name], Between(unscale(values[0], name), unscale(values[1], name)))
