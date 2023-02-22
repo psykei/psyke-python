@@ -298,7 +298,7 @@ class CLASSIX():
                 unique_valid_group_labels = np.unique(valid_group_labels)   # get unique labels of non outliers groups
                 valid_starting_points_list = self.starting_points_list[unique_valid_group_labels]   # list of starting points of non outlier groups
 
-                if self.reassign_outliers:  # reassign outliers to the closest groups
+                if self.reassign_outliers and len(self.data[valid_starting_points_list[:, 0].astype(int)])!=0:  # reassign outliers to the closest groups
                     for outlier_label in unique_outliers_group_labels:
                         closest_group = np.argmin(norm(self.data[valid_starting_points_list[:, 0].astype(int)] - self.data[int(self.starting_points_list[outlier_label, 0])], axis=1, ord=2))
                         labels[points_group_labels == outlier_label] = self.label_change[unique_valid_group_labels[closest_group]]
