@@ -39,6 +39,7 @@ class CLASSIX(Clustering):
         self.scale = scale 
         self.reassign_outliers = reassign_outliers
 
+        self.points_group_labels = None
         self.starting_points_list = None
         self.cluster_labels = None
         self.merge_groups = None
@@ -46,11 +47,11 @@ class CLASSIX(Clustering):
     
     def fit(self, data):
         self.data = self.data_preparation(data)  #center and scale all data points
-        points_group_labels, self.starting_points_list = self.aggregating() #aggregation labels (group labels)
+        self.points_group_labels, self.starting_points_list = self.aggregating() #aggregation labels (group labels)
 
         # Array of length=number of datapoints, all filled with True. It will be used to discard self.data points
         self.valid_data_index = np.full(self.data.shape[0], True) 
-        self.cluster_labels = self.clustering(points_group_labels=points_group_labels) 
+        self.cluster_labels = self.clustering(self.points_group_labels) 
 
         return self
 
@@ -332,3 +333,69 @@ class CLASSIX(Clustering):
             labels.append(self.label_change[splabel])
   
         return labels
+    
+    def explain(self, dataIndex = None, generalExplanation = True, printStartingPoints = True):
+        """Explain the clustering. 
+        Parameter:
+            dataIndex : int (default None)
+                Index of the datapoint for which an explaination is desired.
+                If None, no specific explanation is given.
+            generalExplanation : bool (Deafault True)
+                If True, a general explanation of the clustering process is printed.
+            printStartingPoints : bool (Default True)
+                If True, the list of all the starting points along with their alpha scores is printed.
+        """
+
+        if not (dataIndex == None or isinstance(dataIndex, int)):
+            raise ValueError("dataIndex can only be an integer or None")
+        
+        data_size, feat_dim = self.data.shape
+
+        if generalExplanation:
+            print(f"\tGeneralExplanation")
+            print("""A clustering of {length:.0f} data points with {dim:.0f} features has been performed. """.format(length=data_size, dim=feat_dim))
+            print("""The radius parameter was set to {r:.2f} and MinPts was set to {minPts:.0f}. """.format(r=self.radius, minPts=self.minPts))
+            print("""As the provided data has been scaled by a factor of 1/{scl:.2f}, data points within a radius of R={tol:.2f}*{scl:.2f}={tolscl:.2f} were aggregated into groups. """.format(
+                scl=self.median, tol=self.radius, tolscl=self.median*self.radius
+            ))
+            print("""This resulted in {groups:.0f} groups, each uniquely associated with a starting point. """.format(groups=self.starting_points_list.shape[0]))
+            print("""These {groups:.0f} groups were subsequently merged into {num_clusters:.0f} clusters resulting in the following mapping groups --> cluster:""".format(groups=self.starting_points_list.shape[0], num_clusters=len(np.unique(self.cluster_labels))))
+            for idx, merge in enumerate(self.merge_groups):
+                print(f"Groups {merge}  -->  Cluster {idx}")
+
+        starting_points = self.data[self.starting_points_list[:, 0].astype(int)]
+        starting_points_unscaled = (starting_points * self.median) + self.mu 
+        starting_points_alpha_scores = self.starting_points_list[:, 1]
+
+        if isinstance(dataIndex, int):
+            object1 = self.data[dataIndex] # self.data has been normalized
+            object1_unscaled = (object1 * self.median) + self.mu #rescaling up the object
+            agg_label1 = self.points_group_labels[dataIndex] # get the group index for object1
+
+            
+            
+            cluster_label1 = self.label_change[agg_label1]
+            group_s_p_data_index = self.starting_points_list[agg_label1][0].astype(int)
+            group_s_p = self.data[group_s_p_data_index]
+            group_s_p_unscaled = (group_s_p * self.median) + self.mu
+
+            print("""
+    Specific data point explanation            
+The data point of index %(index1)s is in group %(agg_id)i, which has been merged into cluster #%(m_c)i.
+Group %(agg_id)i is represented by starting point of index %(agg_id)i, which is at index %(indexsp)s in the dataset."""% {
+                        "index1":dataIndex, "agg_id":agg_label1, "m_c":cluster_label1, "indexsp": group_s_p_data_index, 
+                    }
+                )
+
+            if printStartingPoints:
+                print(f"Starting point {agg_label1} scaled coordinates: {group_s_p}")
+                print(f"Starting point {agg_label1} unscaled coordinates: {group_s_p_unscaled}")
+
+        if printStartingPoints:
+            print("\nBelow the list of all the groups starting points (unscaled):\n")
+            for index, sp in enumerate(starting_points_unscaled):
+                print(f"Starting point {index} has alpha score = {starting_points_alpha_scores[index]:.3f} and coordinates {sp}")
+                # print(f"\t{sp}")
+
+        
+                
