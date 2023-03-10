@@ -42,6 +42,7 @@ class CLASSIX():
         self.cluster_labels = None
         self.merge_groups = None
         self.connected_pairs_edges = None
+        self.reassigned_outlier_groups = None
     
     def fit(self, data):
         self.data = self.data_preparation(data)  #center and scale all data points
@@ -284,7 +285,7 @@ class CLASSIX():
         
         if self.minPts >= 1:
             potential_noise_labels = self.outlier_filter(old_cluster_count=old_cluster_count,
-                                                         min_samples_rate=self.minPts)  
+                                                         min_samples_rate=self.minPts) 
         
             if len(potential_noise_labels) > 0:
                 for i in np.unique(potential_noise_labels):
@@ -303,6 +304,7 @@ class CLASSIX():
                     for outlier_label in unique_outliers_group_labels:
                         closest_group = np.argmin(norm(self.data[valid_starting_points_list[:, 0].astype(int)] - self.data[int(self.starting_points_list[outlier_label, 0])], axis=1, ord=2))
                         labels[points_group_labels == outlier_label] = self.label_change[unique_valid_group_labels[closest_group]]
+
                 else:    # mark outliers with label -1
                     labels[np.isin(points_group_labels, unique_outliers_group_labels)] = -1 
         
@@ -359,8 +361,14 @@ class CLASSIX():
             ))
             print("""This resulted in {groups:.0f} groups, each uniquely associated with a starting point. """.format(groups=self.starting_points_list.shape[0]))
             print("""These {groups:.0f} groups were subsequently merged into {num_clusters:.0f} clusters resulting in the following mapping groups --> cluster:""".format(groups=self.starting_points_list.shape[0], num_clusters=len(np.unique(self.cluster_labels))))
-            for idx, merge in enumerate(self.merge_groups):
-                print(f"Groups {merge}  -->  Cluster {idx}")
+            merging = {cluster: [] for cluster in sorted(set(self.label_change.values()))}
+            for group, cluster in self.label_change.items():
+                merging[cluster].append(group)
+            merging = {cluster: sorted(groups) for cluster, groups in merging.items()}    
+
+            for cluster, groups in merging.items():
+                print(f"Groups {groups} --> Cluster {cluster}")
+
 
         starting_points = self.data[self.starting_points_list[:, 0].astype(int)]
         starting_points_unscaled = (starting_points * self.median) + self.mu 
@@ -394,7 +402,7 @@ Group %(agg_id)i is represented by starting point of index %(agg_id)i, which is 
             print("\nBelow the list of all the groups starting points (unscaled):\n")
             for index, sp in enumerate(starting_points_unscaled):
                 print(f"Starting point {index} has alpha score = {starting_points_alpha_scores[index]:.3f} and coordinates {sp}")
-                # print(f"\t{sp}")
+
 
         
                 
