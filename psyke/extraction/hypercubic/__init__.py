@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 from abc import ABC
 from typing import Iterable
 import numpy as np
@@ -8,18 +9,50 @@ from sklearn.feature_selection import SelectKBest, f_regression, f_classif
 from sklearn.linear_model import LinearRegression
 from tuprolog.core import Var, Struct, clause
 from tuprolog.theory import Theory, mutable_theory
-from psyke import Extractor, logger, HyperCubePredictor, PedagogicalExtractor
+from psyke import logger, PedagogicalExtractor
 from psyke.extraction.hypercubic.hypercube import HyperCube, RegressionCube, ClassificationCube, ClosedCube
 from psyke.utils.logic import create_variable_list, create_head, to_var, Simplifier
-from psyke.utils import Target
+from psyke.utils import Target, get_int_precision
 from psyke.extraction.hypercubic.strategy import Strategy, FixedStrategy
 
 
-class HyperCubeExtractor(HyperCubePredictor, PedagogicalExtractor, ABC):
+class HyperCubePredictor:
+    def __init__(self, cubes=[], output=Target.CONSTANT, normalization=None):
+        self._hypercubes = cubes
+        self._output = output
+        self.normalization = normalization
 
-    def __init__(self, predictor, normalization):
+    def _predict(self, dataframe: pd.DataFrame) -> Iterable:
+        return np.array([self._predict_from_cubes(dict(row.to_dict())) for _, row in dataframe.iterrows()])
+
+    def _predict_from_cubes(self, data: dict[str, float]) -> float | None:
+        data = {k: v for k, v in data.items()}
+        for cube in self._hypercubes:
+            if cube.__contains__(data):
+                if self._output == Target.CLASSIFICATION:
+                    return HyperCubePredictor._get_cube_output(cube, data)
+                else:
+                    return round(HyperCubePredictor._get_cube_output(cube, data), get_int_precision())
+        return None
+
+    @property
+    def n_rules(self):
+        return len(list(self._hypercubes))
+
+    @property
+    def volume(self):
+        return sum([cube.volume() for cube in self._hypercubes])
+
+    @staticmethod
+    def _get_cube_output(cube, data: dict[str, float]) -> float:
+        return cube.output.predict(pd.DataFrame([data])).flatten()[0] if \
+            isinstance(cube, RegressionCube) else cube.output
+
+
+class HyperCubeExtractor(HyperCubePredictor, PedagogicalExtractor, ABC):
+    def __init__(self, predictor, output, normalization):
         PedagogicalExtractor.__init__(self, predictor, normalization=normalization)
-        HyperCubePredictor.__init__(self)
+        HyperCubePredictor.__init__(self, output=output, normalization=normalization)
 
     def _default_cube(self) -> HyperCube | RegressionCube | ClassificationCube:
         if self._output == Target.CONSTANT:
@@ -62,10 +95,6 @@ class HyperCubeExtractor(HyperCubePredictor, PedagogicalExtractor, ABC):
                 new_structs.append(s.accept(visitor))
             new_clauses.append(clause(c.head, new_structs))
         return mutable_theory(new_clauses)
-
-    @property
-    def n_rules(self):
-        return len(self._hypercubes)
 
 
 class FeatureRanker:

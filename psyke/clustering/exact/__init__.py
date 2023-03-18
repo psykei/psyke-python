@@ -9,7 +9,6 @@ import pandas as pd
 from sklearn.cluster import DBSCAN
 from sklearn.neighbors import KNeighborsClassifier, KNeighborsRegressor
 
-from psyke import HyperCubePredictor
 from psyke.clustering import HyperCubeClustering
 from psyke.extraction.hypercubic import Node, ClosedCube, HyperCube
 from psyke.clustering.utils import select_gaussian_mixture, select_dbscan_epsilon
@@ -22,8 +21,9 @@ class ExACT(HyperCubeClustering, ABC):
     Explanator implementing ExACT algorithm.
     """
 
-    def __init__(self, depth: int, error_threshold: float, output: Target = Target.CONSTANT, gauss_components: int = 5):
-        super().__init__(output)
+    def __init__(self, depth: int = 2, error_threshold: float = 0.1, output: Target = Target.CONSTANT,
+                 gauss_components: int = 2, normalization=None):
+        super().__init__(output, normalization)
         self.depth = depth
         self.error_threshold = error_threshold
         self.gauss_components = gauss_components
@@ -105,10 +105,6 @@ class ExACT(HyperCubeClustering, ABC):
             return [root.cube]
         else:
             return self._node_to_cubes(root.right) + self._node_to_cubes(root.left)
-
-    @property
-    def n_rules(self):
-        return len(list(self._hypercubes))
 
     def _default_cube(self) -> Union[ClosedCube, ClosedRegressionCube, ClosedClassificationCube]:
         if self._output == Target.CONSTANT:

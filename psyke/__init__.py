@@ -1,10 +1,14 @@
 from __future__ import annotations
+
 from abc import ABC
+from enum import Enum
+
 import numpy as np
 import pandas as pd
 from numpy import argmax
 from sklearn.linear_model import LinearRegression
-from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score, f1_score, accuracy_score
+from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score, f1_score, accuracy_score, \
+    adjusted_rand_score, adjusted_mutual_info_score, v_measure_score, fowlkes_mallows_score
 
 from psyke.schema import DiscreteFeature
 from psyke.utils import get_default_random_seed, Target, get_int_precision
@@ -12,37 +16,37 @@ from tuprolog.theory import Theory
 from typing import Iterable
 import logging
 
-
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger('psyke')
 
 
-class Extractor(object):
-    """
-    An explanator capable of extracting rules from trained black box.
+class EvaluableModel(object):
+    class Task(Enum):
+        CLASSIFICATION = 1,
+        REGRESSION = 2,
+        CLUSTERING = 3
 
-    Parameters
-    ----------
-    predictor : the underling black box predictor.
-    discretization : A collection of sets of discretised features.
-        Each set corresponds to a set of features derived from a single non-discrete feature.
-    """
+    class Score(Enum):
+        pass
 
-    def __init__(self, predictor, discretization: Iterable[DiscreteFeature] = None, normalization=None):
-        self.predictor = predictor
-        self.discretization = [] if discretization is None else list(discretization)
+    class ClassificationScore(Score):
+        ACCURACY = 1
+        F1 = 2,
+        INVERSE_ACCURACY = 3
+
+    class RegressionScore(Score):
+        MAE = 1
+        MSE = 2
+        R2 = 3
+
+    class ClusteringScore(Score):
+        ARI = 1,
+        AMI = 2,
+        V = 3,
+        FMI = 4
+
+    def __init__(self, normalization=None):
         self.normalization = normalization
-
-    def extract(self, dataframe: pd.DataFrame, mapping: dict[str: int] = None, sort: bool = True) -> Theory:
-        """
-        Extracts rules from the underlying predictor.
-
-        :param dataframe: is the set of instances to be used for the extraction.
-        :param mapping: for one-hot encoding.
-        :param sort: alphabetically sort the variables of the head of the rules.
-        :return: the theory created from the extracted rules.
-        """
-        raise NotImplementedError('extract')
 
     def predict(self, dataframe: pd.DataFrame, mapping: dict[str: int] = None) -> Iterable:
         """
@@ -71,12 +75,83 @@ class Extractor(object):
             values = values * self.normalization[name][1] + self.normalization[name][0]
         return values
 
-    def regression_score(self, dataframe: pd.DataFrame, predictor=None, scoring_function=mean_absolute_error):
-        predictions = np.array(self.predict(dataframe.iloc[:, :-1]))
-        idx = [prediction is not None for prediction in predictions]
-        true = self.unscale(dataframe.iloc[idx, -1] if predictor is None else
-                            predictor.predict(dataframe.iloc[idx, :-1]).flatten(), dataframe.columns[-1])
-        return scoring_function(true, self.unscale(predictions[idx], dataframe.columns[-1]))
+    def score(self, dataframe: pd.DataFrame, predictor=None, fidelity: bool = False, completeness: bool = True,
+              task: EvaluableModel.Task = Task.CLASSIFICATION,
+              scoring_function: Iterable[EvaluableModel.Score] = [ClassificationScore.ACCURACY]):
+        extracted = np.array(self.predict(dataframe.iloc[:, :-1]))
+        idx = [prediction is not None for prediction in extracted]
+        y_extracted = extracted[idx]
+        true = [dataframe.iloc[idx, -1]]
+
+        if fidelity:
+            if predictor is None:
+                raise ValueError("Predictor must be not None to measure fidelity")
+            true.append(predictor.predict(dataframe.iloc[idx, :-1]).flatten())
+
+        if task == EvaluableModel.Task.REGRESSION:
+            y_extracted = self.unscale(y_extracted, dataframe.columns[-1])
+            true = [self.unscale(t, dataframe.columns[-1]) for t in true]
+
+        res = {
+                  score: EvaluableModel.__evaluate(true, y_extracted, score) for score in scoring_function
+              }, sum(idx) / len(idx)
+        return res if completeness else res[0]
+
+    @staticmethod
+    def __evaluate(y, y_hat, scoring_function):
+        if scoring_function == EvaluableModel.ClassificationScore.ACCURACY:
+            f = accuracy_score
+        elif scoring_function == EvaluableModel.ClassificationScore.F1:
+            def f(true, pred):
+                return f1_score(true, pred, average='weighted')
+        elif scoring_function == EvaluableModel.ClassificationScore.INVERSE_ACCURACY:
+            def f(true, pred):
+                return 1 - accuracy_score(true, pred)
+        elif scoring_function == EvaluableModel.RegressionScore.R2:
+            f = r2_score
+        elif scoring_function == EvaluableModel.RegressionScore.MAE:
+            f = mean_absolute_error
+        elif scoring_function == EvaluableModel.RegressionScore.MSE:
+            f = mean_squared_error
+        elif scoring_function == EvaluableModel.ClusteringScore.ARI:
+            f = adjusted_rand_score
+        elif scoring_function == EvaluableModel.ClusteringScore.AMI:
+            f = adjusted_mutual_info_score
+        elif scoring_function == EvaluableModel.ClusteringScore.V:
+            f = v_measure_score
+        elif scoring_function == EvaluableModel.ClusteringScore.FMI:
+            f = fowlkes_mallows_score
+        else:
+            raise ValueError("Scoring function not supported")
+        return [f(yy, y_hat) for yy in y]
+
+
+class Extractor(EvaluableModel, ABC):
+    """
+    An explanator capable of extracting rules from trained black box.
+
+    Parameters
+    ----------
+    predictor : the underling black box predictor.
+    discretization : A collection of sets of discretised features.
+        Each set corresponds to a set of features derived from a single non-discrete feature.
+    """
+
+    def __init__(self, predictor, discretization: Iterable[DiscreteFeature] = None, normalization=None):
+        super().__init__(normalization)
+        self.predictor = predictor
+        self.discretization = [] if discretization is None else list(discretization)
+
+    def extract(self, dataframe: pd.DataFrame, mapping: dict[str: int] = None, sort: bool = True) -> Theory:
+        """
+        Extracts rules from the underlying predictor.
+
+        :param dataframe: is the set of instances to be used for the extraction.
+        :param mapping: for one-hot encoding.
+        :param sort: alphabetically sort the variables of the head of the rules.
+        :return: the theory created from the extracted rules.
+        """
+        raise NotImplementedError('extract')
 
     def mae(self, dataframe: pd.DataFrame, predictor=None) -> float:
         """
@@ -86,7 +161,8 @@ class Extractor(object):
         :param predictor: if provided, its predictions on the dataframe are taken instead of the dataframe instances.
         :return: the mean absolute error (MAE) of the predictions.
         """
-        return self.regression_score(dataframe, predictor, mean_absolute_error)
+        return self.score(dataframe, predictor, predictor is not None, False, Extractor.Task.REGRESSION,
+                          [Extractor.RegressionScore.MAE])[Extractor.RegressionScore.MAE][-1]
 
     def mse(self, dataframe: pd.DataFrame, predictor=None) -> float:
         """
@@ -96,7 +172,8 @@ class Extractor(object):
         :param predictor: if provided, its predictions on the dataframe are taken instead of the dataframe instances.
         :return: the mean squared error (MSE) of the predictions.
         """
-        return self.regression_score(dataframe, predictor, mean_squared_error)
+        return self.score(dataframe, predictor, predictor is not None, False, Extractor.Task.REGRESSION,
+                          [Extractor.RegressionScore.MSE])[Extractor.RegressionScore.MSE][-1]
 
     def r2(self, dataframe: pd.DataFrame, predictor=None) -> float:
         """
@@ -106,7 +183,8 @@ class Extractor(object):
         :param predictor: if provided, its predictions on the dataframe are taken instead of the dataframe instances.
         :return: the R2 score of the predictions.
         """
-        return self.regression_score(dataframe, predictor, r2_score)
+        return self.score(dataframe, predictor, predictor is not None, False,
+                          Extractor.Task.REGRESSION, [Extractor.RegressionScore.R2])[Extractor.RegressionScore.R2][-1]
 
     def accuracy(self, dataframe: pd.DataFrame, predictor=None) -> float:
         """
@@ -116,11 +194,8 @@ class Extractor(object):
         :param predictor: if provided, its predictions on the dataframe are taken instead of the dataframe instances.
         :return: the accuracy classification score of the predictions.
         """
-        predictions = np.array(self.predict(dataframe.iloc[:, :-1]))
-        idx = [prediction is not None for prediction in predictions]
-        return accuracy_score(dataframe.iloc[idx, -1] if predictor is None else
-                              predictor.predict(dataframe.iloc[idx, :-1]).flatten(),
-                              predictions[idx])
+        return self.score(dataframe, predictor, predictor is not None, False, Extractor.Task.CLASSIFICATION,
+                          [Extractor.ClassificationScore.ACCURACY])[Extractor.ClassificationScore.ACCURACY][-1]
 
     def f1(self, dataframe: pd.DataFrame, predictor=None) -> float:
         """
@@ -130,11 +205,8 @@ class Extractor(object):
         :param predictor: if provided, its predictions on the dataframe are taken instead of the dataframe instances.
         :return: the F1 score of the predictions.
         """
-        predictions = np.array(self.predict(dataframe.iloc[:, :-1])[:])
-        idx = [prediction is not None for prediction in predictions]
-        return f1_score(dataframe.iloc[idx, -1] if predictor is None else
-                        predictor.predict(dataframe.iloc[idx, :-1]).flatten(),
-                        predictions[idx], average='weighted')
+        return self.score(dataframe, predictor, predictor is not None, False, Extractor.Task.CLASSIFICATION,
+                          [Extractor.ClassificationScore.F1])[Extractor.ClassificationScore.F1][-1]
 
     @staticmethod
     def cart(predictor, max_depth: int = 3, max_leaves: int = 3,
@@ -208,27 +280,19 @@ class Extractor(object):
         return Trepan(predictor, [] if discretization is None else discretization, min_examples, max_depth, split_logic)
 
 
-class Clustering:
-    def fit(self, dataframe: pd.DataFrame) -> Theory:
+class Clustering(EvaluableModel, ABC):
+    def __init__(self, normalization=None):
+        super().__init__(normalization)
+
+    def fit(self, dataframe: pd.DataFrame):
         raise NotImplementedError('extract')
 
     def explain(self):
         raise NotImplementedError('extract')
 
-    def predict(self, dataframe: pd.DataFrame) -> Iterable:
-        """
-        Predicts the output values of every sample in dataset.
-
-        :param dataframe: is the set of instances to predict.
-        :return: a list of predictions.
-        """
-        return self._predict(dataframe)
-
-    def _predict(self, dataframe: pd.DataFrame) -> Iterable:
-        raise NotImplementedError('predict')
-
     @staticmethod
-    def exact(depth: int, error_threshold: float, output, gauss_components: int = 2) -> Clustering:
+    def exact(depth: int = 2, error_threshold: float = 0.1, output: Target = Target.CONSTANT,
+              gauss_components: int = 2) -> Clustering:
         """
         Creates a new ExACT instance.
         """
@@ -262,31 +326,6 @@ class Clustering:
         """
         from psyke.clustering.classix import CLASSIX
         return CLASSIX(minPts, radius, group_merging_mode, scale, reassign_outliers)
-
-
-class HyperCubePredictor:
-    def __init__(self, cubes=[], output=Target.CONSTANT):
-        self._hypercubes = cubes
-        self._output = output
-
-    def _predict(self, dataframe: pd.DataFrame) -> Iterable:
-        return np.array([self._predict_from_cubes(dict(row.to_dict())) for _, row in dataframe.iterrows()])
-
-    def _predict_from_cubes(self, data: dict[str, float]) -> float | None:
-        data = {k: v for k, v in data.items()}
-        for cube in self._hypercubes:
-            if cube.__contains__(data):
-                if self._output == Target.CLASSIFICATION:
-                    return HyperCubePredictor._get_cube_output(cube, data)
-                else:
-                    return round(HyperCubePredictor._get_cube_output(cube, data), get_int_precision())
-        return None
-
-    @staticmethod
-    def _get_cube_output(cube, data: dict[str, float]) -> float:
-        from psyke.extraction.hypercubic import HyperCube, RegressionCube
-        return cube.output.predict(pd.DataFrame([data])).flatten()[0] if \
-            isinstance(cube, RegressionCube) else cube.output
 
 
 class PedagogicalExtractor(Extractor, ABC):

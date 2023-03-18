@@ -21,8 +21,8 @@ class CReEPy(HyperCubeExtractor, ABC):
     def __init__(self, predictor, depth: int, error_threshold: float, output: Target = Target.CONSTANT,
                  gauss_components: int = 5, ranks: list[(str, float)] = [], ignore_threshold: float = 0.0,
                  normalization=None, clustering=Clustering.exact):
-        super().__init__(predictor, normalization)
-        self._output = Target.CLASSIFICATION if isinstance(predictor, ClassifierMixin) else output
+        super().__init__(predictor, Target.CLASSIFICATION if isinstance(predictor, ClassifierMixin) else output,
+                         normalization)
         self.clustering = clustering(depth, error_threshold, self._output, gauss_components)
         self.ranks = ranks
         self.ignore_threshold = ignore_threshold
@@ -48,7 +48,3 @@ class CReEPy(HyperCubeExtractor, ABC):
 
     def _ignore_dimensions(self) -> Iterable[str]:
         return [dimension for dimension, relevance in self.ranks if relevance < self.ignore_threshold]
-
-    @property
-    def n_rules(self):
-        return len(list(self._hypercubes))

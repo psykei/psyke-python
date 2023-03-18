@@ -15,15 +15,16 @@ class GridEx(HyperCubeExtractor):
     Explanator implementing GridEx algorithm, doi:10.1007/978-3-030-82017-6_2.
     """
 
-    def __init__(self, predictor, grid: Grid, min_examples: int, threshold: float, normalization,
+    def __init__(self, predictor, grid: Grid, min_examples: int, threshold: float, normalization=None,
                  seed=get_default_random_seed()):
-        super().__init__(predictor, normalization)
+        super().__init__(predictor, Target.CONSTANT, normalization)
         self.grid = grid
         self.min_examples = min_examples
         self.threshold = threshold
         self.__generator = rnd.Random(seed)
 
     def _extract(self, dataframe: pd.DataFrame, mapping: dict[str: int] = None, sort: bool = True) -> Theory:
+        self._hypercubes = []
         if isinstance(np.array(self.predictor.predict(dataframe.iloc[0:1, :-1])).flatten()[0], str):
             self._output = Target.CLASSIFICATION
         surrounding = HyperCube.create_surrounding_cube(dataframe, output=self._output)

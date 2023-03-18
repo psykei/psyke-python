@@ -19,6 +19,8 @@ class PEDRO(Optimizer):
         super().__init__(predictor, algorithm, dataframe, max_mae_increase, min_rule_decrease, readability_tradeoff,
                          max_depth, patience, objective, normalization)
         self.ranked = FeatureRanker(dataframe.columns[:-1]).fit(predictor, dataframe.iloc[:, :-1]).rankings()
+        self.model_mae = abs(self.predictor.predict(dataframe.iloc[:, :-1]).flatten() -
+                             self.dataframe.iloc[:, -1].values).mean()
 
     def __search_threshold(self, grid, critical, max_partitions):
         step = self.model_mae / 2.0

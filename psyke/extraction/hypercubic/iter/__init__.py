@@ -21,7 +21,7 @@ class ITER(HyperCubeExtractor):
 
     def __init__(self, predictor, min_update, n_points, max_iterations, min_examples, threshold, fill_gaps,
                  normalization, output: Target = Target.CONSTANT, seed=get_default_random_seed()):
-        super().__init__(predictor, normalization)
+        super().__init__(predictor, output, normalization)
         if output is Target.REGRESSION:
             raise NotImplementedError
         self.predictor = predictor
