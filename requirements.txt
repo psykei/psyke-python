@@ -15,6 +15,6 @@ matplotlib==3.7.1
 kivy-garden==0.1.5
 screeninfo==0.8.1
 sympy==1.11.1
-#igraph==0.10.4
-#plotly==5.13.0
 kneed==0.8.2
+igraph==0.10.4
+plotly==5.13.1
