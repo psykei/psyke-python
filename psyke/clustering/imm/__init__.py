@@ -132,6 +132,16 @@ class IMM(object):
         else:
             return self.find_cluster(self.tree, x) 
         
+    def predict_on_more_data(self, x):
+        
+        if self.tree is None:
+            raise TypeError('Model is untrained.')
+        else:
+            y=[]
+            for i in range(len(x)):
+                y.append(self.find_cluster(self.tree, x[i]))
+        return y 
+        
     def find_cluster(self, tree, x):
         
         feature = tree.feature
