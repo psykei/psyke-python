@@ -3,8 +3,6 @@ from typing import Iterable
 from scipy.optimize import minimize
 from sklearn.cluster import KMeans
 import numpy as np
-#from igraph import Graph
-import plotly.graph_objects as go
 
 from psyke import Clustering
 
@@ -26,6 +24,7 @@ class Node:
 class IMM(Clustering):
 
     def __init__(self, k):
+        super().__init__()
         self.k = k  # number of clusters
         self.tree = None  # will be the created tree
         self.nodeCount = 0
@@ -70,10 +69,8 @@ class IMM(Clustering):
             initialGuesses = np.vstack([l[:], r[:]]).mean(axis=0)  # initial guesses
 
             for i in range(n_features):
-                optimizedResult = minimize(fun=self.sum_mistakes,
-                                           x0=(initialGuesses[i]),
-                                           args=(x, u, y, i),
-                                           bounds=[(l[i], r[i])]
+                optimizedResult = minimize(fun=self.sum_mistakes, x0=(initialGuesses[i]),
+                                           args=(x, u, y, i), bounds=[(l[i], r[i])]
                                            )
 
                 optimizedMistakes.append(optimizedResult.fun)  # value of the objective function
@@ -121,15 +118,12 @@ class IMM(Clustering):
             return node
 
     def mistake(self, x, u, i, theta):
-        if (x[i] <= theta) != (u[i] <= theta):
-            return 1
-        else:
-            return 0
+        return 1 if (x[i] <= theta) != (u[i] <= theta) else 0
 
     def sum_mistakes(self, theta, x, u, y, i):
         return sum([self.mistake(x[j], u[y[j]], i, theta) for j in range(len(x))])
 
-    def predict(self, x):
+    def _predict(self, x):
         if self.tree is None:
             raise TypeError('Model is untrained.')
         elif isinstance(x, Iterable):
@@ -137,132 +131,22 @@ class IMM(Clustering):
         else:
             return self.find_cluster(self.tree, x)
 
-    def find_cluster(self, tree, x):
-
-        feature = tree.feature
-        value = tree.value
-
-        if tree.cluster is not None:
-            return tree.cluster
-
-        if x[feature] <= value:
-            return self.find_cluster(tree.left, x)
-        else:
-            return self.find_cluster(tree.right, x)
-
-    def explore(self, node):
-        nodeList = [node]
-        edgeList = []
-
-        if node.cluster != None:
-            return nodeList, edgeList
-        else:
-            nodeBelowListLeft, edgeBelowListLeft = self.explore(node.left)
-            nodeBelowListRight, edgeBelowListRight = self.explore(node.right)
-
-            nodeList = nodeList + nodeBelowListLeft + nodeBelowListRight
-            edgeList = [(node, node.left), (node, node.right)] + edgeBelowListLeft + edgeBelowListRight
-
-            return nodeList, edgeList
-
-    def drawTree(self):
-        def make_annotations(pos, text, pos_mid_edge, text_edge, vertices_font_size=15,
-                             vertices_font_color='rgb(250,250,250)', edges_font_size=15,
-                             edges_label_color=('rgb(255,0,0)', 'rgb(0,128,0)')):
-            L = len(pos)
-            Le = len(pos_mid_edge)
-            if len(text) != L:
-                raise ValueError('The lists pos and text must have the same len')
-            if len(text_edge) != Le:
-                raise ValueError('The lists pos_mid_edge and text_edge must have the same len')
-            annotations = []
-            for k in range(L):
-                annotations.append(
-                    dict(
-                        text=text[k],  # or replace labels with a different list for the text within the circle
-                        x=pos[k][0], y=2 * M - position[k][1],
-                        xref='x1', yref='y1',
-                        font=dict(color=vertices_font_color, size=vertices_font_size),
-                        showarrow=False)
-                )
-            for k in range(Le):
-                annotations.append(
-                    dict(
-                        text=text_edge[k],  # or replace labels with a different list for the text within the circle
-                        x=pos_mid_edge[k][0], y=pos_mid_edge[k][1],
-                        xref='x1', yref='y1',
-                        font=dict(color=edges_label_color[0] if text_edge[k] == '<=' else edges_label_color[1],
-                                  size=edges_font_size),
-                        showarrow=False)
-                )
-            return annotations
-
+    def predict_on_more_data(self, x):
         if self.tree is None:
             raise TypeError('Model is untrained.')
-        else:
+        return [self.find_cluster(self.tree, x[i]) for i in range(len(x))]
 
-            allNodes, allEdges = self.explore(self.tree)
-            nodeDict = {i.reference: i for i in allNodes}
+    def find_cluster(self, tree, x):
+        return tree.cluster if tree.cluster is not None else \
+            self.find_cluster(tree.left if x[tree.feature] <= tree.value else tree.right, x)
 
-            labels = {}
+    def explore(self, node):
+        nodes = [node]
+        edges = []
 
-            for i, node in nodeDict.items():
-                if node.isLeaf():
-                    labels[i] = f"Cluster {node.cluster}"  # leaves' lables contain clusters
-                else:
-                    labels[i] = f"Feature {node.feature}<br>\u03B8 = {node.value:.2f}"
+        if node.cluster is None:
+            left_subtree, right_subtree = self.explore(node.left), self.explore(node.right)
+            nodes += left_subtree[0] + right_subtree[0]
+            edges = [(node, node.left), (node, node.right)] + left_subtree[1] + right_subtree[1]
 
-            graphVertices = [{'name': i, 'label': labels[i]} for i in nodeDict.keys()]
-            graphEdges = [{'source': e[0].reference, 'target': e[1].reference, 'label': "<="
-                          if e[1] == e[0].left else ">"} for e in allEdges]
-
-            T = Graph.DictList(graphVertices, graphEdges, directed=True)
-
-            lay = T.layout('rt')
-
-            position = {k: pos for k, pos in enumerate(lay)}
-            M = max(lay, key=lambda x: x[1])[1]  # maximum Y value
-            E = [e.tuple for e in T.es]  # list of edges
-            L = len(position)
-
-            Xn = [position[k][0] for k in range(L)]
-            Yn = [2 * M - position[k][1] for k in range(L)]
-            Xe, Ye, Pos_mid_edge = [], [], []
-
-            for idx, edge in enumerate(E):
-                Xe += [position[edge[0]][0], position[edge[1]][0], None]
-                Ye += [2 * M - position[edge[0]][1], 2 * M - position[edge[1]][1], None]
-                Pos_mid_edge.append([0.5 * (Xe[3 * idx] + Xe[3 * idx + 1]), 0.5 * (Ye[3 * idx] + Ye[3 * idx + 1])])
-
-            vertex_labels = T.vs["label"]
-            edge_labels = T.es['label']
-
-            fig = go.Figure()
-            fig.add_trace(go.Scatter(x=Xe, y=Ye, mode='lines', line=dict(color='rgb(210,210,210)', width=1),
-                                     hoverinfo='none'))
-            fig.add_trace(go.Scatter(x=Xn, y=Yn, mode='markers', name='bla',
-                                     marker=dict(symbol='square', size=80, color='#6175c1',
-                                                 line=dict(color='rgb(50,50,50)', width=1)),
-                                     text=vertex_labels, hoverinfo='none', opacity=0.8))
-            fig.add_trace(go.Scatter(x=[i[0] for i in Pos_mid_edge], y=[i[1] for i in Pos_mid_edge], mode='markers',
-                                     name='bla', marker=dict(symbol='square', size=25, color='#FFFFFF',
-                                                             line=dict(color='rgb(250,250,250)', width=0)),
-                                     hoverinfo='none', opacity=1))
-
-            # hide axis line, grid, ticklabels and  title
-            axis = dict(showline=False, zeroline=False, showgrid=False, showticklabels=False)
-
-            fig.update_layout(
-                title='IMM Tree',
-                annotations=make_annotations(position, vertex_labels, Pos_mid_edge, edge_labels),
-                font_size=12,
-                showlegend=False,
-                xaxis=axis,
-                yaxis=axis,
-                margin=dict(l=40, r=40, b=85, t=100),
-                hovermode='closest',
-                plot_bgcolor='rgb(248,248,248)',
-                uniformtext_minsize=8,
-            )
-
-            fig.show()
+        return nodes, edges
