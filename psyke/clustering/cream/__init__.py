@@ -55,6 +55,7 @@ class CREAM(ExACT):
             if len(cubes) < 1:
                 continue
             _, right, left = min(cubes)
+            # find_better_constraints(node.dataframe[right[1]], right[0])
             node.right = Node(node.dataframe[right[1]], right[0])
             node.cube.update(node.dataframe[left[1]], self._predictor)
             node.left = Node(node.dataframe[left[1]], left[0])
