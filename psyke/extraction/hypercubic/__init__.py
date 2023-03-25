@@ -154,7 +154,7 @@ class Node:
     def search(self, point: dict[str, float]) -> ClosedCube:
         if self.right is None:
             return self.cube
-        if self.right.cube.__contains__(point):
+        if point in self.right.cube:
             return self.right.search(point)
         return self.left.search(point)
 

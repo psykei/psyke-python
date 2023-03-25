@@ -2,7 +2,7 @@
 import numpy as np
 import pandas as pd
 
-from psyke.clustering.orbit import ORBIt
+from psyke.extraction.hypercubic.orbit import ORBIt
 from psyke.tuning.crash import CRASH
 from sklearn.metrics import accuracy_score
 from kneed import KneeLocator

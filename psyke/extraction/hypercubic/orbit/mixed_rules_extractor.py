@@ -6,10 +6,10 @@ import numpy as np
 import pandas as pd
 
 from psyke.clustering.exact import ExACT
-from psyke.clustering.orbit.container import Container, ContainerNode
-from psyke.clustering.orbit.oblique_rules_generator import generate_container
+from psyke.extraction.hypercubic.orbit.container import Container, ContainerNode
+from psyke.extraction.hypercubic.orbit.oblique_rules_generator import generate_container
 from psyke.extraction.hypercubic import ClosedCube, HyperCube
-from sklearn.neighbors import KNeighborsClassifier
+from sklearn.neighbors import KNeighborsClassifier, KNeighborsRegressor
 from sklearn.cluster import DBSCAN
 from psyke.clustering.utils import select_gaussian_mixture, select_dbscan_epsilon
 from collections import Counter
@@ -21,27 +21,27 @@ class MixedRulesExtractor:
     """extractor for mixed rules: hyper-cubes and oblique rules"""
 
     def __init__(self, depth: int, error_threshold: float, gauss_components: int = 5, steps=1000,
-                 min_accuracy_increase=0.01, max_disequation_num=4):
+                 min_accuracy_increase=0.01, max_disequation_num=4, output: Target = Target.CLASSIFICATION):
         """
 
-        :param depth: depth of the tree of rules (contraints) that will be generated
+        :param depth: depth of the tree of rules (constraints) that will be generated
         :param error_threshold:
         :param gauss_components: number of gaussian clusters used to split data into different hyper-cubes/oblique rules
-        :param steps: every time disequations are created,
-            only steps couples of dimensions are checked to generate disequations
-        :param min_accuracy_increase: oblique rules (diequtions) are preferred to hypercubes only if cause an increse
+        :param steps: every time inequalities are created,
+            only steps couples of dimensions are checked to generate inequalities
+        :param min_accuracy_increase: oblique rules (inequalities) are preferred to hypercubes only if cause an increase
             in accuracy of "min_accuracy_increase"
         """
         self.depth = depth
         self.error_threshold = error_threshold
         self.gauss_components = gauss_components
         self._containers = None
-        self._predictor = KNeighborsClassifier()
+        self._predictor = KNeighborsClassifier() if output == Target.CLASSIFICATION else KNeighborsRegressor()
         self._predictor.n_neighbors = 1
-        self._output = Target.CLASSIFICATION
+        self._output = output
         self.steps = steps
         self.min_accuracy_increase = min_accuracy_increase
-        self.inistial_dataset_size = 0
+        self.initial_dataset_size = 0
         self.max_disequation_num = max_disequation_num
 
     def extract(self, dataframe: pd.DataFrame) -> List[Container]:
@@ -51,7 +51,7 @@ class MixedRulesExtractor:
         return list(self._containers)
 
     def _iterate(self, surrounding: ContainerNode) -> List[HyperCube]:
-        self.inistial_dataset_size = len(surrounding.dataframe.index)
+        self.initial_dataset_size = len(surrounding.dataframe.index)
         to_split = [(self.error_threshold * 10, 1, 1, surrounding, surrounding.dataframe)]
         while len(to_split) > 0:
             to_split.sort(reverse=True)
@@ -102,7 +102,7 @@ class MixedRulesExtractor:
                                                      inner_cube,
                                                      steps=self.steps,
                                                      min_accuracy_increase=self.min_accuracy_increase,
-                                                     initial_size=self.inistial_dataset_size,
+                                                     initial_size=self.initial_dataset_size,
                                                      max_disequation_num=self.max_disequation_num
                                                      )
                 indices = self._indices(inner_container, node.dataframe)

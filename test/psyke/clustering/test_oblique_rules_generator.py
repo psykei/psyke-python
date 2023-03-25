@@ -1,6 +1,5 @@
 import unittest
-from psyke.clustering.orbit.container import Container
-from psyke.clustering.orbit.oblique_rules_generator import *
+from psyke.extraction.hypercubic.orbit.oblique_rules_generator import *
 from psyke.extraction.hypercubic.hypercube import ClosedCube
 
 
@@ -40,7 +39,7 @@ class AbstractTestObliqueRulesGenerator(unittest.TestCase):
 class TestObliqueRulesGenerator(AbstractTestObliqueRulesGenerator):
     def test_generate_container(self):
         container = generate_container(self.df, self.df, [0]*self.df.shape[0], self.iper_cube, 100, 0, 10)
-        self.assertGreater(len(container.dimensions) + len(container.diequations), 0)
+        self.assertGreater(len(container.dimensions) + len(container.inequalities), 0)
 
     def test_extract_points(self):
         points = extract_points(self.contour_net)

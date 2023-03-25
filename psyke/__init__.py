@@ -262,16 +262,14 @@ class Extractor(EvaluableModel, ABC):
 
     @staticmethod
     def orbit(predictor, depth: int, error_threshold: float, gauss_components: int = 2,
-              ranks: [(str, float)] = [], ignore_threshold: float = 0.0,
+              output: Target = Target.CLASSIFICATION, ranks: [(str, float)] = [], ignore_threshold: float = 0.0,
               normalization: dict[str, tuple[float, float]] = None,
-              steps: int=1000,
-              min_accuracy_increase: float=0.01,
-              max_disequation_num=4) -> Extractor:
+              steps: int = 1000, min_accuracy_increase: float = 0.01, max_disequation_num: int = 4) -> Extractor:
         """
         Creates a new ORBIt extractor.
         """
-        from psyke.clustering.orbit import ORBIt
-        return ORBIt(predictor, depth, error_threshold, gauss_components, ranks, ignore_threshold,
+        from psyke.extraction.hypercubic.orbit import ORBIt
+        return ORBIt(predictor, depth, error_threshold, gauss_components, output, ranks, ignore_threshold,
                       normalization, steps, min_accuracy_increase, max_disequation_num)
 
     @staticmethod
@@ -363,4 +361,4 @@ class PedagogicalExtractor(Extractor, ABC):
         return self._extract(data, mapping, sort)
 
     def _extract(self, dataframe: pd.DataFrame, mapping: dict[str: int] = None, sort: bool = True) -> Theory:
-        raise NotImplementedError('predict')
+        raise NotImplementedError('extract')

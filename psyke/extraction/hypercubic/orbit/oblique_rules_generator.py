@@ -3,7 +3,7 @@ from psyke.extraction.hypercubic.hypercube import ClosedCube
 from scipy.spatial import ConvexHull
 import numpy as np
 from typing import Tuple, List, Dict, Union
-from psyke.clustering.orbit.container import Container
+from psyke.extraction.hypercubic.orbit.container import Container
 from sklearn.metrics import accuracy_score
 
 
