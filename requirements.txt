@@ -7,7 +7,7 @@ scikit-learn==1.2.2
 skl2onnx==1.14.0
 onnxruntime==1.14.1
 tensorflow==2.7.2
-parameterized==0.8.1
+parameterized==0.9.0
 protobuf==3.20.3
 setuptools==67.6.0
 kneed==0.8.2
