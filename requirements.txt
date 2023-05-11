@@ -15,4 +15,4 @@ kivy==2.1.0
 matplotlib==3.7.1
 kivy-garden==0.1.5
 screeninfo==0.8.1
-sympy==1.11.1
+sympy==1.12
