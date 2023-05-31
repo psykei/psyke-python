@@ -151,6 +151,19 @@ class TestHypercube(AbstractTestHypercube):
         self.cube.add_limit('Y', '-')
         self.assertEqual('*', self.cube.check_limits('Y'))
 
+    def test_filter_indices(self):
+        expected = (self.dataset.X >= self.x[0]) & (self.dataset.X < self.x[1]) & \
+                   (self.dataset.Y >= self.y[0]) & (self.dataset.Y < self.y[1])
+        filtered = self.cube.filter_indices(self.dataset.iloc[:, :-1])
+        self.assertTrue(all(expected == filtered))
+
+    def test_filter_dataframe(self):
+        expected = (self.dataset.X >= self.x[0]) & (self.dataset.X < self.x[1]) & \
+                   (self.dataset.Y >= self.y[0]) & (self.dataset.Y < self.y[1])
+        expected = self.dataset[expected].iloc[:, :-1]
+        filtered = self.cube._filter_dataframe(self.dataset.iloc[:, :-1])
+        self.assertTrue(all(expected == filtered))
+
     def test_update(self):
         model = KNeighborsRegressor()
         model.fit(self.dataset.iloc[:, :-1], self.dataset.iloc[:, -1])
