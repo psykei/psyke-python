@@ -1,7 +1,8 @@
 import unittest
 import pandas as pd
 
-from psyke.extraction.hypercubic.hypercube import FeatureNotFoundException
+from psyke.extraction.hypercubic.hypercube import FeatureNotFoundException, ClosedRegressionCube, \
+    ClosedClassificationCube
 from psyke.extraction.hypercubic.utils import MinUpdate, Expansion
 from psyke.utils import get_int_precision
 from sklearn.neighbors import KNeighborsRegressor
@@ -66,6 +67,7 @@ class TestHypercube(AbstractTestHypercube):
         copy = self.cube.copy()
         self.assertEqual(self.cube.dimensions, copy.dimensions)
         self.assertEqual(self.cube.output, copy.output)
+        self.assertIsInstance(copy, HyperCube)
 
     def test_expand(self):
         arguments = TestHypercube.expansion_provider()
@@ -224,6 +226,26 @@ class TestHypercube(AbstractTestHypercube):
                 ({'X': 0.1, 'Y': 0.8}, False),
                 ({'X': 0.5, 'Y': 0.95}, False),
                 ({'X': 0.1, 'Y': 0.95}, False))
+
+
+class TestClosedRegressionCube(AbstractTestHypercube):
+
+    def test_copy(self):
+        cube = ClosedRegressionCube(self.dimensions)
+        copy = cube.copy()
+        self.assertEqual(self.cube.dimensions, copy.dimensions)
+        self.assertEqual(self.cube.output, copy.output)
+        self.assertIsInstance(copy, ClosedRegressionCube)
+
+
+class TestClosedClassificationCube(AbstractTestHypercube):
+
+    def test_copy(self):
+        cube = ClosedClassificationCube(self.dimensions)
+        copy = cube.copy()
+        self.assertEqual(self.cube.dimensions, copy.dimensions)
+        self.assertEqual(self.cube.output, copy.output)
+        self.assertIsInstance(copy, ClosedClassificationCube)
 
 
 if __name__ == '__main__':
