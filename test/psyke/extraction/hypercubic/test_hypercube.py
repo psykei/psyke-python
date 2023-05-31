@@ -3,7 +3,7 @@ import pandas as pd
 from sklearn.linear_model import LinearRegression
 
 from psyke.extraction.hypercubic.hypercube import FeatureNotFoundException, ClosedRegressionCube, \
-    ClosedClassificationCube, ClosedCube
+    ClosedClassificationCube, ClosedCube, ClassificationCube
 from psyke.extraction.hypercubic.utils import MinUpdate, Expansion
 from psyke.utils import get_int_precision
 from sklearn.neighbors import KNeighborsRegressor
@@ -156,6 +156,12 @@ class TestHypercube(AbstractTestHypercube):
         model.fit(self.dataset.iloc[:, :-1], self.dataset.iloc[:, -1])
         predictor = Predictor(model)
         self.cube.update(self.dataset, predictor)
+        predictions = model.predict(self.dataset[
+            (self.dataset.X >= self.x[0]) & (self.dataset.X < self.x[1]) &
+            (self.dataset.Y >= self.y[0]) & (self.dataset.Y < self.y[1])
+        ].iloc[:, :-1])
+        self.assertEqual(self.cube.output, predictions.mean())
+        self.assertEqual(self.cube.diversity, predictions.std())
 
     def test_update_dimension(self):
         new_lower, new_upper = 0.6, 1.4
@@ -230,6 +236,16 @@ class TestHypercube(AbstractTestHypercube):
                 (cube2.copy(), Expansion(fake4, 'X', '+', 0.0), (9.5, 15.2))]
 
 
+class TestClassificationCube(AbstractTestHypercube):
+
+    def test_copy(self):
+        cube = ClassificationCube(self.dimensions)
+        copy = cube.copy()
+        self.assertEqual(cube.dimensions, copy.dimensions)
+        self.assertEqual(cube.output, copy.output)
+        self.assertIsInstance(copy, ClassificationCube)
+
+
 class TestClosedCube(AbstractTestHypercube):
 
     def test_copy(self):
@@ -240,9 +256,10 @@ class TestClosedCube(AbstractTestHypercube):
         self.assertIsInstance(copy, ClosedCube)
 
     def test_contains(self):
+        cube = ClosedCube(self.dimensions)
         arguments = self.tuple_provider(True)
         for arg in arguments:
-            self.assertEqual(arg[1], arg[0] in self.cube)
+            self.assertEqual(arg[1], arg[0] in cube)
 
 
 class TestClosedRegressionCube(AbstractTestHypercube):
