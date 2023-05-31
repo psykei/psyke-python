@@ -1,5 +1,6 @@
 import unittest
 import pandas as pd
+from sklearn.linear_model import LinearRegression
 
 from psyke.extraction.hypercubic.hypercube import FeatureNotFoundException, ClosedRegressionCube, \
     ClosedClassificationCube
@@ -244,7 +245,7 @@ class TestClosedClassificationCube(AbstractTestHypercube):
         cube = ClosedClassificationCube(self.dimensions)
         copy = cube.copy()
         self.assertEqual(cube.dimensions, copy.dimensions)
-        self.assertEqual(cube.output, copy.output)
+        self.assertIsInstance(copy.output, LinearRegression)
         self.assertIsInstance(copy, ClosedClassificationCube)
 
 
