@@ -3,7 +3,7 @@ import pandas as pd
 from sklearn.linear_model import LinearRegression
 
 from psyke.extraction.hypercubic.hypercube import FeatureNotFoundException, ClosedRegressionCube, \
-    ClosedClassificationCube
+    ClosedClassificationCube, ClosedCube
 from psyke.extraction.hypercubic.utils import MinUpdate, Expansion
 from psyke.utils import get_int_precision
 from sklearn.neighbors import KNeighborsRegressor
@@ -27,6 +27,14 @@ class AbstractTestHypercube(unittest.TestCase):
         self.dataset = pd.read_csv(get_dataset_path('arti'))
         self.filtered_dataset = self.dataset[self.dataset.apply(
             lambda row: (0.2 <= row['X'] < 0.6) & (0.7 <= row['Y'] < 0.9), axis=1)]
+
+    def tuple_provider(self, closed=False):
+        return (({'X': (self.x[0] + self.x[1]) / 2, 'Y': (self.y[0] + self.y[1]) / 2}, True),
+                ({'X': self.x[0], 'Y': self.y[0]}, True),
+                ({'X': self.x[0], 'Y': self.y[1]}, closed),
+                ({'X': self.x[1], 'Y': self.y[0]}, closed),
+                ({'X': self.x[1], 'Y': self.y[1]}, closed),
+                ({'X': 1.5, 'Y': 3.6}, False))
 
 
 class TestHypercube(AbstractTestHypercube):
@@ -106,7 +114,7 @@ class TestHypercube(AbstractTestHypercube):
         self.assertFalse(self.cube == self.hypercubes[1])
 
     def test_contains(self):
-        arguments = TestHypercube.tuple_provider()
+        arguments = self.tuple_provider()
         for arg in arguments:
             self.assertEqual(arg[1], arg[0] in self.cube)
 
@@ -221,12 +229,20 @@ class TestHypercube(AbstractTestHypercube):
                 (cube2.copy(), Expansion(fake3, 'X', '-', 0.0), (7.0, 12.3)),
                 (cube2.copy(), Expansion(fake4, 'X', '+', 0.0), (9.5, 15.2))]
 
-    @staticmethod
-    def tuple_provider():
-        return (({'X': 0.5, 'Y': 0.8}, True),
-                ({'X': 0.1, 'Y': 0.8}, False),
-                ({'X': 0.5, 'Y': 0.95}, False),
-                ({'X': 0.1, 'Y': 0.95}, False))
+
+class TestClosedCube(AbstractTestHypercube):
+
+    def test_copy(self):
+        cube = ClosedCube(self.dimensions)
+        copy = cube.copy()
+        self.assertEqual(cube.dimensions, copy.dimensions)
+        self.assertEqual(cube.output, copy.output)
+        self.assertIsInstance(copy, ClosedCube)
+
+    def test_contains(self):
+        arguments = self.tuple_provider(True)
+        for arg in arguments:
+            self.assertEqual(arg[1], arg[0] in self.cube)
 
 
 class TestClosedRegressionCube(AbstractTestHypercube):
