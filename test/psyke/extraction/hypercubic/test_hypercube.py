@@ -13,7 +13,9 @@ from test.resources.datasets import get_dataset_path
 class AbstractTestHypercube(unittest.TestCase):
 
     def setUp(self):
-        self.dimensions = {'X': (0.2, 0.6), 'Y': (0.7, 0.9)}
+        self.x = (0.2, 0.6)
+        self.y = (0.7, 0.9)
+        self.dimensions = {'X': self.x, 'Y': self.y}
         self.mean = 0.5
         self.cube = HyperCube(self.dimensions, set(), self.mean)
         cubes = [({'X': (6.4, 7.9), 'Y': (5.7, 8.9)}, 5.3),
@@ -27,10 +29,10 @@ class AbstractTestHypercube(unittest.TestCase):
 
 class TestHypercube(AbstractTestHypercube):
 
-    def test_get_dimension(self):
+    def test_dimension(self):
         self.assertEqual(self.dimensions, self.cube.dimensions)
 
-    def test_get_limit_count(self):
+    def test_limit_count(self):
         self.assertEqual(0, self.cube.limit_count)
         self.cube.add_limit('X', '+')
         self.assertEqual(1, self.cube.limit_count)
@@ -39,26 +41,26 @@ class TestHypercube(AbstractTestHypercube):
         self.cube.add_limit('X', '+')
         self.assertEqual(2, self.cube.limit_count)
 
-    def test_get_mean(self):
+    def test_output(self):
         self.assertEqual(self.mean, self.cube.output)
 
     def test_get(self):
-        self.assertEqual((0.2, 0.6), self.cube['X'])
-        self.assertEqual((0.7, 0.9), self.cube['Y'])
+        self.assertEqual(self.x, self.cube['X'])
+        self.assertEqual(self.y, self.cube['Y'])
         with self.assertRaises(FeatureNotFoundException):
-            dummy = self.cube['Z']
+            _ = self.cube['Z']
 
     def test_get_first(self):
-        self.assertEqual(0.2, self.cube.get_first('X'))
-        self.assertEqual(0.7, self.cube.get_first('Y'))
+        self.assertEqual(self.x[0], self.cube.get_first('X'))
+        self.assertEqual(self.y[0], self.cube.get_first('Y'))
         with self.assertRaises(FeatureNotFoundException):
-            self.cube.get_first('Z')
+            _ = self.cube.get_first('Z')
 
     def test_get_second(self):
-        self.assertEqual(0.6, self.cube.get_second('X'))
-        self.assertEqual(0.9, self.cube.get_second('Y'))
+        self.assertEqual(self.x[1], self.cube.get_second('X'))
+        self.assertEqual(self.y[1], self.cube.get_second('Y'))
         with self.assertRaises(FeatureNotFoundException):
-            self.cube.get_second('Z')
+            _ = self.cube.get_second('Z')
 
     def test_copy(self):
         copy = self.cube.copy()
@@ -138,7 +140,7 @@ class TestHypercube(AbstractTestHypercube):
         self.cube.add_limit('Y', '-')
         self.assertEqual('*', self.cube.check_limits('Y'))
 
-    def test_update_mean(self):
+    def test_update(self):
         model = KNeighborsRegressor()
         model.fit(self.dataset.iloc[:, :-1], self.dataset.iloc[:, -1])
         predictor = Predictor(model)
@@ -173,6 +175,17 @@ class TestHypercube(AbstractTestHypercube):
         self.assertTrue(HyperCube.check_overlap(self.hypercubes, self.hypercubes + [self.hypercubes[0].copy()]))
         self.assertFalse(HyperCube.check_overlap(self.hypercubes, self.hypercubes))
         self.assertFalse(HyperCube.check_overlap(self.hypercubes[0:1], self.hypercubes[1:]))
+
+    def test_init_diversity(self):
+        d = 2.3
+        self.cube.init_diversity(d)
+        self.assertEqual(self.cube.diversity, d)
+
+    def test_volume(self):
+        self.assertEqual(self.cube.volume, (self.x[1] - self.x[0]) * (self.y[1] - self.y[0]))
+
+    def test_diagonal(self):
+        self.assertEqual(self.cube.diagonal, ((self.x[1] - self.x[0])**2 + (self.y[1] - self.y[0])**2)**0.5)
 
     @staticmethod
     def expansion_provider():

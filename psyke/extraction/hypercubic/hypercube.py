@@ -266,7 +266,7 @@ class HyperCube:
         self._diversity = np.std(predictions)
 
     # TODO: why this is not a property?
-    def init_std(self, std: float) -> None:
+    def init_diversity(self, std: float) -> None:
         self._diversity = std
 
 

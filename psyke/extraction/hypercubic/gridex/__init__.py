@@ -28,7 +28,7 @@ class GridEx(HyperCubeExtractor):
         if isinstance(np.array(self.predictor.predict(dataframe.iloc[0:1, :-1])).flatten()[0], str):
             self._output = Target.CLASSIFICATION
         surrounding = HyperCube.create_surrounding_cube(dataframe, output=self._output)
-        surrounding.init_std(2 * self.threshold)
+        surrounding.init_diversity(2 * self.threshold)
         self._iterate(surrounding, dataframe)
         return self._create_theory(dataframe, sort)
 

@@ -96,10 +96,7 @@ class MixedRulesExtractor:
                 cube_indices = self._indices(inner_cube, node.dataframe)
                 if cube_indices is None:
                     continue
-                inner_container = generate_container(dataframe,
-                                                     node.dataframe,
-                                                     cube_indices,
-                                                     inner_cube,
+                inner_container = generate_container(dataframe, node.dataframe, cube_indices, inner_cube,
                                                      steps=self.steps,
                                                      min_accuracy_increase=self.min_accuracy_increase,
                                                      initial_size=self.initial_dataset_size,
