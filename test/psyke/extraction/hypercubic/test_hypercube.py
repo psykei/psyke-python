@@ -233,8 +233,8 @@ class TestClosedRegressionCube(AbstractTestHypercube):
     def test_copy(self):
         cube = ClosedRegressionCube(self.dimensions)
         copy = cube.copy()
-        self.assertEqual(self.cube.dimensions, copy.dimensions)
-        self.assertEqual(self.cube.output, copy.output)
+        self.assertEqual(cube.dimensions, copy.dimensions)
+        self.assertEqual(cube.output, copy.output)
         self.assertIsInstance(copy, ClosedRegressionCube)
 
 
@@ -243,8 +243,8 @@ class TestClosedClassificationCube(AbstractTestHypercube):
     def test_copy(self):
         cube = ClosedClassificationCube(self.dimensions)
         copy = cube.copy()
-        self.assertEqual(self.cube.dimensions, copy.dimensions)
-        self.assertEqual(self.cube.output, copy.output)
+        self.assertEqual(cube.dimensions, copy.dimensions)
+        self.assertEqual(cube.output, copy.output)
         self.assertIsInstance(copy, ClosedClassificationCube)
 
 
