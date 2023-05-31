@@ -182,10 +182,21 @@ class TestHypercube(AbstractTestHypercube):
         self.assertEqual(self.cube.diversity, d)
 
     def test_volume(self):
-        self.assertEqual(self.cube.volume, (self.x[1] - self.x[0]) * (self.y[1] - self.y[0]))
+        self.assertEqual(self.cube.volume(), (self.x[1] - self.x[0]) * (self.y[1] - self.y[0]))
 
     def test_diagonal(self):
-        self.assertEqual(self.cube.diagonal, ((self.x[1] - self.x[0])**2 + (self.y[1] - self.y[0])**2)**0.5)
+        self.assertEqual(self.cube.diagonal(), ((self.x[1] - self.x[0])**2 + (self.y[1] - self.y[0])**2)**0.5)
+
+    def test_is_adjacent(self):
+        cube_adj = HyperCube({'X': (0.6, 0.9), 'Y': self.y}, set(), self.mean)
+        self.assertTrue(self.cube.is_adjacent(cube_adj))
+        cube_not_adj = HyperCube({'X': self.y, 'Y': self.x}, set(), self.mean)
+        self.assertFalse(self.cube.is_adjacent(cube_not_adj))
+
+    def test_merge_along_dimension(self):
+        cube_adj = HyperCube({'X': (0.6, 0.9), 'Y': self.y}, set(), self.mean)
+        self.cube.merge_along_dimension(cube_adj, 'X')
+        self.assertEqual(self.cube['X'], [0.2, 0.9])
 
     @staticmethod
     def expansion_provider():
