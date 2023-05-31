@@ -195,8 +195,9 @@ class TestHypercube(AbstractTestHypercube):
 
     def test_merge_along_dimension(self):
         cube_adj = HyperCube({'X': (0.6, 0.9), 'Y': self.y}, set(), self.mean)
-        self.cube.merge_along_dimension(cube_adj, 'X')
-        self.assertEqual(self.cube['X'], [0.2, 0.9])
+        merged = self.cube.merge_along_dimension(cube_adj, 'X')
+        self.assertEqual(merged['X'][0], 0.2)
+        self.assertEqual(merged['X'][1], 0.9)
 
     @staticmethod
     def expansion_provider():
