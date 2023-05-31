@@ -3,7 +3,7 @@ import pandas as pd
 from sklearn.linear_model import LinearRegression
 
 from psyke.extraction.hypercubic.hypercube import FeatureNotFoundException, ClosedRegressionCube, \
-    ClosedClassificationCube, ClosedCube, ClassificationCube
+    ClosedClassificationCube, ClosedCube, ClassificationCube, RegressionCube
 from psyke.extraction.hypercubic.utils import MinUpdate, Expansion
 from psyke.utils import get_int_precision
 from sklearn.neighbors import KNeighborsRegressor
@@ -234,6 +234,16 @@ class TestHypercube(AbstractTestHypercube):
                 (cube1.copy(), Expansion(fake2, 'X', '+', 0.0), (2.3, 6.6)),
                 (cube2.copy(), Expansion(fake3, 'X', '-', 0.0), (7.0, 12.3)),
                 (cube2.copy(), Expansion(fake4, 'X', '+', 0.0), (9.5, 15.2))]
+
+
+class TestRegressionCube(AbstractTestHypercube):
+
+    def test_copy(self):
+        cube = RegressionCube(self.dimensions)
+        copy = cube.copy()
+        self.assertEqual(cube.dimensions, copy.dimensions)
+        self.assertIsInstance(copy.output, LinearRegression)
+        self.assertIsInstance(copy, RegressionCube)
 
 
 class TestClassificationCube(AbstractTestHypercube):
