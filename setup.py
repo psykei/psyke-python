@@ -1,6 +1,3 @@
-import platform
-import re
-
 from setuptools import setup, find_packages
 import pathlib
 import sys
@@ -24,10 +21,6 @@ REQUIREMENTS = [
     'scikit-learn~=1.2.0',
     '2ppy~=0.4.0',
     'kneed~=0.8.1',
-    'kivy~=2.2.0',
-    'matplotlib~=3.7.0',
-    'kivy-garden~=0.1.5',
-    'screeninfo~=0.8',
     'sympy~=1.11'
 ]  # Optional
 
