@@ -261,18 +261,6 @@ class Extractor(EvaluableModel, ABC):
                       normalization, clustering)
 
     @staticmethod
-    def orbit(predictor, depth: int, error_threshold: float, gauss_components: int = 2,
-              output: Target = Target.CLASSIFICATION, ranks: [(str, float)] = [], ignore_threshold: float = 0.0,
-              normalization: dict[str, tuple[float, float]] = None,
-              steps: int = 1000, min_accuracy_increase: float = 0.01, max_disequation_num: int = 4) -> Extractor:
-        """
-        Creates a new ORBIt extractor.
-        """
-        from psyke.extraction.hypercubic.orbit import ORBIt
-        return ORBIt(predictor, depth, error_threshold, gauss_components, output, ranks, ignore_threshold,
-                      normalization, steps, min_accuracy_increase, max_disequation_num)
-
-    @staticmethod
     def real(predictor, discretization=None) -> Extractor:
         """
         Creates a new REAL extractor.
