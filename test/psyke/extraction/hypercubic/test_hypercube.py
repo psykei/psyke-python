@@ -212,7 +212,7 @@ class TestHypercube(AbstractTestHypercube):
         self.assertEqual(self.cube.diversity, d)
 
     def test_diversity(self):
-        self.assertEqual(self.cube.diversity, self.mean)
+        self.assertEqual(self.cube.diversity, 0.0)
         d = 56.3
         self.cube.init_diversity(d)
         self.assertEqual(self.cube.diversity, d)
