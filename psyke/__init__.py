@@ -319,26 +319,6 @@ class Clustering(EvaluableModel, ABC):
         from psyke.clustering.cream import CREAM
         return CREAM(depth, error_threshold, output, gauss_components)
 
-    @staticmethod
-    def imm(n_clusters: int) -> Clustering:
-        """
-        Creates a new IMM instance.
-        """
-        from psyke.clustering.imm import IMM
-        return IMM(n_clusters)
-
-    @staticmethod
-    def classix(minPts: int = 0,
-                radius: float = 0.5,
-                group_merging_mode: str = "distance",
-                scale: float = 1.5,
-                reassign_outliers: bool = True) -> Clustering:
-        """
-        Creates a new CLASSIX instance.
-        """
-        from psyke.clustering.classix import CLASSIX
-        return CLASSIX(minPts, radius, group_merging_mode, scale, reassign_outliers)
-
 
 class PedagogicalExtractor(Extractor, ABC):
 
