@@ -4,7 +4,7 @@ from sklearn.linear_model import LinearRegression
 
 from psyke.extraction.hypercubic.hypercube import FeatureNotFoundException, ClosedRegressionCube, \
     ClosedClassificationCube, ClosedCube, ClassificationCube, RegressionCube
-from psyke.extraction.hypercubic.utils import MinUpdate, Expansion
+from psyke.extraction.hypercubic.utils import MinUpdate, Expansion, ZippedDimension
 from psyke.utils import get_int_precision
 from sklearn.neighbors import KNeighborsRegressor
 from test.psyke import Predictor
@@ -211,6 +211,12 @@ class TestHypercube(AbstractTestHypercube):
         self.cube.init_diversity(d)
         self.assertEqual(self.cube.diversity, d)
 
+    def test_diversity(self):
+        self.assertEqual(self.cube.diversity, self.mean)
+        d = 56.3
+        self.cube.init_diversity(d)
+        self.assertEqual(self.cube.diversity, d)
+
     def test_volume(self):
         self.assertEqual(self.cube.volume(), (self.x[1] - self.x[0]) * (self.y[1] - self.y[0]))
 
@@ -228,6 +234,17 @@ class TestHypercube(AbstractTestHypercube):
         merged = self.cube.merge_along_dimension(cube_adj, 'X')
         self.assertEqual(merged['X'][0], 0.2)
         self.assertEqual(merged['X'][1], 0.9)
+
+    def test_zip_dimensions(self):
+        cube = HyperCube({'X': self.y, 'Y': self.x})
+        expected = [ZippedDimension(d, self.cube[d], cube[d]) for d in self.dimensions.keys()]
+        self.assertEqual(self.cube._zip_dimensions(cube), expected)
+
+    def test_fit_dimension(self):
+        new_dimensions = {'X': (5.2, 3.6), 'Y': (9.3, 6.4)}
+        self.assertEqual(self.cube._fit_dimension(new_dimensions), new_dimensions)
+        new_dimensions = {'Z': (5.2, 6.4)}
+        self.assertEqual(self.cube._fit_dimension(new_dimensions), new_dimensions)
 
     @staticmethod
     def expansion_provider():

@@ -1,3 +1,4 @@
+from __future__ import annotations
 import math
 import warnings
 
@@ -48,3 +49,8 @@ class ZippedDimension:
         self.name = name
         self.this_dimension = this_dimension
         self.other_dimension = other_dimension
+
+    def __eq__(self, other: ZippedDimension) -> bool:
+        return (self.name == other.name) and (self.this_dimension == other.this_dimension) and \
+               (self.other_dimension == other.other_dimension)
+
