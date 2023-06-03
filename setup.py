@@ -1,7 +1,5 @@
 from setuptools import setup, find_packages
 import pathlib
-import sys
-import os
 import subprocess
 import distutils.cmd
 
@@ -218,7 +216,6 @@ setup(
     cmdclass={
         'get_project_version': GetVersionCommand,
         'create_test_predictors': CreateTestPredictors,
-        'create_theory_plot': CreateTheoryPlot,
-        'garden_install': InstallGardenDependency
+        'create_theory_plot': CreateTheoryPlot
     },
 )
