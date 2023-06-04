@@ -11,7 +11,7 @@ class TestSplit(unittest.TestCase):
     n_examples = dataset.shape[0]
     all_node = Node(dataset, n_examples)
     setosa_40 = Node(dataset.iloc[10:70, :], n_examples)
-    setosa_40_complementar = Node(dataset.iloc[:10, :].append(dataset.iloc[70:, :]), n_examples)
+    setosa_40_complementar = Node(pd.concat([dataset.iloc[:10, :], dataset.iloc[70:, :]]), n_examples)
     versicolor_25 = Node(dataset.iloc[40:75, :], n_examples)
     versicolor_25_complementar = Node(dataset.iloc[75:110, :], n_examples)
 
