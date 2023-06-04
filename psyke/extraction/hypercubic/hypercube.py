@@ -17,18 +17,28 @@ from random import Random
 import numpy as np
 
 
-Point = dict[str, float]
-
-
 class FeatureNotFoundException(Exception):
 
     def __init__(self, feature: str):
         super().__init__(f'Feature {feature} not found.')
 
 
+class Point:
+    """
+    An N-dimensional point.
+    """
+
+    def __init__(self, dimensions: list[str], values: list[float]):
+        self._dimensions = {dimension: value for (dimension, value) in zip(dimensions, values)}
+
+    @property
+    def dimensions(self) -> dict[str, float]:
+        return self._dimensions
+
+
 class HyperCube:
     """
-    A N-dimensional cube holding a numeric value.
+    An N-dimensional cube holding a numeric value.
     """
 
     EPSILON = get_default_precision()  # Precision used when comparing two hypercubes
@@ -226,12 +236,12 @@ class HyperCube:
         ) ** 0.5
 
     def center(self) -> Point:
-        return {dimension: (interval[0] + interval[1]) / 2 for dimension, interval in self._dimensions.items()}
+        return Point(list(self._dimensions.keys()),
+                     [(interval[0] + interval[1]) / 2 for interval in self._dimensions.values()])
 
     def corners(self) -> Iterable[Point]:
         return [
-            {dimension: value for (dimension, value) in zip(self._dimensions.keys(), values)}
-            for values in itertools.product(*self._dimensions.values())
+            Point(list(self._dimensions.keys()), values) for values in itertools.product(*self._dimensions.values())
         ]
 
     def is_adjacent(self, cube: HyperCube) -> str | None:

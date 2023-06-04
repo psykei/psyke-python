@@ -4,7 +4,7 @@ import pandas as pd
 from sklearn.linear_model import LinearRegression
 
 from psyke.extraction.hypercubic.hypercube import FeatureNotFoundException, ClosedRegressionCube, \
-    ClosedClassificationCube, ClosedCube, ClassificationCube, RegressionCube
+    ClosedClassificationCube, ClosedCube, ClassificationCube, RegressionCube, Point
 from psyke.extraction.hypercubic.utils import MinUpdate, Expansion, ZippedDimension
 from psyke.utils import get_int_precision
 from sklearn.neighbors import KNeighborsRegressor
@@ -225,13 +225,12 @@ class TestHypercube(AbstractTestHypercube):
         self.assertEqual(self.cube.diagonal(), ((self.x[1] - self.x[0])**2 + (self.y[1] - self.y[0])**2)**0.5)
 
     def test_center(self):
-        self.assertEqual(self.cube.center(), {dim: (val[0] + val[1]) / 2 for dim, val in self.dimensions.items()})
+        self.assertEqual(self.cube.center(), Point(list(self.dimensions.keys()),
+                                                   [(val[0] + val[1]) / 2 for val in self.dimensions.values()]))
 
     def test_corners(self):
         self.assertEqual(self.cube.corners(), [
-            {dim: value for (dim, value) in zip(self.dimensions.keys(), values)}
-            for values in itertools.product(*self.dimensions.values())
-        ])
+            Point(list(self.dimensions.keys()), values) for values in itertools.product(*self.dimensions.values())])
 
     def test_is_adjacent(self):
         cube_adj = HyperCube({'X': (0.6, 0.9), 'Y': self.y}, set(), self.mean)
