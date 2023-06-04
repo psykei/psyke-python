@@ -2,7 +2,8 @@
   "extends": [
     "config:base",
     ":rebaseStalePrs",
-    ":semanticCommits"
+    ":semanticCommits",
+    "docker:disable"
   ],
   "assignees": [
     "MatteoMagnini"
