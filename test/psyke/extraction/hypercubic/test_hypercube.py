@@ -1,3 +1,4 @@
+import itertools
 import unittest
 import pandas as pd
 from sklearn.linear_model import LinearRegression
@@ -222,6 +223,15 @@ class TestHypercube(AbstractTestHypercube):
 
     def test_diagonal(self):
         self.assertEqual(self.cube.diagonal(), ((self.x[1] - self.x[0])**2 + (self.y[1] - self.y[0])**2)**0.5)
+
+    def test_center(self):
+        self.assertEqual(self.cube.center(), {dim: (val[0] + val[1]) / 2 for dim, val in self.dimensions.items()})
+
+    def test_corners(self):
+        self.assertEqual(self.cube.corners(), [
+            {dim: value for (dim, value) in zip(self.dimensions.keys(), values)}
+            for values in itertools.product(*self.dimensions.values())
+        ])
 
     def test_is_adjacent(self):
         cube_adj = HyperCube({'X': (0.6, 0.9), 'Y': self.y}, set(), self.mean)

@@ -1,4 +1,6 @@
 from __future__ import annotations
+
+import itertools
 from statistics import mode
 from functools import reduce
 from typing import Iterable, Union
@@ -13,6 +15,9 @@ from sklearn.linear_model import LinearRegression
 from tuprolog.core import Var, Struct
 from random import Random
 import numpy as np
+
+
+Point = dict[str, float]
 
 
 class FeatureNotFoundException(Exception):
@@ -219,6 +224,15 @@ class HyperCube:
         return reduce(
             lambda a, b: a + b, [(dimension[1] - dimension[0]) ** 2 for dimension in self._dimensions.values()], 0
         ) ** 0.5
+
+    def center(self) -> Point:
+        return {dimension: (interval[0] + interval[1]) / 2 for dimension, interval in self._dimensions.items()}
+
+    def corners(self) -> Iterable[Point]:
+        return [
+            {dimension: value for (dimension, value) in zip(self._dimensions.keys(), values)}
+            for values in itertools.product(*self._dimensions.values())
+        ]
 
     def is_adjacent(self, cube: HyperCube) -> str | None:
         adjacent = None
