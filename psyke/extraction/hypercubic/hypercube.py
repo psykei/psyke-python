@@ -28,8 +28,22 @@ class Point:
     An N-dimensional point.
     """
 
+    EPSILON = get_default_precision()
+
     def __init__(self, dimensions: list[str], values: list[float]):
         self._dimensions = {dimension: value for (dimension, value) in zip(dimensions, values)}
+
+    def __getitem__(self, feature: str) -> float:
+        if feature in self._dimensions.keys():
+            return self._dimensions[feature]
+        else:
+            raise FeatureNotFoundException(feature)
+
+    def __setitem__(self, key: str, value: float) -> None:
+        self._dimensions[key] = value
+
+    def __eq__(self, other: Point) -> bool:
+        return all([abs(self[dimension] - other[dimension]) < Point.EPSILON for dimension in self._dimensions])
 
     @property
     def dimensions(self) -> dict[str, float]:
@@ -71,7 +85,7 @@ class HyperCube:
         else:
             raise FeatureNotFoundException(feature)
 
-    def __setitem__(self, key, value) -> None:
+    def __setitem__(self, key: str, value: tuple[float, float] | list[float]) -> None:
         self._dimensions[key] = value
 
     def __hash__(self) -> int:
