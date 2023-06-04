@@ -17,8 +17,8 @@ from psyke.extraction.hypercubic.strategy import Strategy, FixedStrategy
 
 
 class HyperCubePredictor:
-    def __init__(self, cubes=[], output=Target.CONSTANT, normalization=None):
-        self._hypercubes = cubes
+    def __init__(self, output=Target.CONSTANT, normalization=None):
+        self._hypercubes = []
         self._output = output
         self.normalization = normalization
 
@@ -50,8 +50,8 @@ class HyperCubePredictor:
 
 
 class HyperCubeExtractor(HyperCubePredictor, PedagogicalExtractor, ABC):
-    def __init__(self, predictor, output, normalization):
-        PedagogicalExtractor.__init__(self, predictor, normalization=normalization)
+    def __init__(self, predictor, output, discretization=None, normalization=None):
+        PedagogicalExtractor.__init__(self, predictor, discretization=discretization, normalization=normalization)
         HyperCubePredictor.__init__(self, output=output, normalization=normalization)
 
     def _default_cube(self) -> HyperCube | RegressionCube | ClassificationCube:

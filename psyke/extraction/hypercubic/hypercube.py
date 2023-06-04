@@ -30,24 +30,27 @@ class Point:
 
     EPSILON = get_default_precision()
 
-    def __init__(self, dimensions: list[str], values: list[float]):
+    def __init__(self, dimensions: list[str], values: list[float | str]):
         self._dimensions = {dimension: value for (dimension, value) in zip(dimensions, values)}
 
-    def __getitem__(self, feature: str) -> float:
+    def __getitem__(self, feature: str) -> float | str:
         if feature in self._dimensions.keys():
             return self._dimensions[feature]
         else:
             raise FeatureNotFoundException(feature)
 
-    def __setitem__(self, key: str, value: float) -> None:
+    def __setitem__(self, key: str, value: float | str) -> None:
         self._dimensions[key] = value
 
     def __eq__(self, other: Point) -> bool:
         return all([abs(self[dimension] - other[dimension]) < Point.EPSILON for dimension in self._dimensions])
 
     @property
-    def dimensions(self) -> dict[str, float]:
+    def dimensions(self) -> dict[str, float | str]:
         return self._dimensions
+
+    def to_dataframe(self) -> pd.DataFrame:
+        return pd.DataFrame(data=[self.dimensions.values()], columns=list(self.dimensions.keys()))
 
 
 class HyperCube:
@@ -59,7 +62,7 @@ class HyperCube:
     INT_PRECISION = get_int_precision()
 
     def __init__(self, dimension: dict[str, tuple[float, float]] = None, limits: set[Limit] = None,
-                 output: float | LinearRegression = 0.0):
+                 output: float | LinearRegression | str = 0.0):
         self._dimensions = self._fit_dimension(dimension) if dimension is not None else {}
         self._limits = limits if limits is not None else set()
         self._output = output
@@ -101,7 +104,7 @@ class HyperCube:
         return len(self._limits)
 
     @property
-    def output(self) -> float | LinearRegression:
+    def output(self) -> float | str | LinearRegression:
         return self._output
 
     @property
@@ -128,9 +131,8 @@ class HyperCube:
     def _filter_dataframe(self, dataset: pd.DataFrame) -> pd.DataFrame:
         return dataset[self.filter_indices(dataset)]
 
-    def _zip_dimensions(self, hypercube: HyperCube) -> list[ZippedDimension]:
-        return [ZippedDimension(dimension, self[dimension], hypercube[dimension])
-                for dimension in self._dimensions.keys()]
+    def _zip_dimensions(self, other: HyperCube) -> list[ZippedDimension]:
+        return [ZippedDimension(dimension, self[dimension], other[dimension]) for dimension in self._dimensions.keys()]
 
     def add_limit(self, limit_or_feature: Limit | str, direction: str = None) -> None:
         if isinstance(limit_or_feature, Limit):
@@ -202,7 +204,7 @@ class HyperCube:
         return {k: generator.uniform(self.get_first(k), self.get_second(k)) for k in self._dimensions.keys()}
 
     @staticmethod
-    def cube_from_point(point: dict, output=None) -> GenericCube:
+    def cube_from_point(point: dict[str, float], output=None) -> GenericCube:
         if output is Target.CLASSIFICATION:
             return ClassificationCube({k: (v, v) for k, v in list(point.items())[:-1]})
         if output is Target.REGRESSION:
@@ -276,6 +278,15 @@ class HyperCube:
         new_cube.update_dimension(feature, (min(a1, a2), max(b1, b2)))
         return new_cube
 
+    def merge(self, other: HyperCube) -> HyperCube:
+        new_cube = self.copy()
+        for dimension in self.dimensions.keys():
+            new_cube = new_cube.merge_along_dimension(other, dimension)
+        return new_cube
+
+    def merge_with_point(self, other: Point) -> HyperCube:
+        return self.merge(HyperCube.cube_from_point(other.dimensions))
+
     # TODO: maybe two different methods are more readable and easier to debug
     def overlap(self, hypercubes: Iterable[HyperCube] | HyperCube) -> HyperCube | bool | None:
         if isinstance(hypercubes, Iterable):
@@ -335,8 +346,8 @@ class RegressionCube(HyperCube):
 
 
 class ClassificationCube(HyperCube):
-    def __init__(self, dimension: dict[str, tuple] = None):
-        super().__init__(dimension=dimension)
+    def __init__(self, dimension: dict[str, tuple] = None, limits: set[Limit] = None, output: str = ""):
+        super().__init__(dimension=dimension, limits=limits, output=output)
 
     def update(self, dataset: pd.DataFrame, predictor) -> None:
         filtered = self._filter_dataframe(dataset.iloc[:, :-1])
@@ -346,7 +357,7 @@ class ClassificationCube(HyperCube):
             self._diversity = 1 - sum(prediction == self.output for prediction in predictions) / len(filtered)
 
     def copy(self) -> ClassificationCube:
-        return ClassificationCube(self.dimensions.copy())
+        return ClassificationCube(self.dimensions.copy(), self._limits.copy(), self._output)
 
 
 class ClosedCube(HyperCube):

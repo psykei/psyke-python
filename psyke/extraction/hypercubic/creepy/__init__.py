@@ -13,16 +13,16 @@ from psyke.extraction.hypercubic import HyperCubeExtractor
 from psyke.utils import Target
 
 
-class CReEPy(HyperCubeExtractor, ABC):
+class CReEPy(HyperCubeExtractor):
     """
     Explanator implementing CReEPy algorithm.
     """
 
     def __init__(self, predictor, depth: int, error_threshold: float, output: Target = Target.CONSTANT,
                  gauss_components: int = 5, ranks: list[(str, float)] = [], ignore_threshold: float = 0.0,
-                 normalization=None, clustering=Clustering.exact):
+                 discretization=None, normalization=None, clustering=Clustering.exact):
         super().__init__(predictor, Target.CLASSIFICATION if isinstance(predictor, ClassifierMixin) else output,
-                         normalization)
+                         discretization, normalization)
         self.clustering = clustering(depth, error_threshold, self._output, gauss_components)
         self.ranks = ranks
         self.ignore_threshold = ignore_threshold
