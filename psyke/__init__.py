@@ -219,6 +219,15 @@ class Extractor(EvaluableModel, ABC):
                     simplify=simplify)
 
     @staticmethod
+    def divine(predictor, k: int = 5, patience: int = 15,
+             discretization: Iterable[DiscreteFeature] = None, normalization=None) -> Extractor:
+        """
+        Creates a new DiViNE extractor.
+        """
+        from psyke.extraction.hypercubic.divine import DiViNE
+        return DiViNE(predictor, k=k, patience=patience, discretization=discretization, normalization=normalization)
+
+    @staticmethod
     def iter(predictor, min_update: float = 0.1, n_points: int = 1, max_iterations: int = 600, min_examples: int = 250,
              threshold: float = 0.1, fill_gaps: bool = True, normalization: dict[str, tuple[float, float]] = None,
              output=None, seed: int = get_default_random_seed()) -> Extractor:
