@@ -10,10 +10,12 @@ from sklearn.linear_model import LinearRegression
 from tuprolog.core import Var, Struct, clause
 from tuprolog.theory import Theory, mutable_theory
 from psyke import logger, PedagogicalExtractor
-from psyke.extraction.hypercubic.hypercube import HyperCube, RegressionCube, ClassificationCube, ClosedCube
+from psyke.extraction.hypercubic.hypercube import HyperCube, RegressionCube, ClassificationCube, ClosedCube, Point, \
+    GenericCube
 from psyke.utils.logic import create_variable_list, create_head, to_var, Simplifier
 from psyke.utils import Target, get_int_precision
 from psyke.extraction.hypercubic.strategy import Strategy, FixedStrategy
+from sklearn.neighbors import BallTree
 
 
 class HyperCubePredictor:
@@ -23,12 +25,49 @@ class HyperCubePredictor:
         self.normalization = normalization
 
     def _predict(self, dataframe: pd.DataFrame) -> Iterable:
-        return np.array([self._predict_from_cubes(dict(row.to_dict())) for _, row in dataframe.iterrows()])
+        return np.array([self._predict_from_cubes(row.to_dict()) for _, row in dataframe.iterrows()])
 
-    def _predict_from_cubes(self, data: dict[str, float]) -> float | None:
-        data = {k: v for k, v in data.items()}
+    def brute_predict(self, dataframe: pd.DataFrame, criterion: str = 'corner', n: int = 2) -> Iterable:
+        predictions = self._predict(dataframe)
+        idx = [prediction is None for prediction in predictions]
+
+        tree, mapping = self._create_brute_tree(dataframe, criterion, n)
+
+        predictions[idx] = np.array([HyperCubePredictor._brute_predict_from_cubes(
+            row.to_dict(), tree, mapping
+        ) for _, row in dataframe[idx].iterrows()])
+        return predictions
+
+    @staticmethod
+    def _brute_predict_from_cubes(row: dict[str, float], tree: BallTree,
+                                  mapping: dict[int, GenericCube]) -> float | str:
+        idx = tree.query([list(row.values())], k=1)[1][0][0]
+        return HyperCubePredictor._get_cube_output(mapping[idx], row)
+
+    def _create_brute_tree(self, dataframe: pd.DataFrame,
+                           criterion: str = 'center', n: int = 2) -> (BallTree, dict[int, GenericCube]):
+        points = None
+        if criterion == 'center':
+            points = [(cube.center(), i, cube) for i, cube in enumerate(self._hypercubes)]
+        elif criterion == 'density':
+            points = [(cube.filter_dataframe(dataframe).describe().loc['mean'], i, cube)
+                      for i, cube in enumerate(self._hypercubes)]
+            points = [(Point(df.index.values, df.values), i, cube) for df, i, cube in points]
+        elif criterion == 'corner':
+            points = [(corner, cube) for cube in self._hypercubes for corner in cube.corners()]
+            points = [(point[0], i, point[1]) for i, point in enumerate(points)]
+        elif criterion == 'perimeter':
+            points = [(point, cube) for cube in self._hypercubes for point in cube.perimeter_samples(n)]
+            points = [(point[0], i, point[1]) for i, point in enumerate(points)]
+        else:
+            raise NotImplementedError("'criterion' should be chosen in ['center', 'corner', 'perimeter', 'density']")
+
+        return BallTree(pd.concat([point[0].to_dataframe() for point in points], ignore_index=True), leaf_size=2), \
+            {point[1]: point[2] for point in points}
+
+    def _predict_from_cubes(self, data: dict[str, float]) -> float | str | None:
         for cube in self._hypercubes:
-            if cube.__contains__(data):
+            if data in cube:
                 if self._output == Target.CLASSIFICATION:
                     return HyperCubePredictor._get_cube_output(cube, data)
                 else:

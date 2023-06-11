@@ -52,6 +52,9 @@ class Point:
     def to_dataframe(self) -> pd.DataFrame:
         return pd.DataFrame(data=[self.dimensions.values()], columns=list(self.dimensions.keys()))
 
+    def copy(self) -> Point:
+        return Point(list(self._dimensions.keys()), list(self._dimensions.values()))
+
 
 class HyperCube:
     """
@@ -128,7 +131,7 @@ class HyperCube:
         ds = dataset.to_numpy(copy=True)
         return np.all((v[:, 0] <= ds) & (ds < v[:, 1]), axis=1)
 
-    def _filter_dataframe(self, dataset: pd.DataFrame) -> pd.DataFrame:
+    def filter_dataframe(self, dataset: pd.DataFrame) -> pd.DataFrame:
         return dataset[self.filter_indices(dataset)]
 
     def _zip_dimensions(self, other: HyperCube) -> list[ZippedDimension]:
@@ -169,7 +172,7 @@ class HyperCube:
         return HyperCube(self.dimensions.copy(), self._limits.copy(), self.output)
 
     def count(self, dataset: pd.DataFrame) -> int:
-        return self._filter_dataframe(dataset.iloc[:, :-1]).shape[0]
+        return self.filter_dataframe(dataset.iloc[:, :-1]).shape[0]
 
     def body(self, variables: dict[str, Var], ignore: list[str], unscale=None, normalization=None) -> Iterable[Struct]:
         dimensions = dict(self.dimensions)
@@ -260,6 +263,32 @@ class HyperCube:
             Point(list(self._dimensions.keys()), values) for values in itertools.product(*self._dimensions.values())
         ]
 
+    def perimeter_samples(self, n: int = 5) -> Iterable[Point]:
+        def duplicate(point: Point, feature: str) -> Iterable[Point]:
+            new_point_a = point.copy()
+            new_point_b = point.copy()
+            new_point_a[feature] = self.get_first(feature)
+            new_point_b[feature] = self.get_second(feature)
+            return [new_point_a, new_point_b]
+
+        def split(point: Point, feature: str, n: int):
+            points = []
+            for value in np.linspace(self.get_first(feature), self.get_second(feature), n):
+                new_point = point.copy()
+                new_point[feature] = value
+                points.append(new_point)
+            return points
+
+        points = []
+        for primary in self._dimensions:
+            new_points = [Point([], [])]
+            for secondary in self._dimensions:
+                if primary != secondary:
+                    new_points = np.array([duplicate(point, secondary) for point in new_points]).flatten()
+            new_points = np.array([split(point, primary, n) for point in new_points]).flatten()
+            points = points + list(new_points)
+        return points
+
     def is_adjacent(self, cube: HyperCube) -> str | None:
         adjacent = None
         for (feature, [a1, b1]) in self._dimensions.items():
@@ -309,7 +338,7 @@ class HyperCube:
             self.update_dimension(feature, (lower, upper))
 
     def update(self, dataset: pd.DataFrame, predictor) -> None:
-        filtered = self._filter_dataframe(dataset.iloc[:, :-1])
+        filtered = self.filter_dataframe(dataset.iloc[:, :-1])
         predictions = predictor.predict(filtered)
         self._output = np.mean(predictions)
         self._diversity = np.std(predictions)
@@ -324,7 +353,7 @@ class RegressionCube(HyperCube):
         super().__init__(dimension=dimension, output=LinearRegression())
 
     def update(self, dataset: pd.DataFrame, predictor) -> None:
-        filtered = self._filter_dataframe(dataset.iloc[:, :-1])
+        filtered = self.filter_dataframe(dataset.iloc[:, :-1])
         if len(filtered > 0):
             predictions = predictor.predict(filtered)
             self._output.fit(filtered, predictions)
@@ -350,7 +379,7 @@ class ClassificationCube(HyperCube):
         super().__init__(dimension=dimension, limits=limits, output=output)
 
     def update(self, dataset: pd.DataFrame, predictor) -> None:
-        filtered = self._filter_dataframe(dataset.iloc[:, :-1])
+        filtered = self.filter_dataframe(dataset.iloc[:, :-1])
         if len(filtered > 0):
             predictions = predictor.predict(filtered)
             self._output = mode(predictions)

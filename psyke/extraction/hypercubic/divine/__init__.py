@@ -3,11 +3,10 @@ import pandas as pd
 from tuprolog.theory import Theory
 
 from psyke import Target
-from psyke.extraction.hypercubic import HyperCubeExtractor, HyperCube
+from psyke.extraction.hypercubic import HyperCubeExtractor
+from psyke.extraction.hypercubic.hypercube import Point, GenericCube, HyperCube
 
 from sklearn.neighbors import BallTree
-
-from psyke.extraction.hypercubic.hypercube import Point, GenericCube
 
 
 class DiViNE(HyperCubeExtractor):
