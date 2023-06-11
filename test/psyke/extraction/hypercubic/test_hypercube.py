@@ -162,7 +162,7 @@ class TestHypercube(AbstractTestHypercube):
         expected = (self.dataset.X >= self.x[0]) & (self.dataset.X < self.x[1]) & \
                    (self.dataset.Y >= self.y[0]) & (self.dataset.Y < self.y[1])
         expected = self.dataset[expected].iloc[:, :-1]
-        filtered = self.cube._filter_dataframe(self.dataset.iloc[:, :-1])
+        filtered = self.cube.filter_dataframe(self.dataset.iloc[:, :-1])
         self.assertTrue(all(expected == filtered))
 
     def test_update(self):

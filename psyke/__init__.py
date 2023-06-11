@@ -62,8 +62,11 @@ class EvaluableModel(object):
             ys = [inverse_mapping[y] for y in ys]
         return ys
 
-    def _predict(self, dataframe: pd.DataFrame) -> Iterable:
+    def _predict(self, dataframe: pd.DataFrame, criterion: str = 'perimeter') -> Iterable:
         raise NotImplementedError('predict')
+
+    def brute_predict(self, dataframe: pd.DataFrame, criterion: str = 'corner', n: int = 2) -> Iterable:
+        raise NotImplementedError('brute_predict')
 
     def unscale(self, values, name):
         if self.normalization is None or isinstance(values, LinearRegression):
@@ -76,9 +79,13 @@ class EvaluableModel(object):
         return values
 
     def score(self, dataframe: pd.DataFrame, predictor=None, fidelity: bool = False, completeness: bool = True,
+              brute: bool = False, criterion: str = 'corners', n: int = 2,
               task: EvaluableModel.Task = Task.CLASSIFICATION,
               scoring_function: Iterable[EvaluableModel.Score] = [ClassificationScore.ACCURACY]):
-        extracted = np.array(self.predict(dataframe.iloc[:, :-1]))
+        extracted = np.array(
+            self.predict(dataframe.iloc[:, :-1]) if not brute else
+            self.brute_predict(dataframe.iloc[:, :-1], criterion, n)
+        )
         idx = [prediction is not None for prediction in extracted]
         y_extracted = extracted[idx]
         true = [dataframe.iloc[idx, -1]]

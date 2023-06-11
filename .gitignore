@@ -160,3 +160,4 @@ dmypy.json
 dummy/
 tmp_model/
 plots/
+demo/
