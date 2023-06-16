@@ -70,6 +70,7 @@ class HyperCube:
         self._limits = limits if limits is not None else set()
         self._output = output
         self._diversity = 0.0
+        self._barycenter = Point([], [])
 
     def __contains__(self, point: dict[str, float]) -> bool:
         """
@@ -113,6 +114,10 @@ class HyperCube:
     @property
     def diversity(self) -> float:
         return self._diversity
+
+    @property
+    def barycenter(self) -> Point:
+        return self._barycenter
 
     def _fit_dimension(self, dimension: dict[str, tuple[float, float]]) -> dict[str, tuple[float, float]]:
         new_dimension: dict[str, tuple[float, float]] = {}
@@ -283,9 +288,8 @@ class HyperCube:
         for primary in self._dimensions:
             new_points = [Point([], [])]
             for secondary in self._dimensions:
-                if primary != secondary:
-                    new_points = np.array([duplicate(point, secondary) for point in new_points]).flatten()
-            new_points = np.array([split(point, primary, n) for point in new_points]).flatten()
+                new_points = np.array([duplicate(point, secondary) if primary != secondary else
+                                       split(point, primary, n) for point in new_points]).flatten()
             points = points + list(new_points)
         return points
 
@@ -342,6 +346,8 @@ class HyperCube:
         predictions = predictor.predict(filtered)
         self._output = np.mean(predictions)
         self._diversity = np.std(predictions)
+        means = filtered.describe().loc['mean']
+        self._barycenter = Point(means.index.values, means.values)
 
     # TODO: why this is not a property?
     def init_diversity(self, std: float) -> None:
@@ -358,6 +364,8 @@ class RegressionCube(HyperCube):
             predictions = predictor.predict(filtered)
             self._output.fit(filtered, predictions)
             self._diversity = (abs(self._output.predict(filtered) - predictions)).mean()
+            means = filtered.describe().loc['mean']
+            self._barycenter = Point(means.index.values, means.values)
 
     def copy(self) -> RegressionCube:
         return RegressionCube(self.dimensions.copy())
@@ -384,6 +392,8 @@ class ClassificationCube(HyperCube):
             predictions = predictor.predict(filtered)
             self._output = mode(predictions)
             self._diversity = 1 - sum(prediction == self.output for prediction in predictions) / len(filtered)
+            means = filtered.describe().loc['mean']
+            self._barycenter = Point(means.index.values, means.values)
 
     def copy(self) -> ClassificationCube:
         return ClassificationCube(self.dimensions.copy(), self._limits.copy(), self._output)

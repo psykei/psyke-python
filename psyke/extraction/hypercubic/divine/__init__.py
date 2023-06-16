@@ -39,8 +39,7 @@ class DiViNE(HyperCubeExtractor):
         return cube
 
     def __clean(self, data: pd.DataFrame) -> pd.DataFrame:
-        tree = BallTree(data.iloc[:, :-1], leaf_size=2)
-        _, idx = tree.query(data.iloc[:, :-1], k=self.k)
+        _, idx = BallTree(data.iloc[:, :-1]).query(data.iloc[:, :-1], k=self.k)
         # how many output classes are associated with the k neighbors
         count = np.array(list(map(lambda indices: len(data.iloc[indices].iloc[:, -1].unique()), idx)))
         # instances with neighbors of different classes are discarded
@@ -52,8 +51,7 @@ class DiViNE(HyperCubeExtractor):
         self._hypercubes = [cube[2] for cube in cubes]
 
     def __closest(self, data: pd.DataFrame, cube: GenericCube) -> (Point, pd.DataFrame):
-        tree = BallTree(data.iloc[:, :-1], leaf_size=2)
-        return DiViNE.__pop(data,self.vicinity_function(tree, cube))
+        return DiViNE.__pop(data,self.vicinity_function(BallTree(data.iloc[:, :-1]), cube))
 
     @staticmethod
     def __closest_to_center(tree: BallTree, cube: GenericCube):
