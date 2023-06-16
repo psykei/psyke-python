@@ -31,39 +31,34 @@ class HyperCubePredictor:
         predictions = self._predict(dataframe)
         idx = [prediction is None for prediction in predictions]
 
-        tree, mapping = self._create_brute_tree(dataframe, criterion, n)
+        tree, cubes = self._create_brute_tree(criterion, n)
 
         predictions[idx] = np.array([HyperCubePredictor._brute_predict_from_cubes(
-            row.to_dict(), tree, mapping
+            row.to_dict(), tree, cubes
         ) for _, row in dataframe[idx].iterrows()])
         return predictions
 
     @staticmethod
     def _brute_predict_from_cubes(row: dict[str, float], tree: BallTree,
-                                  mapping: dict[int, GenericCube]) -> float | str:
+                                  cubes: list[GenericCube]) -> float | str:
         idx = tree.query([list(row.values())], k=1)[1][0][0]
-        return HyperCubePredictor._get_cube_output(mapping[idx], row)
+        return HyperCubePredictor._get_cube_output(cubes[idx], row)
 
-    def _create_brute_tree(self, dataframe: pd.DataFrame,
-                           criterion: str = 'center', n: int = 2) -> (BallTree, dict[int, GenericCube]):
+    def _create_brute_tree(self, criterion: str = 'center', n: int = 2) -> (BallTree, list[GenericCube]):
         points = None
         if criterion == 'center':
-            points = [(cube.center(), i, cube) for i, cube in enumerate(self._hypercubes)]
+            points = [(cube.center(), cube) for cube in self._hypercubes]
         elif criterion == 'density':
-            points = [(cube.filter_dataframe(dataframe).describe().loc['mean'], i, cube)
-                      for i, cube in enumerate(self._hypercubes)]
-            points = [(Point(df.index.values, df.values), i, cube) for df, i, cube in points]
+            points = [(cube.barycenter, cube) for cube in self._hypercubes]
         elif criterion == 'corner':
             points = [(corner, cube) for cube in self._hypercubes for corner in cube.corners()]
-            points = [(point[0], i, point[1]) for i, point in enumerate(points)]
         elif criterion == 'perimeter':
             points = [(point, cube) for cube in self._hypercubes for point in cube.perimeter_samples(n)]
-            points = [(point[0], i, point[1]) for i, point in enumerate(points)]
         else:
             raise NotImplementedError("'criterion' should be chosen in ['center', 'corner', 'perimeter', 'density']")
 
-        return BallTree(pd.concat([point[0].to_dataframe() for point in points], ignore_index=True), leaf_size=2), \
-            {point[1]: point[2] for point in points}
+        return BallTree(pd.concat([point[0].to_dataframe() for point in points], ignore_index=True)), \
+            [point[1] for point in points]
 
     def _predict_from_cubes(self, data: dict[str, float]) -> float | str | None:
         for cube in self._hypercubes:

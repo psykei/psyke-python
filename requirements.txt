@@ -2,13 +2,14 @@ build==0.10.0
 twine==4.0.2
 numpy==1.23.5
 pandas==2.0.2
-scikit-learn==1.2.2
+scikit-learn>=1.1.1
 2ppy==0.4.0
 skl2onnx==1.14.1
 onnxruntime==1.14.1
-tensorflow==2.12.0
+tensorflow>=2.7.2
 parameterized==0.9.0
 protobuf==3.20.3
 setuptools==67.8.0
 kneed==0.8.3
 sympy==1.12
+matplotlib>=3.7.1

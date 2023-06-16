@@ -7,10 +7,75 @@ import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
 from tuprolog.solve.prolog import prolog_solver
 from tuprolog.theory import Theory, mutable_theory
-from psyke.utils.logic import data_to_struct, pretty_theory, get_in_rule, get_not_in_rule
+
+from psyke.extraction.hypercubic import HyperCubeExtractor
+from psyke.utils.logic import data_to_struct, get_in_rule, get_not_in_rule
 
 import matplotlib
-matplotlib.use('TkAgg')
+#matplotlib.use('TkAgg')
+
+
+def plot_init(xlim, ylim, xlabel, ylabel, size=(4, 3), equal=False):
+    plt.figure(figsize=size)
+    if equal:
+        plt.gca().set_aspect(1)
+    plt.xlim(xlim)
+    plt.ylim(ylim)
+    plt.gca().set_xlabel(xlabel)
+    plt.gca().set_ylabel(ylabel)
+    plt.gca().set_rasterized(True)
+
+
+def plot_point(x, y, color, marker):
+    plt.scatter(x, y, c=color, marker=marker)
+
+
+def plot_classification_samples(dataframe, classes, colors, markers, labels, loc, name, show=True):
+    marks = [Line2D([0], [0], color=c, marker=m, lw="0") for c, m in zip(colors, markers)]
+
+    for cl, c, m in zip(classes, colors, markers):
+        df = dataframe[dataframe.target == cl]
+        plot_point(df["petal length"], df["petal width"], c, m)
+
+    plt.gca().legend(marks, labels, loc=loc)
+    plt.savefig("plot/{}.pdf".format(name), dpi=500, bbox_inches='tight')
+    if show:
+        plt.show()
+
+
+def plot_boundaries(extractor: HyperCubeExtractor, x: str, y: str, colors: dict[str, str],
+                    a: float = .5, h: str = '////////', ls='-', e=.05):
+    for cube in extractor._hypercubes:
+        plt.gca().fill_between((cube[x][0] - e, cube[x][1] + e), cube[y][0] - e, cube[y][1] + e,
+                               fc='none', ec=colors[cube.output], alpha=a, hatch=h, linestyle=ls)
+
+
+def plot_perimeters(extractor: HyperCubeExtractor, x: str, y: str, colors: dict[str, str], n: int = 5,
+                    ec: str = 'r', m: str = '*', s: int = 60, z: float = 1e10, lw: float = 0.8):
+    for cube in extractor._hypercubes:
+        for corner in cube.perimeter_samples(n):
+            plt.scatter(corner[x], corner[y], c=colors[cube.output], marker=m, edgecolor=ec, s=s, zorder=z, linewidth=lw)
+
+
+def plot_centers(extractor: HyperCubeExtractor, x: str, y: str, colors: dict[str, str],
+                 ec: str = 'r', m: str = '*', s: int = 60, z: float = 1e10, lw: float = 0.8):
+    for cube in extractor._hypercubes:
+        center = cube.center()
+        plt.scatter(center[x], center[y], c=colors[cube.output], marker=m, edgecolor=ec, s=s, zorder=z, linewidth=lw)
+
+
+def plot_corners(extractor: HyperCubeExtractor, x: str, y: str, colors: dict[str, str],
+                 ec: str = 'r', m: str = '*', s: int = 60, z: float = 1e10, lw: float = 0.8):
+    for cube in extractor._hypercubes:
+        for corner in cube.corners():
+            plt.scatter(corner[x], corner[y], c=colors[cube.output], marker=m, edgecolor=ec, s=s, zorder=z, linewidth=lw)
+
+
+def plot_barycenters(extractor: HyperCubeExtractor, x: str, y: str, colors: dict[str, str],
+                 ec: str = 'r', m: str = '*', s: int = 60, z: float = 1e10, lw: float = 0.8):
+    for cube in extractor._hypercubes:
+        center = cube.barycenter
+        plt.scatter(center[x], center[y], c=colors[cube.output], marker=m, edgecolor=ec, s=s, zorder=z, linewidth=lw)
 
 
 def predict_from_theory(theory: Theory, data: pd.DataFrame) -> list[float or str]:
