@@ -95,6 +95,11 @@ class HyperCubeExtractor(HyperCubePredictor, PedagogicalExtractor, ABC):
             return RegressionCube()
         return ClassificationCube()
 
+    def _sort_cubes(self):
+        cubes = [(cube.diversity, i, cube) for i, cube in enumerate(self._hypercubes)]
+        cubes.sort()
+        self._hypercubes = [cube[2] for cube in cubes]
+
     @staticmethod
     def _create_head(dataframe: pd.DataFrame, variables: list[Var], output: float | LinearRegression) -> Struct:
         return create_head(dataframe.columns[-1], variables[:-1], output) \
