@@ -19,7 +19,7 @@ class DiViNE(HyperCubeExtractor):
         super().__init__(predictor, Target.CLASSIFICATION, discretization, normalization)
         self.k = k
         self.patience = patience
-        self.vicinity_function = DiViNE.__closest_to_center if close_to_center else DiViNE.__closest_to_corners
+        self.vicinity_function = DiViNE.closest_to_center if close_to_center else DiViNE.closest_to_corners
 
     @staticmethod
     def __pop(data: pd.DataFrame, idx: int = None) -> (Point, pd.DataFrame):
@@ -45,20 +45,15 @@ class DiViNE(HyperCubeExtractor):
         # instances with neighbors of different classes are discarded
         return data[count == 1]
 
-    def __sort_cubes(self):
-        cubes = [(cube.diversity, i, cube) for i, cube in enumerate(self._hypercubes)]
-        cubes.sort()
-        self._hypercubes = [cube[2] for cube in cubes]
-
     def __closest(self, data: pd.DataFrame, cube: GenericCube) -> (Point, pd.DataFrame):
-        return DiViNE.__pop(data,self.vicinity_function(BallTree(data.iloc[:, :-1]), cube))
+        return DiViNE.__pop(data, self.vicinity_function(BallTree(data.iloc[:, :-1]), cube))
 
     @staticmethod
-    def __closest_to_center(tree: BallTree, cube: GenericCube):
+    def closest_to_center(tree: BallTree, cube: GenericCube):
         return tree.query([list(cube.center().dimensions.values())], k=1)[1][0][-1]
 
     @staticmethod
-    def __closest_to_corners(tree: BallTree, cube: GenericCube):
+    def closest_to_corners(tree: BallTree, cube: GenericCube):
         distance, idx = tree.query([list(point.dimensions.values()) for point in cube.corners()], k=1)
         return idx[np.argmin(distance)][-1]
 
@@ -84,5 +79,5 @@ class DiViNE(HyperCubeExtractor):
                 self._hypercubes.append(cube)
             if len(discarded) > 0:
                 data = pd.concat([data] + [d.to_dataframe() for d in discarded]).reset_index(drop=True)
-        self.__sort_cubes()
+        self._sort_cubes()
         return self._create_theory(dataframe, sort)
