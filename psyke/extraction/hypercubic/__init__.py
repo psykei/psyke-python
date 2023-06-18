@@ -25,7 +25,11 @@ class HyperCubePredictor:
         self.normalization = normalization
 
     def _predict(self, dataframe: pd.DataFrame) -> Iterable:
-        return np.array([self._predict_from_cubes(row.to_dict()) for _, row in dataframe.iterrows()])
+        predictions = np.array([self._predict_from_cubes(row.to_dict()) for _, row in dataframe.iterrows()])
+        m, s = 0, 1 if self.normalization is None else self.normalization[dataframe.columns[-1]]
+        idx = [prediction is not None for prediction in predictions]
+        predictions[idx] = predictions[idx] * s + m
+        return predictions
 
     def brute_predict(self, dataframe: pd.DataFrame, criterion: str = 'corner', n: int = 2) -> Iterable:
         predictions = self._predict(dataframe)
@@ -36,7 +40,8 @@ class HyperCubePredictor:
         predictions[idx] = np.array([HyperCubePredictor._brute_predict_from_cubes(
             row.to_dict(), tree, cubes
         ) for _, row in dataframe[idx].iterrows()])
-        return predictions
+        m, s = 0, 1 if self.normalization is None else self.normalization[dataframe.columns[-1]]
+        return np.array(predictions) * s + m
 
     @staticmethod
     def _brute_predict_from_cubes(row: dict[str, float], tree: BallTree,
