@@ -25,20 +25,16 @@ class HyperCubePredictor:
         self.normalization = normalization
 
     def _predict(self, dataframe: pd.DataFrame) -> Iterable:
-        predictions = np.array([self._predict_from_cubes(row.to_dict()) for _, row in dataframe.iterrows()])
-        m, s = (0, 1) if self.normalization is None else self.normalization[list(self.normalization.keys())[-1]]
-        return np.array([None if prediction is None else prediction * s + m for prediction in predictions])
+        return np.array([self._predict_from_cubes(row.to_dict()) for _, row in dataframe.iterrows()])
 
-    def brute_predict(self, dataframe: pd.DataFrame, criterion: str = 'corner', n: int = 2) -> Iterable:
+    def _brute_predict(self, dataframe: pd.DataFrame, criterion: str = 'corner', n: int = 2) -> Iterable:
         predictions = self._predict(dataframe)
         idx = [prediction is None for prediction in predictions]
         if sum(idx) > 0:
             tree, cubes = self._create_brute_tree(criterion, n)
-            m, s = (0, 1) if self.normalization is None else self.normalization[list(self.normalization.keys())[-1]]
             predictions[idx] = np.array([HyperCubePredictor._brute_predict_from_cubes(
                 row.to_dict(), tree, cubes
-            ) * s + m for _, row in dataframe[idx].iterrows()])
-
+            ) for _, row in dataframe[idx].iterrows()])
         return np.array(predictions)
 
     @staticmethod
