@@ -85,8 +85,8 @@ class HyperCubePredictor(EvaluableModel):
 
 class HyperCubeExtractor(HyperCubePredictor, PedagogicalExtractor, ABC):
     def __init__(self, predictor, output, discretization=None, normalization=None):
-        PedagogicalExtractor.__init__(self, predictor, discretization=discretization, normalization=normalization)
         HyperCubePredictor.__init__(self, output=output, normalization=normalization)
+        PedagogicalExtractor.__init__(self, predictor, discretization=discretization, normalization=normalization)
 
     def _default_cube(self) -> HyperCube | RegressionCube | ClassificationCube:
         if self._output == Target.CONSTANT:
