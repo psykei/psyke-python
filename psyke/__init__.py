@@ -302,13 +302,13 @@ class Extractor(EvaluableModel, ABC):
     @staticmethod
     def creepy(predictor, clustering, depth: int, error_threshold: float, output: Target = Target.CONSTANT,
                gauss_components: int = 2, ranks: [(str, float)] = [], ignore_threshold: float = 0.0,
-               normalization: dict[str, tuple[float, float]] = None) -> Extractor:
+               discretization=None, normalization: dict[str, tuple[float, float]] = None) -> Extractor:
         """
         Creates a new CReEPy extractor.
         """
         from psyke.extraction.hypercubic.creepy import CReEPy
         return CReEPy(predictor, depth, error_threshold, output, gauss_components, ranks, ignore_threshold,
-                      normalization, clustering)
+                      discretization, normalization, clustering)
 
     @staticmethod
     def real(predictor, discretization=None) -> Extractor:

@@ -34,8 +34,8 @@ class COSMiK(HyperCubeExtractor):
         df.columns = dataframe.columns
         divine.extract(df)
 
-        self._hypercubes = [HyperCube(cube.dimensions) if self.output == Target.CONSTANT else
-                            RegressionCube(cube.dimensions) for cube in divine._hypercubes]
+        self._hypercubes = [HyperCube(cube.dimensions.copy()) if self.output == Target.CONSTANT else
+                            RegressionCube(cube.dimensions.copy()) for cube in divine._hypercubes]
         for cube in self._hypercubes:
             cube.update(dataframe, self.predictor)
 

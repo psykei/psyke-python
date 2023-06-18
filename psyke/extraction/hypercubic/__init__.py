@@ -114,7 +114,11 @@ class HyperCubeExtractor(HyperCubePredictor, PedagogicalExtractor, ABC):
     def _ignore_dimensions(self) -> Iterable[str]:
         return []
 
+    def __drop(self, dataframe: pd.DataFrame):
+        self._hypercubes = [cube for cube in self._hypercubes if cube.count(dataframe) > 1]
+
     def _create_theory(self, dataframe: pd.DataFrame, sort: bool = True) -> Theory:
+        self.__drop()
         new_theory = mutable_theory()
         for cube in self._hypercubes:
             logger.info(cube.output)
