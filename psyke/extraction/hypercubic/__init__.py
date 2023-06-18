@@ -27,9 +27,7 @@ class HyperCubePredictor:
     def _predict(self, dataframe: pd.DataFrame) -> Iterable:
         predictions = np.array([self._predict_from_cubes(row.to_dict()) for _, row in dataframe.iterrows()])
         m, s = 0, 1 if self.normalization is None else self.normalization[dataframe.columns[-1]]
-        idx = [prediction is not None for prediction in predictions]
-        predictions[idx] = predictions[idx] * s + m
-        return predictions
+        return np.array([None if prediction is None else prediction * s + m for prediction in predictions])
 
     def brute_predict(self, dataframe: pd.DataFrame, criterion: str = 'corner', n: int = 2) -> Iterable:
         predictions = self._predict(dataframe)
@@ -118,7 +116,7 @@ class HyperCubeExtractor(HyperCubePredictor, PedagogicalExtractor, ABC):
         self._hypercubes = [cube for cube in self._hypercubes if cube.count(dataframe) > 1]
 
     def _create_theory(self, dataframe: pd.DataFrame, sort: bool = True) -> Theory:
-        self.__drop()
+        self.__drop(dataframe)
         new_theory = mutable_theory()
         for cube in self._hypercubes:
             logger.info(cube.output)
