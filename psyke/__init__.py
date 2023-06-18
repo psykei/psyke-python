@@ -56,16 +56,25 @@ class EvaluableModel(object):
         :param mapping: for one-hot encoding.
         :return: a list of predictions.
         """
-        ys = self._predict(dataframe)
+        return self.__convert(self._predict(dataframe), mapping)
+
+    def _predict(self, dataframe: pd.DataFrame) -> Iterable:
+        raise NotImplementedError('predict')
+
+    def __convert(self, ys: Iterable, mapping: dict[str: int] = None) -> Iterable:
         if mapping is not None:
             inverse_mapping = {v: k for k, v in mapping.items()}
             ys = [inverse_mapping[y] for y in ys]
+        if self.normalization is not None:
+            m, s = self.normalization[list(self.normalization.keys())[-1]]
+            ys = [prediction if prediction is None else ys * s + m for prediction in ys]
         return ys
 
-    def _predict(self, dataframe: pd.DataFrame, criterion: str = 'perimeter') -> Iterable:
-        raise NotImplementedError('predict')
+    def brute_predict(self, dataframe: pd.DataFrame, criterion: str = 'corner', n: int = 2,
+                      mapping: dict[str: int] = None) -> Iterable:
+        return self.__convert(self._brute_predict(dataframe), mapping)
 
-    def brute_predict(self, dataframe: pd.DataFrame, criterion: str = 'corner', n: int = 2) -> Iterable:
+    def _brute_predict(self, dataframe: pd.DataFrame, criterion: str = 'corner', n: int = 2) -> Iterable:
         raise NotImplementedError('brute_predict')
 
     def unscale(self, values, name):

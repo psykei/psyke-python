@@ -77,8 +77,8 @@ class Cart(PedagogicalExtractor):
         self._cart_predictor.predictor.fit(data.iloc[:, :-1], data.iloc[:, -1])
         return self._create_theory(data, mapping, sort)
 
-    def _predict(self, data) -> Iterable:
-        return self._cart_predictor.predict(data)
+    def _predict(self, dataframe: pd.DataFrame) -> Iterable:
+        return self._cart_predictor.predict(dataframe)
 
     @property
     def n_rules(self) -> int:
