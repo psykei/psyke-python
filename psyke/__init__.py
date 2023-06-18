@@ -72,9 +72,10 @@ class EvaluableModel(object):
 
     def brute_predict(self, dataframe: pd.DataFrame, criterion: str = 'corner', n: int = 2,
                       mapping: dict[str: int] = None) -> Iterable:
-        return self.__convert(self._brute_predict(dataframe), mapping)
+        return self.__convert(self._brute_predict(dataframe, criterion, n, mapping), mapping)
 
-    def _brute_predict(self, dataframe: pd.DataFrame, criterion: str = 'corner', n: int = 2) -> Iterable:
+    def _brute_predict(self, dataframe: pd.DataFrame, criterion: str = 'corner', n: int = 2,
+                       mapping: dict[str: int] = None) -> Iterable:
         raise NotImplementedError('brute_predict')
 
     def unscale(self, values, name):

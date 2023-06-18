@@ -9,7 +9,7 @@ from sklearn.feature_selection import SelectKBest, f_regression, f_classif
 from sklearn.linear_model import LinearRegression
 from tuprolog.core import Var, Struct, clause
 from tuprolog.theory import Theory, mutable_theory
-from psyke import logger, PedagogicalExtractor
+from psyke import logger, PedagogicalExtractor, EvaluableModel
 from psyke.extraction.hypercubic.hypercube import HyperCube, RegressionCube, ClassificationCube, ClosedCube, Point, \
     GenericCube
 from psyke.utils.logic import create_variable_list, create_head, to_var, Simplifier
@@ -18,16 +18,17 @@ from psyke.extraction.hypercubic.strategy import Strategy, FixedStrategy
 from sklearn.neighbors import BallTree
 
 
-class HyperCubePredictor:
+class HyperCubePredictor(EvaluableModel):
     def __init__(self, output=Target.CONSTANT, normalization=None):
+        super().__init__(normalization)
         self._hypercubes = []
         self._output = output
-        self.normalization = normalization
 
     def _predict(self, dataframe: pd.DataFrame) -> Iterable:
         return np.array([self._predict_from_cubes(row.to_dict()) for _, row in dataframe.iterrows()])
 
-    def _brute_predict(self, dataframe: pd.DataFrame, criterion: str = 'corner', n: int = 2) -> Iterable:
+    def _brute_predict(self, dataframe: pd.DataFrame, criterion: str = 'corner', n: int = 2,
+                       mapping: dict[str: int] = None) -> Iterable:
         predictions = self._predict(dataframe)
         idx = [prediction is None for prediction in predictions]
         if sum(idx) > 0:
