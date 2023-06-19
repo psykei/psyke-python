@@ -67,7 +67,7 @@ class EvaluableModel(object):
             ys = [inverse_mapping[y] for y in ys]
         if self.normalization is not None:
             m, s = self.normalization[list(self.normalization.keys())[-1]]
-            ys = [prediction if prediction is None else ys * s + m for prediction in ys]
+            ys = [prediction if prediction is None else prediction * s + m for prediction in ys]
         return ys
 
     def brute_predict(self, dataframe: pd.DataFrame, criterion: str = 'corner', n: int = 2,
