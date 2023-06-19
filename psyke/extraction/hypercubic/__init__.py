@@ -32,10 +32,17 @@ class HyperCubePredictor(EvaluableModel):
         predictions = self._predict(dataframe)
         idx = [prediction is None for prediction in predictions]
         if sum(idx) > 0:
-            tree, cubes = self._create_brute_tree(criterion, n)
-            predictions[idx] = np.array([HyperCubePredictor._brute_predict_from_cubes(
-                row.to_dict(), tree, cubes
-            ) for _, row in dataframe[idx].iterrows()])
+            if criterion == 'default':
+                if not isinstance(self, HyperCubeExtractor):
+                    raise ValueError("'default' criterion only available for instances of HyperCubeExtractor")
+                predictions[idx] = np.array([HyperCubePredictor._get_cube_output(
+                    self._surrounding, row
+                ) for _, row in dataframe[idx].iterrows()])
+            else:
+                tree, cubes = self._create_brute_tree(criterion, n)
+                predictions[idx] = np.array([HyperCubePredictor._brute_predict_from_cubes(
+                    row.to_dict(), tree, cubes
+                ) for _, row in dataframe[idx].iterrows()])
         return np.array(predictions)
 
     @staticmethod
@@ -55,7 +62,9 @@ class HyperCubePredictor(EvaluableModel):
         elif criterion == 'perimeter':
             points = [(point, cube) for cube in self._hypercubes for point in cube.perimeter_samples(n)]
         else:
-            raise NotImplementedError("'criterion' should be chosen in ['center', 'corner', 'perimeter', 'density']")
+            raise NotImplementedError(
+                "'criterion' should be chosen in ['center', 'corner', 'perimeter', 'density', 'default']"
+            )
 
         return BallTree(pd.concat([point[0].to_dataframe() for point in points], ignore_index=True)), \
             [point[1] for point in points]
@@ -87,6 +96,7 @@ class HyperCubeExtractor(HyperCubePredictor, PedagogicalExtractor, ABC):
     def __init__(self, predictor, output, discretization=None, normalization=None):
         HyperCubePredictor.__init__(self, output=output, normalization=normalization)
         PedagogicalExtractor.__init__(self, predictor, discretization=discretization, normalization=normalization)
+        self._surrounding = None
 
     def _default_cube(self) -> HyperCube | RegressionCube | ClassificationCube:
         if self._output == Target.CONSTANT:
