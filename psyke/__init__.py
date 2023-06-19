@@ -374,6 +374,10 @@ class PedagogicalExtractor(Extractor, ABC):
         Extractor.__init__(self, predictor=predictor, discretization=discretization, normalization=normalization)
 
     def extract(self, dataframe: pd.DataFrame, mapping: dict[str: int] = None, sort: bool = True) -> Theory:
+        from psyke.extraction.hypercubic import HyperCubeExtractor, HyperCube
+        if isinstance(self, HyperCubeExtractor):
+            self._surrounding = HyperCube.create_surrounding_cube(dataframe, output=self._output)
+            self._surrounding.update(dataframe, self.predictor)
         new_y = self.predictor.predict(dataframe.iloc[:, :-1])
         if mapping is not None:
             if hasattr(new_y[0], 'shape'):

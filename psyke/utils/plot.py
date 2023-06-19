@@ -160,6 +160,7 @@ def plot_theory(theory: Theory, data: pd.DataFrame = None, output: str = 'plot.p
         pass
         # ax.text2D(0., 0.88, pretty_theory(theory, new_line=False), transform=ax.transAxes, fontsize=8)
     if isinstance(ys[0], str):
-        custom_lines = [Line2D([0], [0], marker='o', markerfacecolor=get_color(c), markersize=20, color='w') for c in classes]
+        custom_lines = [Line2D([0], [0], marker='o', markerfacecolor=get_color(c),
+                               markersize=20, color='w') for c in classes]
         ax.legend(custom_lines, classes, loc='upper left', numpoints=1, ncol=3, fontsize=18, bbox_to_anchor=(0, 0))
     plt.savefig(output, format='pdf')
