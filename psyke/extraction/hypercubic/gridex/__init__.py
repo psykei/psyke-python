@@ -17,7 +17,7 @@ class GridEx(HyperCubeExtractor):
 
     def __init__(self, predictor, grid: Grid, min_examples: int, threshold: float, normalization=None,
                  seed=get_default_random_seed()):
-        super().__init__(predictor, Target.CONSTANT, normalization)
+        super().__init__(predictor, Target.CONSTANT, normalization=normalization)
         self.grid = grid
         self.min_examples = min_examples
         self.threshold = threshold
