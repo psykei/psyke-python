@@ -375,9 +375,6 @@ class PedagogicalExtractor(Extractor, ABC):
 
     def extract(self, dataframe: pd.DataFrame, mapping: dict[str: int] = None, sort: bool = True) -> Theory:
         from psyke.extraction.hypercubic import HyperCubeExtractor, HyperCube
-        if isinstance(self, HyperCubeExtractor):
-            self._surrounding = HyperCube.create_surrounding_cube(dataframe, output=self._output)
-            self._surrounding.update(dataframe, self.predictor)
         new_y = self.predictor.predict(dataframe.iloc[:, :-1])
         if mapping is not None:
             if hasattr(new_y[0], 'shape'):
@@ -390,7 +387,11 @@ class PedagogicalExtractor(Extractor, ABC):
         new_y = pd.DataFrame(new_y).set_index(dataframe.index)
         data = dataframe.iloc[:, :-1].copy().join(new_y)
         data.columns = dataframe.columns
-        return self._extract(data, mapping, sort)
+        theory = self._extract(data, mapping, sort)
+        if isinstance(self, HyperCubeExtractor):
+            self._surrounding = HyperCube.create_surrounding_cube(dataframe, output=self._output)
+            self._surrounding.update(dataframe, self.predictor)
+        return theory
 
     def _extract(self, dataframe: pd.DataFrame, mapping: dict[str: int] = None, sort: bool = True) -> Theory:
         raise NotImplementedError('extract')
