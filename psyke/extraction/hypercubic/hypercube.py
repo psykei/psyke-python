@@ -276,6 +276,13 @@ class HyperCube:
             new_point_b[feature] = self.get_second(feature)
             return [new_point_a, new_point_b]
 
+        def remove_duplicates(points: Iterable[Point]) -> Iterable[Point]:
+            new_points = []
+            for point in points:
+                if point not in new_points:
+                    new_points.append(point)
+            return new_points
+
         def split(point: Point, feature: str, n: int):
             points = []
             for value in np.linspace(self.get_first(feature), self.get_second(feature), n):
@@ -291,7 +298,7 @@ class HyperCube:
                 new_points = np.array([duplicate(point, secondary) if primary != secondary else
                                        split(point, primary, n) for point in new_points]).flatten()
             points = points + list(new_points)
-        return points
+        return remove_duplicates(points)
 
     def is_adjacent(self, cube: HyperCube) -> str | None:
         adjacent = None
