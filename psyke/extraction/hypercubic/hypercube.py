@@ -285,7 +285,8 @@ class HyperCube:
 
         def split(point: Point, feature: str, n: int):
             points = []
-            for value in np.linspace(self.get_first(feature), self.get_second(feature), n):
+            a, b = self.get_first(feature), self.get_second(feature)
+            for value in np.linspace(a, b, n) if n > 1 else [(a + b) / 2]:
                 new_point = point.copy()
                 new_point[feature] = value
                 points.append(new_point)
