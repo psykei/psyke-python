@@ -10,5 +10,5 @@ tensorflow==2.13.0
 parameterized==0.9.0
 protobuf==4.23.4
 setuptools==68.0.0
-kneed==0.8.3
+kneed==0.8.5
 sympy==1.12
