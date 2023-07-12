@@ -54,7 +54,7 @@ class HyperCubePredictor(EvaluableModel):
     def _create_brute_tree(self, criterion: str = 'center', n: int = 2) -> (BallTree, list[GenericCube]):
         points = None
         if criterion == 'center':
-            points = [(cube.center(), cube) for cube in self._hypercubes]
+            points = [(cube.center, cube) for cube in self._hypercubes]
         elif criterion == 'density':
             points = [(cube.barycenter, cube) for cube in self._hypercubes]
         elif criterion == 'corner':
