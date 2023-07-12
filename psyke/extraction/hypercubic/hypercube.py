@@ -259,6 +259,7 @@ class HyperCube:
             lambda a, b: a + b, [(dimension[1] - dimension[0]) ** 2 for dimension in self._dimensions.values()], 0
         ) ** 0.5
 
+    @property
     def center(self) -> Point:
         return Point(list(self._dimensions.keys()),
                      [(interval[0] + interval[1]) / 2 for interval in self._dimensions.values()])

@@ -50,7 +50,7 @@ class DiViNE(HyperCubeExtractor):
 
     @staticmethod
     def closest_to_center(tree: BallTree, cube: GenericCube):
-        return tree.query([list(cube.center().dimensions.values())], k=1)[1][0][-1]
+        return tree.query([list(cube.center.dimensions.values())], k=1)[1][0][-1]
 
     @staticmethod
     def closest_to_corners(tree: BallTree, cube: GenericCube):

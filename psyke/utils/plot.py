@@ -60,7 +60,7 @@ def plot_perimeters(extractor: HyperCubeExtractor, x: str, y: str, colors: dict[
 def plot_centers(extractor: HyperCubeExtractor, x: str, y: str, colors: dict[str, str],
                  ec: str = 'r', m: str = '*', s: int = 60, z: float = 1e10, lw: float = 0.8):
     for cube in extractor._hypercubes:
-        center = cube.center()
+        center = cube.center
         plt.scatter(center[x], center[y], c=colors[cube.output], marker=m, edgecolor=ec, s=s, zorder=z, linewidth=lw)
 
 
