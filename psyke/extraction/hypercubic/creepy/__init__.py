@@ -11,6 +11,7 @@ from psyke import Clustering
 from psyke.clustering import HyperCubeClustering
 from psyke.extraction.hypercubic import HyperCubeExtractor
 from psyke.utils import Target
+from psyke.utils.logic import last_in_body
 
 
 class CReEPy(HyperCubeExtractor):
@@ -40,7 +41,7 @@ class CReEPy(HyperCubeExtractor):
         last_clause = list(theory.clauses)[-1]
         theory.retract(last_clause)
         theory.assertZ(clause(
-            last_clause.head, [list(last_clause.body)[-1]] if self._output is Target.REGRESSION else []))
+            last_clause.head, [last_in_body(last_clause.body)] if self._output is Target.REGRESSION else []))
         last_cube = self._hypercubes[-1]
         for dimension in last_cube.dimensions.keys():
             last_cube[dimension] = [-np.inf, np.inf]
