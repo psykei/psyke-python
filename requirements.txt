@@ -1,6 +1,7 @@
 build==0.10.0
 twine==4.0.2
 numpy==1.23.5
+<<<<<<< HEAD
 pandas==2.0.3
 scikit-learn==1.2.2
 2ppy==0.4.0
@@ -12,3 +13,17 @@ protobuf==4.23.4
 setuptools==68.0.0
 kneed==0.8.5
 sympy==1.12
+=======
+pandas==2.0.2
+scikit-learn>=1.1.1
+2ppy==0.4.0
+skl2onnx==1.14.1
+onnxruntime==1.14.1
+tensorflow>=2.7.2
+parameterized==0.9.0
+protobuf==3.20.3
+setuptools==67.8.0
+kneed==0.8.3
+sympy==1.12
+matplotlib>=3.7.1
+>>>>>>> c548b86dbcf073c41a9a48f4af3d989a53ed7fce
