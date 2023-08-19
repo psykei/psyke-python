@@ -9,6 +9,6 @@ onnxruntime==1.15.1
 tensorflow==2.13.0
 parameterized==0.9.0
 protobuf==4.24.1
-setuptools==68.0.0
+setuptools==68.1.2
 kneed==0.8.5
 sympy==1.12
