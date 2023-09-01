@@ -1,4 +1,4 @@
-build==0.10.0
+build==1.0.0
 twine==4.0.2
 numpy==1.23.5
 pandas==2.1.0
