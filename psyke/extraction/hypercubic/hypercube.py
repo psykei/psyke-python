@@ -269,6 +269,17 @@ class HyperCube:
             Point(list(self._dimensions.keys()), values) for values in itertools.product(*self._dimensions.values())
         ]
 
+    def surface_distance(self, point: Point) -> float:
+        s = 0
+        for d in self.dimensions.keys():
+            lower, upper = self[d]
+            p = point[d]
+            if p > upper:
+                s += (p - upper)**2
+            elif p < lower:
+                s += (lower - p)**2
+        return s**0.5
+
     def perimeter_samples(self, n: int = 5) -> Iterable[Point]:
         def duplicate(point: Point, feature: str) -> Iterable[Point]:
             new_point_a = point.copy()

@@ -38,6 +38,11 @@ class HyperCubePredictor(EvaluableModel):
                 predictions[idx] = np.array([HyperCubePredictor._get_cube_output(
                     self._surrounding, row
                 ) for _, row in dataframe[idx].iterrows()])
+            elif criterion == 'surface':
+                if not isinstance(self, HyperCubeExtractor):
+                    raise ValueError("'surface' criterion only available for instances of HyperCubeExtractor")
+                predictions[idx] = np.array([HyperCubePredictor._get_cube_output(self._brute_predict_surface(row), row)
+                                             for _, row in dataframe[idx].iterrows()])
             else:
                 tree, cubes = self._create_brute_tree(criterion, n)
                 predictions[idx] = np.array([HyperCubePredictor._brute_predict_from_cubes(
@@ -51,20 +56,24 @@ class HyperCubePredictor(EvaluableModel):
         idx = tree.query([list(row.values())], k=1)[1][0][0]
         return HyperCubePredictor._get_cube_output(cubes[idx], row)
 
+    def _brute_predict_surface(self, row: dict[str, float]) -> GenericCube:
+        distances = [(
+            cube.surface_distance(Point(list(row.keys()), list(row.values))), cube.volume(), cube
+        ) for cube in self._hypercubes]
+        return min(distances)[-1]
+
     def _create_brute_tree(self, criterion: str = 'center', n: int = 2) -> (BallTree, list[GenericCube]):
-        points = None
-        if criterion == 'center':
-            points = [(cube.center, cube) for cube in self._hypercubes]
-        elif criterion == 'density':
-            points = [(cube.barycenter, cube) for cube in self._hypercubes]
-        elif criterion == 'corner':
-            points = [(corner, cube) for cube in self._hypercubes for corner in cube.corners()]
-        elif criterion == 'perimeter':
-            points = [(point, cube) for cube in self._hypercubes for point in cube.perimeter_samples(n)]
-        else:
+        admissible_criteria = ['surface', 'center', 'corner', 'perimeter', 'density', 'default']
+        if criterion not in admissible_criteria:
             raise NotImplementedError(
-                "'criterion' should be chosen in ['center', 'corner', 'perimeter', 'density', 'default']"
+                "'criterion' should be chosen in " + str(admissible_criteria)
             )
+
+        points = [(cube.center, cube) for cube in self._hypercubes] if criterion == 'center' else \
+            [(cube.barycenter, cube) for cube in self._hypercubes] if criterion == 'density' else \
+            [(corner, cube) for cube in self._hypercubes for corner in cube.corners()] if criterion == 'corner' else \
+            [(point, cube) for cube in self._hypercubes for point in cube.perimeter_samples(n)] \
+            if criterion == 'perimeter' else None
 
         return BallTree(pd.concat([point[0].to_dataframe() for point in points], ignore_index=True)), \
             [point[1] for point in points]

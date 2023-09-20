@@ -50,6 +50,12 @@ def plot_boundaries(extractor: HyperCubeExtractor, x: str, y: str, colors: dict[
                                fc='none', ec=colors[cube.output], alpha=a, hatch=h, linestyle=ls)
 
 
+def plot_surfaces(extractor: HyperCubeExtractor, x: str, y: str, colors: dict[str, str], ec='r', e=.05):
+    for cube in extractor._hypercubes:
+        plt.gca().fill_between((cube[x][0] - e, cube[x][1] + e), cube[y][0] - e, cube[y][1] + e,
+                               fc='none', ec=ec)
+
+
 def plot_perimeters(extractor: HyperCubeExtractor, x: str, y: str, colors: dict[str, str], n: int = 5,
                     ec: str = 'r', m: str = '*', s: int = 60, z: float = 1e10, lw: float = 0.8):
     for cube in extractor._hypercubes:
