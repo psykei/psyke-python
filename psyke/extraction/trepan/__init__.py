@@ -116,7 +116,7 @@ class Trepan(PedagogicalExtractor):
                     continue
             if not skip:
                 return Trepan._internal_predict(x, child, categories)
-        return node.dominant  # Alternatively node.dominant index in categories
+        return node.dominant
 
     def _optimize(self) -> None:
         n, nodes = 0, [self._root]
