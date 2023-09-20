@@ -30,24 +30,30 @@ class Point:
 
     EPSILON = get_default_precision()
 
-    def __init__(self, dimensions: list[str], values: list[float]):
+    def __init__(self, dimensions: list[str], values: list[float | str]):
         self._dimensions = {dimension: value for (dimension, value) in zip(dimensions, values)}
 
-    def __getitem__(self, feature: str) -> float:
+    def __getitem__(self, feature: str) -> float | str:
         if feature in self._dimensions.keys():
             return self._dimensions[feature]
         else:
             raise FeatureNotFoundException(feature)
 
-    def __setitem__(self, key: str, value: float) -> None:
+    def __setitem__(self, key: str, value: float | str) -> None:
         self._dimensions[key] = value
 
     def __eq__(self, other: Point) -> bool:
         return all([abs(self[dimension] - other[dimension]) < Point.EPSILON for dimension in self._dimensions])
 
     @property
-    def dimensions(self) -> dict[str, float]:
+    def dimensions(self) -> dict[str, float | str]:
         return self._dimensions
+
+    def to_dataframe(self) -> pd.DataFrame:
+        return pd.DataFrame(data=[self.dimensions.values()], columns=list(self.dimensions.keys()))
+
+    def copy(self) -> Point:
+        return Point(list(self._dimensions.keys()), list(self._dimensions.values()))
 
 
 class HyperCube:
@@ -59,11 +65,12 @@ class HyperCube:
     INT_PRECISION = get_int_precision()
 
     def __init__(self, dimension: dict[str, tuple[float, float]] = None, limits: set[Limit] = None,
-                 output: float | LinearRegression = 0.0):
+                 output: float | LinearRegression | str = 0.0):
         self._dimensions = self._fit_dimension(dimension) if dimension is not None else {}
         self._limits = limits if limits is not None else set()
         self._output = output
         self._diversity = 0.0
+        self._barycenter = Point([], [])
 
     def __contains__(self, point: dict[str, float]) -> bool:
         """
@@ -101,12 +108,16 @@ class HyperCube:
         return len(self._limits)
 
     @property
-    def output(self) -> float | LinearRegression:
+    def output(self) -> float | str | LinearRegression:
         return self._output
 
     @property
     def diversity(self) -> float:
         return self._diversity
+
+    @property
+    def barycenter(self) -> Point:
+        return self._barycenter
 
     def _fit_dimension(self, dimension: dict[str, tuple[float, float]]) -> dict[str, tuple[float, float]]:
         new_dimension: dict[str, tuple[float, float]] = {}
@@ -125,12 +136,11 @@ class HyperCube:
         ds = dataset.to_numpy(copy=True)
         return np.all((v[:, 0] <= ds) & (ds < v[:, 1]), axis=1)
 
-    def _filter_dataframe(self, dataset: pd.DataFrame) -> pd.DataFrame:
+    def filter_dataframe(self, dataset: pd.DataFrame) -> pd.DataFrame:
         return dataset[self.filter_indices(dataset)]
 
-    def _zip_dimensions(self, hypercube: HyperCube) -> list[ZippedDimension]:
-        return [ZippedDimension(dimension, self[dimension], hypercube[dimension])
-                for dimension in self._dimensions.keys()]
+    def _zip_dimensions(self, other: HyperCube) -> list[ZippedDimension]:
+        return [ZippedDimension(dimension, self[dimension], other[dimension]) for dimension in self._dimensions.keys()]
 
     def add_limit(self, limit_or_feature: Limit | str, direction: str = None) -> None:
         if isinstance(limit_or_feature, Limit):
@@ -167,7 +177,7 @@ class HyperCube:
         return HyperCube(self.dimensions.copy(), self._limits.copy(), self.output)
 
     def count(self, dataset: pd.DataFrame) -> int:
-        return self._filter_dataframe(dataset.iloc[:, :-1]).shape[0]
+        return self.filter_dataframe(dataset.iloc[:, :-1]).shape[0]
 
     def body(self, variables: dict[str, Var], ignore: list[str], unscale=None, normalization=None) -> Iterable[Struct]:
         dimensions = dict(self.dimensions)
@@ -202,7 +212,7 @@ class HyperCube:
         return {k: generator.uniform(self.get_first(k), self.get_second(k)) for k in self._dimensions.keys()}
 
     @staticmethod
-    def cube_from_point(point: dict, output=None) -> GenericCube:
+    def cube_from_point(point: dict[str, float], output=None) -> GenericCube:
         if output is Target.CLASSIFICATION:
             return ClassificationCube({k: (v, v) for k, v in list(point.items())[:-1]})
         if output is Target.REGRESSION:
@@ -249,6 +259,7 @@ class HyperCube:
             lambda a, b: a + b, [(dimension[1] - dimension[0]) ** 2 for dimension in self._dimensions.values()], 0
         ) ** 0.5
 
+    @property
     def center(self) -> Point:
         return Point(list(self._dimensions.keys()),
                      [(interval[0] + interval[1]) / 2 for interval in self._dimensions.values()])
@@ -257,6 +268,50 @@ class HyperCube:
         return [
             Point(list(self._dimensions.keys()), values) for values in itertools.product(*self._dimensions.values())
         ]
+
+    def surface_distance(self, point: Point) -> float:
+        s = 0
+        for d in self.dimensions.keys():
+            lower, upper = self[d]
+            p = point[d]
+            if p > upper:
+                s += (p - upper)**2
+            elif p < lower:
+                s += (lower - p)**2
+        return s**0.5
+
+    def perimeter_samples(self, n: int = 5) -> Iterable[Point]:
+        def duplicate(point: Point, feature: str) -> Iterable[Point]:
+            new_point_a = point.copy()
+            new_point_b = point.copy()
+            new_point_a[feature] = self.get_first(feature)
+            new_point_b[feature] = self.get_second(feature)
+            return [new_point_a, new_point_b]
+
+        def remove_duplicates(points: Iterable[Point]) -> Iterable[Point]:
+            new_points = []
+            for point in points:
+                if point not in new_points:
+                    new_points.append(point)
+            return new_points
+
+        def split(point: Point, feature: str, n: int):
+            points = []
+            a, b = self.get_first(feature), self.get_second(feature)
+            for value in np.linspace(a, b, n) if n > 1 else [(a + b) / 2]:
+                new_point = point.copy()
+                new_point[feature] = value
+                points.append(new_point)
+            return points
+
+        points = []
+        for primary in self._dimensions:
+            new_points = [Point([], [])]
+            for secondary in self._dimensions:
+                new_points = np.array([duplicate(point, secondary) if primary != secondary else
+                                       split(point, primary, n) for point in new_points]).flatten()
+            points = points + list(new_points)
+        return remove_duplicates(points)
 
     def is_adjacent(self, cube: HyperCube) -> str | None:
         adjacent = None
@@ -275,6 +330,15 @@ class HyperCube:
         (a2, b2) = cube[feature]
         new_cube.update_dimension(feature, (min(a1, a2), max(b1, b2)))
         return new_cube
+
+    def merge(self, other: HyperCube) -> HyperCube:
+        new_cube = self.copy()
+        for dimension in self.dimensions.keys():
+            new_cube = new_cube.merge_along_dimension(other, dimension)
+        return new_cube
+
+    def merge_with_point(self, other: Point) -> HyperCube:
+        return self.merge(HyperCube.cube_from_point(other.dimensions))
 
     # TODO: maybe two different methods are more readable and easier to debug
     def overlap(self, hypercubes: Iterable[HyperCube] | HyperCube) -> HyperCube | bool | None:
@@ -298,10 +362,12 @@ class HyperCube:
             self.update_dimension(feature, (lower, upper))
 
     def update(self, dataset: pd.DataFrame, predictor) -> None:
-        filtered = self._filter_dataframe(dataset.iloc[:, :-1])
+        filtered = self.filter_dataframe(dataset.iloc[:, :-1])
         predictions = predictor.predict(filtered)
         self._output = np.mean(predictions)
         self._diversity = np.std(predictions)
+        means = filtered.describe().loc['mean']
+        self._barycenter = Point(means.index.values, means.values)
 
     # TODO: why this is not a property?
     def init_diversity(self, std: float) -> None:
@@ -313,40 +379,45 @@ class RegressionCube(HyperCube):
         super().__init__(dimension=dimension, output=LinearRegression())
 
     def update(self, dataset: pd.DataFrame, predictor) -> None:
-        filtered = self._filter_dataframe(dataset.iloc[:, :-1])
+        filtered = self.filter_dataframe(dataset.iloc[:, :-1])
         if len(filtered > 0):
             predictions = predictor.predict(filtered)
             self._output.fit(filtered, predictions)
             self._diversity = (abs(self._output.predict(filtered) - predictions)).mean()
+            means = filtered.describe().loc['mean']
+            self._barycenter = Point(means.index.values, means.values)
 
     def copy(self) -> RegressionCube:
         return RegressionCube(self.dimensions.copy())
 
     def body(self, variables: dict[str, Var], ignore: list[str], unscale=None, normalization=None) -> Iterable[Struct]:
-        intercept = self.output.intercept_ if normalization is None else \
-            unscale(sum([-self.output.coef_[i] * normalization[name][0] / normalization[name][1] for i, name in
-                         enumerate(self.dimensions.keys())], self.output.intercept_), list(normalization.keys())[-1])
-        coefs = self.output.coef_ if normalization is None else \
-            [self.output.coef_[i] / normalization[name][1] for i, name in enumerate(self.dimensions.keys())]
+        intercept = self.output.intercept_ if normalization is None else unscale(sum(
+            [-self.output.coef_[i] * normalization[name][0] / normalization[name][1] for i, name in
+             enumerate(self.dimensions.keys())], self.output.intercept_), list(normalization.keys())[-1])
+        coefs = self.output.coef_ if normalization is None else [
+            self.output.coef_[i] / normalization[name][1] * normalization[list(normalization.keys())[-1]][1] for
+            i, name in enumerate(self.dimensions.keys())
+        ]
         return list(super().body(variables, ignore, unscale, normalization)) + [linear_function_creator(
-            list(variables.values()), [to_rounded_real(v) for v in coefs],
-            to_rounded_real(intercept)
+            list(variables.values()), [to_rounded_real(v) for v in coefs], to_rounded_real(intercept)
         )]
 
 
 class ClassificationCube(HyperCube):
-    def __init__(self, dimension: dict[str, tuple] = None):
-        super().__init__(dimension=dimension)
+    def __init__(self, dimension: dict[str, tuple] = None, limits: set[Limit] = None, output: str = ""):
+        super().__init__(dimension=dimension, limits=limits, output=output)
 
     def update(self, dataset: pd.DataFrame, predictor) -> None:
-        filtered = self._filter_dataframe(dataset.iloc[:, :-1])
+        filtered = self.filter_dataframe(dataset.iloc[:, :-1])
         if len(filtered > 0):
             predictions = predictor.predict(filtered)
             self._output = mode(predictions)
             self._diversity = 1 - sum(prediction == self.output for prediction in predictions) / len(filtered)
+            means = filtered.describe().loc['mean']
+            self._barycenter = Point(means.index.values, means.values)
 
     def copy(self) -> ClassificationCube:
-        return ClassificationCube(self.dimensions.copy())
+        return ClassificationCube(self.dimensions.copy(), self._limits.copy(), self._output)
 
 
 class ClosedCube(HyperCube):

@@ -4,10 +4,10 @@ from enum import Enum
 from psyke import Extractor
 from psyke.extraction.hypercubic import Grid, FeatureRanker
 from psyke.extraction.hypercubic.strategy import AdaptiveStrategy, FixedStrategy
-from psyke.tuning import Objective, Optimizer
+from psyke.tuning import Objective, GridOptimizer
 
 
-class PEDRO(Optimizer):
+class PEDRO(GridOptimizer):
     class Algorithm(Enum):
         GRIDEX = 1,
         GRIDREX = 2
@@ -71,7 +71,7 @@ class PEDRO(Optimizer):
         for iterations in range(self.max_depth):
             grid = Grid(iterations + 1, strategy)
             p = self.__search_threshold(grid, critical, max_partitions)
-            b = Optimizer._best(p)[1]
+            b = GridOptimizer._best(p)[1]
             print()
             improvement = self._depth_improvement(
                 [best[0], best[1]], [b[0], b[1]]

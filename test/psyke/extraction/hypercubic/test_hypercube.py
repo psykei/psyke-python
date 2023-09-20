@@ -162,7 +162,7 @@ class TestHypercube(AbstractTestHypercube):
         expected = (self.dataset.X >= self.x[0]) & (self.dataset.X < self.x[1]) & \
                    (self.dataset.Y >= self.y[0]) & (self.dataset.Y < self.y[1])
         expected = self.dataset[expected].iloc[:, :-1]
-        filtered = self.cube._filter_dataframe(self.dataset.iloc[:, :-1])
+        filtered = self.cube.filter_dataframe(self.dataset.iloc[:, :-1])
         self.assertTrue(all(expected == filtered))
 
     def test_update(self):
@@ -225,8 +225,8 @@ class TestHypercube(AbstractTestHypercube):
         self.assertEqual(self.cube.diagonal(), ((self.x[1] - self.x[0])**2 + (self.y[1] - self.y[0])**2)**0.5)
 
     def test_center(self):
-        self.assertEqual(self.cube.center(), Point(list(self.dimensions.keys()),
-                                                   [(val[0] + val[1]) / 2 for val in self.dimensions.values()]))
+        self.assertEqual(self.cube.center, Point(list(self.dimensions.keys()),
+                                                 [(val[0] + val[1]) / 2 for val in self.dimensions.values()]))
 
     def test_corners(self):
         self.assertEqual(self.cube.corners(), [

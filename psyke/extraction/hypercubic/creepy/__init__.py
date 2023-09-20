@@ -11,18 +11,19 @@ from psyke import Clustering
 from psyke.clustering import HyperCubeClustering
 from psyke.extraction.hypercubic import HyperCubeExtractor
 from psyke.utils import Target
+from psyke.utils.logic import last_in_body
 
 
-class CReEPy(HyperCubeExtractor, ABC):
+class CReEPy(HyperCubeExtractor):
     """
     Explanator implementing CReEPy algorithm.
     """
 
     def __init__(self, predictor, depth: int, error_threshold: float, output: Target = Target.CONSTANT,
                  gauss_components: int = 5, ranks: list[(str, float)] = [], ignore_threshold: float = 0.0,
-                 normalization=None, clustering=Clustering.exact):
+                 discretization=None, normalization=None, clustering=Clustering.exact):
         super().__init__(predictor, Target.CLASSIFICATION if isinstance(predictor, ClassifierMixin) else output,
-                         normalization)
+                         discretization, normalization)
         self.clustering = clustering(depth, error_threshold, self._output, gauss_components)
         self.ranks = ranks
         self.ignore_threshold = ignore_threshold
@@ -40,7 +41,7 @@ class CReEPy(HyperCubeExtractor, ABC):
         last_clause = list(theory.clauses)[-1]
         theory.retract(last_clause)
         theory.assertZ(clause(
-            last_clause.head, [list(last_clause.body)[-1]] if self._output is Target.REGRESSION else []))
+            last_clause.head, [last_in_body(last_clause.body)] if self._output is Target.REGRESSION else []))
         last_cube = self._hypercubes[-1]
         for dimension in last_cube.dimensions.keys():
             last_cube[dimension] = [-np.inf, np.inf]

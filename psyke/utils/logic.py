@@ -134,6 +134,10 @@ def create_variable_list(features: list[DiscreteFeature], dataset: pd.DataFrame 
     return values
 
 
+def last_in_body(body: Struct) -> Struct:
+    return body.args[-1] if body.args[-1].functor == 'is' else last_in_body(body.args[-1])
+
+
 def create_head(functor: str, variables: Iterable[Var], output) -> Struct:
     if isinstance(output, Var):
         variables += [output]

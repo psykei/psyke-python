@@ -56,14 +56,27 @@ class EvaluableModel(object):
         :param mapping: for one-hot encoding.
         :return: a list of predictions.
         """
-        ys = self._predict(dataframe)
-        if mapping is not None:
-            inverse_mapping = {v: k for k, v in mapping.items()}
-            ys = [inverse_mapping[y] for y in ys]
-        return ys
+        return self.__convert(self._predict(dataframe), mapping)
 
     def _predict(self, dataframe: pd.DataFrame) -> Iterable:
         raise NotImplementedError('predict')
+
+    def __convert(self, ys: Iterable, mapping: dict[str: int] = None) -> Iterable:
+        if mapping is not None:
+            inverse_mapping = {v: k for k, v in mapping.items()}
+            ys = [inverse_mapping[y] for y in ys]
+        if self.normalization is not None:
+            m, s = self.normalization[list(self.normalization.keys())[-1]]
+            ys = [prediction if prediction is None else prediction * s + m for prediction in ys]
+        return ys
+
+    def brute_predict(self, dataframe: pd.DataFrame, criterion: str = 'corner', n: int = 2,
+                      mapping: dict[str: int] = None) -> Iterable:
+        return self.__convert(self._brute_predict(dataframe, criterion, n, mapping), mapping)
+
+    def _brute_predict(self, dataframe: pd.DataFrame, criterion: str = 'corner', n: int = 2,
+                       mapping: dict[str: int] = None) -> Iterable:
+        raise NotImplementedError('brute_predict')
 
     def unscale(self, values, name):
         if self.normalization is None or isinstance(values, LinearRegression):
@@ -76,9 +89,13 @@ class EvaluableModel(object):
         return values
 
     def score(self, dataframe: pd.DataFrame, predictor=None, fidelity: bool = False, completeness: bool = True,
+              brute: bool = False, criterion: str = 'corners', n: int = 2,
               task: EvaluableModel.Task = Task.CLASSIFICATION,
               scoring_function: Iterable[EvaluableModel.Score] = [ClassificationScore.ACCURACY]):
-        extracted = np.array(self.predict(dataframe.iloc[:, :-1]))
+        extracted = np.array(
+            self.predict(dataframe.iloc[:, :-1]) if not brute else
+            self.brute_predict(dataframe.iloc[:, :-1], criterion, n)
+        )
         idx = [prediction is not None for prediction in extracted]
         y_extracted = extracted[idx]
         true = [dataframe.iloc[idx, -1]]
@@ -153,59 +170,81 @@ class Extractor(EvaluableModel, ABC):
         """
         raise NotImplementedError('extract')
 
-    def mae(self, dataframe: pd.DataFrame, predictor=None) -> float:
+    def mae(self, dataframe: pd.DataFrame, predictor=None, brute: bool = False, criterion: str = 'center',
+            n: int = 3) -> float:
         """
         Calculates the predictions' MAE w.r.t. the instances given as input.
 
         :param dataframe: is the set of instances to be used to calculate the mean absolute error.
         :param predictor: if provided, its predictions on the dataframe are taken instead of the dataframe instances.
+        :param brute: if True, a brute prediction is executed.
+        :param criterion: creterion for brute prediction.
+        :param n: number of points for brute prediction with 'perimeter' criterion.
         :return: the mean absolute error (MAE) of the predictions.
         """
-        return self.score(dataframe, predictor, predictor is not None, False, Extractor.Task.REGRESSION,
-                          [Extractor.RegressionScore.MAE])[Extractor.RegressionScore.MAE][-1]
+        return self.score(dataframe, predictor, predictor is not None, False, brute, criterion, n,
+                          Extractor.Task.REGRESSION, [Extractor.RegressionScore.MAE])[Extractor.RegressionScore.MAE][-1]
 
-    def mse(self, dataframe: pd.DataFrame, predictor=None) -> float:
+    def mse(self, dataframe: pd.DataFrame, predictor=None, brute: bool = False, criterion: str = 'center',
+            n: int = 3) -> float:
         """
         Calculates the predictions' MSE w.r.t. the instances given as input.
 
         :param dataframe: is the set of instances to be used to calculate the mean squared error.
         :param predictor: if provided, its predictions on the dataframe are taken instead of the dataframe instances.
+        :param brute: if True, a brute prediction is executed.
+        :param criterion: creterion for brute prediction.
+        :param n: number of points for brute prediction with 'perimeter' criterion.
         :return: the mean squared error (MSE) of the predictions.
         """
-        return self.score(dataframe, predictor, predictor is not None, False, Extractor.Task.REGRESSION,
-                          [Extractor.RegressionScore.MSE])[Extractor.RegressionScore.MSE][-1]
+        return self.score(dataframe, predictor, predictor is not None, False, brute, criterion, n,
+                          Extractor.Task.REGRESSION, [Extractor.RegressionScore.MSE])[Extractor.RegressionScore.MSE][-1]
 
-    def r2(self, dataframe: pd.DataFrame, predictor=None) -> float:
+    def r2(self, dataframe: pd.DataFrame, predictor=None, brute: bool = False, criterion: str = 'center',
+            n: int = 3) -> float:
         """
         Calculates the predictions' R2 score w.r.t. the instances given as input.
 
         :param dataframe: is the set of instances to be used to calculate the R2 score.
         :param predictor: if provided, its predictions on the dataframe are taken instead of the dataframe instances.
+        :param brute: if True, a brute prediction is executed.
+        :param criterion: creterion for brute prediction.
+        :param n: number of points for brute prediction with 'perimeter' criterion.
         :return: the R2 score of the predictions.
         """
-        return self.score(dataframe, predictor, predictor is not None, False,
+        return self.score(dataframe, predictor, predictor is not None, False, brute, criterion, n,
                           Extractor.Task.REGRESSION, [Extractor.RegressionScore.R2])[Extractor.RegressionScore.R2][-1]
 
-    def accuracy(self, dataframe: pd.DataFrame, predictor=None) -> float:
+    def accuracy(self, dataframe: pd.DataFrame, predictor=None, brute: bool = False, criterion: str = 'center',
+            n: int = 3) -> float:
         """
         Calculates the predictions' accuracy classification score w.r.t. the instances given as input.
 
         :param dataframe: is the set of instances to be used to calculate the accuracy classification score.
         :param predictor: if provided, its predictions on the dataframe are taken instead of the dataframe instances.
+        :param brute: if True, a brute prediction is executed.
+        :param criterion: creterion for brute prediction.
+        :param n: number of points for brute prediction with 'perimeter' criterion.
         :return: the accuracy classification score of the predictions.
         """
-        return self.score(dataframe, predictor, predictor is not None, False, Extractor.Task.CLASSIFICATION,
+        return self.score(dataframe, predictor, predictor is not None, False, brute, criterion, n,
+                          Extractor.Task.CLASSIFICATION,
                           [Extractor.ClassificationScore.ACCURACY])[Extractor.ClassificationScore.ACCURACY][-1]
 
-    def f1(self, dataframe: pd.DataFrame, predictor=None) -> float:
+    def f1(self, dataframe: pd.DataFrame, predictor=None, brute: bool = False, criterion: str = 'center',
+            n: int = 3) -> float:
         """
         Calculates the predictions' F1 score w.r.t. the instances given as input.
 
         :param dataframe: is the set of instances to be used to calculate the F1 score.
         :param predictor: if provided, its predictions on the dataframe are taken instead of the dataframe instances.
+        :param brute: if True, a brute prediction is executed.
+        :param criterion: creterion for brute prediction.
+        :param n: number of points for brute prediction with 'perimeter' criterion.
         :return: the F1 score of the predictions.
         """
-        return self.score(dataframe, predictor, predictor is not None, False, Extractor.Task.CLASSIFICATION,
+        return self.score(dataframe, predictor, predictor is not None, False, brute, criterion, n,
+                          Extractor.Task.CLASSIFICATION,
                           [Extractor.ClassificationScore.F1])[Extractor.ClassificationScore.F1][-1]
 
     @staticmethod
@@ -217,6 +256,27 @@ class Extractor(EvaluableModel, ABC):
         from psyke.extraction.cart import Cart
         return Cart(predictor, max_depth, max_leaves, discretization=discretization, normalization=normalization,
                     simplify=simplify)
+
+    @staticmethod
+    def divine(predictor, k: int = 5, patience: int = 15, close_to_center: bool = True,
+               discretization: Iterable[DiscreteFeature] = None, normalization=None) -> Extractor:
+        """
+        Creates a new DiViNE extractor.
+        """
+        from psyke.extraction.hypercubic.divine import DiViNE
+        return DiViNE(predictor, k=k, patience=patience, close_to_center=close_to_center,
+                      discretization=discretization, normalization=normalization)
+
+    @staticmethod
+    def cosmik(predictor, max_components: int = 4, k: int = 5, patience: int = 15, close_to_center: bool = True,
+               output: Target = Target.CONSTANT,
+               discretization: Iterable[DiscreteFeature] = None, normalization=None) -> Extractor:
+        """
+        Creates a new COSMiK extractor.
+        """
+        from psyke.extraction.hypercubic.cosmik import COSMiK
+        return COSMiK(predictor, max_components=max_components, k=k, patience=patience, close_to_center=close_to_center,
+                      output=output, discretization=discretization, normalization=normalization)
 
     @staticmethod
     def iter(predictor, min_update: float = 0.1, n_points: int = 1, max_iterations: int = 600, min_examples: int = 250,
@@ -250,15 +310,15 @@ class Extractor(EvaluableModel, ABC):
         return GridREx(predictor, grid, min_examples, threshold, normalization, seed)
 
     @staticmethod
-    def creepy(predictor, clustering, depth: int, error_threshold: float, output, gauss_components: int = 2,
-               ranks: [(str, float)] = [], ignore_threshold: float = 0.0,
-               normalization: dict[str, tuple[float, float]] = None) -> Extractor:
+    def creepy(predictor, clustering, depth: int, error_threshold: float, output: Target = Target.CONSTANT,
+               gauss_components: int = 2, ranks: [(str, float)] = [], ignore_threshold: float = 0.0,
+               discretization=None, normalization: dict[str, tuple[float, float]] = None) -> Extractor:
         """
         Creates a new CReEPy extractor.
         """
         from psyke.extraction.hypercubic.creepy import CReEPy
         return CReEPy(predictor, depth, error_threshold, output, gauss_components, ranks, ignore_threshold,
-                      normalization, clustering)
+                      discretization, normalization, clustering)
 
     @staticmethod
     def real(predictor, discretization=None) -> Extractor:
@@ -314,6 +374,7 @@ class PedagogicalExtractor(Extractor, ABC):
         Extractor.__init__(self, predictor=predictor, discretization=discretization, normalization=normalization)
 
     def extract(self, dataframe: pd.DataFrame, mapping: dict[str: int] = None, sort: bool = True) -> Theory:
+        from psyke.extraction.hypercubic import HyperCubeExtractor, HyperCube
         new_y = self.predictor.predict(dataframe.iloc[:, :-1])
         if mapping is not None:
             if hasattr(new_y[0], 'shape'):
@@ -326,7 +387,11 @@ class PedagogicalExtractor(Extractor, ABC):
         new_y = pd.DataFrame(new_y).set_index(dataframe.index)
         data = dataframe.iloc[:, :-1].copy().join(new_y)
         data.columns = dataframe.columns
-        return self._extract(data, mapping, sort)
+        theory = self._extract(data, mapping, sort)
+        if isinstance(self, HyperCubeExtractor):
+            self._surrounding = HyperCube.create_surrounding_cube(dataframe, output=self._output)
+            self._surrounding.update(dataframe, self.predictor)
+        return theory
 
     def _extract(self, dataframe: pd.DataFrame, mapping: dict[str: int] = None, sort: bool = True) -> Theory:
         raise NotImplementedError('extract')

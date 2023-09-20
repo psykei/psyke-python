@@ -5,7 +5,6 @@ import numpy as np
 import pandas as pd
 from sklearn.base import ClassifierMixin
 from tuprolog.theory import Theory
-from psyke import PedagogicalExtractor
 from psyke.extraction.hypercubic import HyperCube, HyperCubeExtractor
 from psyke.extraction.hypercubic.hypercube import GenericCube
 from psyke.extraction.hypercubic.utils import MinUpdate, Expansion

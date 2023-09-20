@@ -57,7 +57,8 @@ class OrCHiD(Optimizer):
                 (EvaluableModel.Task.CLASSIFICATION, EvaluableModel.ClassificationScore.INVERSE_ACCURACY) \
                 if self.output == Target.CLASSIFICATION else \
                 (EvaluableModel.Task.REGRESSION, EvaluableModel.RegressionScore.MAE)
-            p, n = clustering.score(self.dataframe, None, False, False, task, [metric])[metric][0], clustering.n_rules
+            p, n = clustering.score(self.dataframe, None, False, False, task=task,
+                                    scoring_function=[metric])[metric][0], clustering.n_rules
 
             print(f"Predictive loss = {p:.2f}, {n} rules")
 
