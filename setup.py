@@ -14,7 +14,7 @@ long_description = (here / 'README.md').read_text(encoding='utf-8')
 EPOCHS: int = 50
 BATCH_SIZE: int = 16
 REQUIREMENTS = [
-    'numpy~=1.23.5',
+    'numpy~=1.26.0',
     'pandas~=2.1.0',
     'scikit-learn~=1.3.0',
     '2ppy~=0.4.0',
