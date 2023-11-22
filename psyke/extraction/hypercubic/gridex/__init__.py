@@ -5,7 +5,7 @@ from typing import Iterable
 import numpy as np
 import pandas as pd
 from tuprolog.theory import Theory
-from psyke import get_default_random_seed, PedagogicalExtractor
+from psyke import get_default_random_seed
 from psyke.utils import Target
 from psyke.extraction.hypercubic import HyperCubeExtractor, Grid, HyperCube
 

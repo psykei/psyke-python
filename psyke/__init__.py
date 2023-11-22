@@ -5,7 +5,6 @@ from enum import Enum
 
 import numpy as np
 import pandas as pd
-from numpy import argmax
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score, f1_score, accuracy_score, \
     adjusted_rand_score, adjusted_mutual_info_score, v_measure_score, fowlkes_mallows_score
@@ -45,8 +44,9 @@ class EvaluableModel(object):
         V = 3,
         FMI = 4
 
-    def __init__(self, normalization=None):
+    def __init__(self, normalization=None, discretization=None):
         self.normalization = normalization
+        self.discretization = discretization
 
     def predict(self, dataframe: pd.DataFrame, mapping: dict[str: int] = None) -> Iterable:
         """
@@ -345,10 +345,10 @@ class Clustering(EvaluableModel, ABC):
         super().__init__(normalization)
 
     def fit(self, dataframe: pd.DataFrame):
-        raise NotImplementedError('extract')
+        raise NotImplementedError('fit')
 
     def explain(self):
-        raise NotImplementedError('extract')
+        raise NotImplementedError('explain')
 
     @staticmethod
     def exact(depth: int = 2, error_threshold: float = 0.1, output: Target = Target.CONSTANT,
@@ -366,32 +366,3 @@ class Clustering(EvaluableModel, ABC):
         """
         from psyke.clustering.cream import CREAM
         return CREAM(depth, error_threshold, output, gauss_components)
-
-
-class PedagogicalExtractor(Extractor, ABC):
-
-    def __init__(self, predictor, discretization=None, normalization=None):
-        Extractor.__init__(self, predictor=predictor, discretization=discretization, normalization=normalization)
-
-    def extract(self, dataframe: pd.DataFrame, mapping: dict[str: int] = None, sort: bool = True) -> Theory:
-        from psyke.extraction.hypercubic import HyperCubeExtractor, HyperCube
-        new_y = self.predictor.predict(dataframe.iloc[:, :-1])
-        if mapping is not None:
-            if hasattr(new_y[0], 'shape'):
-                # One-hot encoding for multi-class tasks
-                if len(new_y[0].shape) > 0 and new_y[0].shape[0] > 1:
-                    new_y = [argmax(y, axis=0) for y in new_y]
-                # One-hot encoding for binary class tasks
-                else:
-                    new_y = [round(y[0]) for y in new_y]
-        new_y = pd.DataFrame(new_y).set_index(dataframe.index)
-        data = dataframe.iloc[:, :-1].copy().join(new_y)
-        data.columns = dataframe.columns
-        theory = self._extract(data, mapping, sort)
-        if isinstance(self, HyperCubeExtractor):
-            self._surrounding = HyperCube.create_surrounding_cube(dataframe, output=self._output)
-            self._surrounding.update(dataframe, self.predictor)
-        return theory
-
-    def _extract(self, dataframe: pd.DataFrame, mapping: dict[str: int] = None, sort: bool = True) -> Theory:
-        raise NotImplementedError('extract')

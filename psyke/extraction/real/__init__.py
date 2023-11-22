@@ -1,6 +1,6 @@
 from functools import lru_cache
+from psyke.extraction import PedagogicalExtractor
 from psyke.extraction.real.utils import Rule, IndexedRuleSet
-from psyke import PedagogicalExtractor
 from psyke.schema import DiscreteFeature
 from psyke.utils.dataframe import HashableDataFrame
 from psyke.utils.logic import create_term, create_head, create_variable_list

@@ -2,7 +2,8 @@ from abc import ABC
 from typing import Iterable
 
 from psyke import Clustering, Target
-from psyke.extraction.hypercubic import HyperCube, HyperCubePredictor
+from psyke.extraction.hypercubic import HyperCube
+from psyke.hypercubepredictor import HyperCubePredictor
 
 
 class HyperCubeClustering(HyperCubePredictor, Clustering, ABC):
@@ -11,4 +12,4 @@ class HyperCubeClustering(HyperCubePredictor, Clustering, ABC):
         HyperCubePredictor.__init__(self, output=output, normalization=normalization)
 
     def get_hypercubes(self) -> Iterable[HyperCube]:
-        raise NotImplementedError('predict')
+        raise NotImplementedError('get_hypercubes')

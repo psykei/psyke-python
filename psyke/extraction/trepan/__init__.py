@@ -1,6 +1,7 @@
 import numpy as np
+from psyke.extraction import PedagogicalExtractor
 from psyke.extraction.trepan.utils import Node, Split, SplitLogic
-from psyke import DiscreteFeature, PedagogicalExtractor
+from psyke import DiscreteFeature
 from psyke.utils.logic import create_term, create_variable_list, create_head
 from psyke.utils.sorted import SortedList
 from tuprolog.core import Var, Struct, clause

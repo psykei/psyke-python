@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from abc import ABC
 from collections import Iterable
 import numpy as np
 import pandas as pd
