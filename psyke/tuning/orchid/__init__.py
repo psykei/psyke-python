@@ -15,9 +15,11 @@ class OrCHiD(DepthThresholdOptimizer):
 
     def __init__(self, dataframe: pd.DataFrame, algorithm, output: Target = Target.CONSTANT,
                  max_error_increase: float = 1.2, min_rule_decrease: float = 0.9, readability_tradeoff: float = 0.1,
-                 patience: int = 5, max_depth: int = 10, normalization=None, discretization=None):
-        super().__init__(algorithm, dataframe, max_error_increase, min_rule_decrease, readability_tradeoff, max_depth,
+                 patience: int = 5, max_depth: int = 10, gauss_components=10, normalization=None, discretization=None):
+        super().__init__(dataframe, max_error_increase, min_rule_decrease, readability_tradeoff, max_depth,
                          patience, output, normalization, discretization)
+        self.algorithm = algorithm
+        self.gauss_components = gauss_components
 
     def search(self):
         self.params = self.__search_depth()
@@ -44,7 +46,7 @@ class OrCHiD(DepthThresholdOptimizer):
         while patience > 0:
             print(f"{self.algorithm}. Depth: {depth}. Threshold = {threshold:.2f}. ", end="")
             clustering = (Clustering.cream if self.algorithm == OrCHiD.Algorithm.CREAM else Clustering.exact)(
-                depth=depth, error_threshold=threshold, gauss_components=10, output=self.output
+                depth=depth, error_threshold=threshold, gauss_components=self.gauss_components, output=self.output
             )
             clustering.fit(self.dataframe)
             task, metric = \

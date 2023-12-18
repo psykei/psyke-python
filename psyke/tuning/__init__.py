@@ -13,12 +13,11 @@ class Objective(Enum):
 
 
 class Optimizer:
-    def __init__(self, dataframe: pd.DataFrame, algorithm, output: Target = Target.CONSTANT,
+    def __init__(self, dataframe: pd.DataFrame, output: Target = Target.CONSTANT,
                  max_error_increase: float = 1.2, min_rule_decrease: float = 0.9,
                  readability_tradeoff: float = 0.1, patience: int = 5,
                  normalization=None, discretization=None):
         self.dataframe = dataframe
-        self.algorithm = algorithm
         self.output = output
         self.max_error_increase = max_error_increase
         self.min_rule_decrease = min_rule_decrease
@@ -47,7 +46,7 @@ class Optimizer:
         return min_param, param_dict[min_param]
 
     def get_best(self):
-        names = [self.algorithm, "Predictive loss", "N rules"]
+        names = ["Combined", "Predictive loss", "N rules"]
         params = [Optimizer._best(self.params), self._best_param(0), self._best_param(1)]
         for n, p in zip(names, params):
             self._print_params(n, p[1])
@@ -59,21 +58,21 @@ class Optimizer:
 
 
 class SKEOptimizer(Optimizer, ABC):
-    def __init__(self, predictor, algorithm, dataframe: pd.DataFrame, max_error_increase: float = 1.2,
+    def __init__(self, predictor, dataframe: pd.DataFrame, max_error_increase: float = 1.2,
                  min_rule_decrease: float = 0.9, readability_tradeoff: float = 0.1, patience: int = 5,
                  objective: Objective = Objective.MODEL, output: Target = Target.CONSTANT,
                  normalization=None, discretization=None):
-        super().__init__(dataframe, algorithm, output, max_error_increase, min_rule_decrease, readability_tradeoff,
+        super().__init__(dataframe, output, max_error_increase, min_rule_decrease, readability_tradeoff,
                          patience, normalization, discretization)
         self.predictor = predictor
         self.objective = objective
 
 
 class DepthThresholdOptimizer(Optimizer, ABC):
-    def __init__(self, algorithm, dataframe: pd.DataFrame, max_error_increase: float = 1.2,
+    def __init__(self, dataframe: pd.DataFrame, max_error_increase: float = 1.2,
                  min_rule_decrease: float = 0.9, readability_tradeoff: float = 0.1, max_depth: int = 10,
                  patience: int = 5, output: Target = Target.CONSTANT, normalization=None, discretization=None):
-        super().__init__(dataframe, algorithm, output, max_error_increase, min_rule_decrease, readability_tradeoff,
+        super().__init__(dataframe, output, max_error_increase, min_rule_decrease, readability_tradeoff,
                          patience, normalization, discretization)
         self.max_depth = max_depth
 

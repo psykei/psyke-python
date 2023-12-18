@@ -19,11 +19,12 @@ class PEDRO(SKEOptimizer, DepthThresholdOptimizer):
                  min_rule_decrease: float = 0.9, readability_tradeoff: float = 0.1, max_depth: int = 3,
                  patience: int = 3, algorithm: Algorithm = Algorithm.GRIDREX, objective: Objective = Objective.MODEL,
                  output: Target = Target.CONSTANT, normalization=None, discretization=None):
-        SKEOptimizer.__init__(self, predictor, algorithm, dataframe, max_error_increase, min_rule_decrease,
+        SKEOptimizer.__init__(self, predictor, dataframe, max_error_increase, min_rule_decrease,
                               readability_tradeoff, patience, objective, output, normalization, discretization)
-        DepthThresholdOptimizer.__init__(self, algorithm, dataframe, max_error_increase, min_rule_decrease,
+        DepthThresholdOptimizer.__init__(self, dataframe, max_error_increase, min_rule_decrease,
                                          readability_tradeoff, max_depth, patience, output, normalization,
                                          discretization)
+        self.algorithm = algorithm
         self.ranked = FeatureRanker(dataframe.columns[:-1]).fit(predictor, dataframe.iloc[:, :-1]).rankings()
         predictions = self.predictor.predict(dataframe.iloc[:, :-1]).flatten()
         expected = self.dataframe.iloc[:, -1].values
