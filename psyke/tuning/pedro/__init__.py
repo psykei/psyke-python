@@ -1,6 +1,9 @@
 import numpy as np
 import pandas as pd
 from enum import Enum
+
+from sklearn.metrics import accuracy_score
+
 from psyke import Extractor, Target
 from psyke.extraction.hypercubic import Grid, FeatureRanker
 from psyke.extraction.hypercubic.strategy import AdaptiveStrategy, FixedStrategy
@@ -12,35 +15,38 @@ class PEDRO(SKEOptimizer, DepthThresholdOptimizer):
         GRIDEX = 1,
         GRIDREX = 2
 
-    def __init__(self, predictor, dataframe: pd.DataFrame, max_mae_increase: float = 1.2,
+    def __init__(self, predictor, dataframe: pd.DataFrame, max_error_increase: float = 1.2,
                  min_rule_decrease: float = 0.9, readability_tradeoff: float = 0.1, max_depth: int = 3,
                  patience: int = 3, algorithm: Algorithm = Algorithm.GRIDREX, objective: Objective = Objective.MODEL,
                  output: Target = Target.CONSTANT, normalization=None, discretization=None):
-        super(SKEOptimizer).__init__(predictor, algorithm, dataframe, max_mae_increase, min_rule_decrease,
-                                     readability_tradeoff, patience, objective, output, normalization, discretization)
-        super(DepthThresholdOptimizer).__init__(algorithm, dataframe, max_mae_increase, min_rule_decrease,
-                                                readability_tradeoff, max_depth, patience, output, normalization,
-                                                discretization)
+        SKEOptimizer.__init__(self, predictor, algorithm, dataframe, max_error_increase, min_rule_decrease,
+                              readability_tradeoff, patience, objective, output, normalization, discretization)
+        DepthThresholdOptimizer.__init__(self, algorithm, dataframe, max_error_increase, min_rule_decrease,
+                                         readability_tradeoff, max_depth, patience, output, normalization,
+                                         discretization)
         self.ranked = FeatureRanker(dataframe.columns[:-1]).fit(predictor, dataframe.iloc[:, :-1]).rankings()
-        self.model_mae = abs(self.predictor.predict(dataframe.iloc[:, :-1]).flatten() -
-                             self.dataframe.iloc[:, -1].values).mean()
+        predictions = self.predictor.predict(dataframe.iloc[:, :-1]).flatten()
+        expected = self.dataframe.iloc[:, -1].values
+        self.error = 1 - accuracy_score(predictions, expected) if output == Target.CLASSIFICATION else \
+            abs(predictions - expected).mean()
 
     def _search_depth(self, strategy, critical, max_partitions):
         params, best = [], None
 
         for iterations in range(self.max_depth):
-            params += self.__search_threshold(Grid(iterations + 1, strategy), critical, max_partitions)
-            current = DepthThresholdOptimizer._best(params[-1])[1]
+            current_params = self.__search_threshold(Grid(iterations + 1, strategy), critical, max_partitions)
+            current_best = DepthThresholdOptimizer._best(current_params)[1]
             print()
-            best, to_break = self._check_depth_improvement(best, current)
+            best, to_break = self._check_depth_improvement(best, current_best)
+            params += current_params
 
             if len(params) > 1 and to_break:
                 break
         return params
 
     def __search_threshold(self, grid, critical, max_partitions):
-        step = self.model_mae / 2.0
-        threshold = self.model_mae * 0.5
+        step = self.error / 2.0
+        threshold = self.error * 0.5
         params = []
         patience = self.patience
         while patience > 0:
@@ -49,12 +55,14 @@ class PEDRO(SKEOptimizer, DepthThresholdOptimizer):
                 if self.algorithm == PEDRO.Algorithm.GRIDREX \
                 else Extractor.gridex(self.predictor, grid, threshold=threshold, normalization=self.normalization)
             _ = extractor.extract(self.dataframe)
-            mae, n = (extractor.mae(self.dataframe, self.predictor) if self.objective == Objective.MODEL else
-                      extractor.mae(self.dataframe)), extractor.n_rules
-            print("MAE = {:.2f}, {} rules".format(mae, n))
+            error_function = (lambda *x: 1 - extractor.accuracy(*x)) if self.output == Target.CLASSIFICATION \
+                else extractor.mae
+            error, n = (error_function(self.dataframe, self.predictor) if self.objective == Objective.MODEL else
+                        error_function(self.dataframe)), extractor.n_rules
+            print("MAE = {:.2f}, {} rules".format(error, n))
 
             if len(params) == 0:
-                params.append((mae, n, threshold, grid))
+                params.append((error, n, threshold, grid))
                 threshold += step
                 continue
 
@@ -62,21 +70,21 @@ class PEDRO(SKEOptimizer, DepthThresholdOptimizer):
                 break
 
             if n == 1:
-                params.append((mae, n, threshold, grid))
+                params.append((error, n, threshold, grid))
                 break
 
-            if mae > params[0][0] * self.max_mae_increase:
+            if error > params[0][0] * self.max_error_increase:
                 break
 
-            improvement = (params[-1][0] / mae) + (1 - n / params[-1][1])
+            improvement = (params[-1][0] / error) + (1 - n / params[-1][1])
 
             if improvement <= 1 or n > np.ceil(params[-1][1] * self.min_rule_decrease):
                 patience -= 1
-                step = max(step, abs(mae - threshold) / max(patience, 1))
+                step = max(step, abs(error - threshold) / max(patience, 1))
             elif not critical:
                 patience = self.patience
-            if mae != params[-1][0] or n != params[-1][1]:
-                params.append((mae, n, threshold, grid))
+            if error != params[-1][0] or n != params[-1][1]:
+                params.append((error, n, threshold, grid))
             threshold += step
         return params
 
@@ -121,7 +129,7 @@ class PEDRO(SKEOptimizer, DepthThresholdOptimizer):
         print("**********************")
         print(f"Best {name}")
         print("**********************")
-        print(f"MAE = {params[0]:.2f}, {params[1]} rules")
+        print(f"Error = {params[0]:.2f}, {params[1]} rules")
         print(f"Threshold = {params[2]:.2f}")
         print(f"Iterations = {params[3].iterations}")
         print(f"Strategy = {params[3].strategy}")

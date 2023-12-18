@@ -14,13 +14,13 @@ class Objective(Enum):
 
 class Optimizer:
     def __init__(self, dataframe: pd.DataFrame, algorithm, output: Target = Target.CONSTANT,
-                 max_mae_increase: float = 1.2, min_rule_decrease: float = 0.9,
+                 max_error_increase: float = 1.2, min_rule_decrease: float = 0.9,
                  readability_tradeoff: float = 0.1, patience: int = 5,
                  normalization=None, discretization=None):
         self.dataframe = dataframe
         self.algorithm = algorithm
         self.output = output
-        self.max_mae_increase = max_mae_increase
+        self.max_error_increase = max_error_increase
         self.min_rule_decrease = min_rule_decrease
         self.readability_tradeoff = readability_tradeoff
         self.patience = patience
@@ -59,21 +59,21 @@ class Optimizer:
 
 
 class SKEOptimizer(Optimizer, ABC):
-    def __init__(self, predictor, algorithm, dataframe: pd.DataFrame, max_mae_increase: float = 1.2,
+    def __init__(self, predictor, algorithm, dataframe: pd.DataFrame, max_error_increase: float = 1.2,
                  min_rule_decrease: float = 0.9, readability_tradeoff: float = 0.1, patience: int = 5,
                  objective: Objective = Objective.MODEL, output: Target = Target.CONSTANT,
                  normalization=None, discretization=None):
-        super().__init__(dataframe, algorithm, output, max_mae_increase, min_rule_decrease, readability_tradeoff,
+        super().__init__(dataframe, algorithm, output, max_error_increase, min_rule_decrease, readability_tradeoff,
                          patience, normalization, discretization)
         self.predictor = predictor
         self.objective = objective
 
 
 class DepthThresholdOptimizer(Optimizer, ABC):
-    def __init__(self, algorithm, dataframe: pd.DataFrame, max_mae_increase: float = 1.2,
+    def __init__(self, algorithm, dataframe: pd.DataFrame, max_error_increase: float = 1.2,
                  min_rule_decrease: float = 0.9, readability_tradeoff: float = 0.1, max_depth: int = 10,
                  patience: int = 5, output: Target = Target.CONSTANT, normalization=None, discretization=None):
-        super().__init__(dataframe, algorithm, output, max_mae_increase, min_rule_decrease, readability_tradeoff,
+        super().__init__(dataframe, algorithm, output, max_error_increase, min_rule_decrease, readability_tradeoff,
                          patience, normalization, discretization)
         self.max_depth = max_depth
 

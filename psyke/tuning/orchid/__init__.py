@@ -14,9 +14,9 @@ class OrCHiD(DepthThresholdOptimizer):
         CREAM = 2
 
     def __init__(self, dataframe: pd.DataFrame, algorithm, output: Target = Target.CONSTANT,
-                 max_mae_increase: float = 1.2, min_rule_decrease: float = 0.9, readability_tradeoff: float = 0.1,
+                 max_error_increase: float = 1.2, min_rule_decrease: float = 0.9, readability_tradeoff: float = 0.1,
                  patience: int = 5, max_depth: int = 10, normalization=None, discretization=None):
-        super().__init__(algorithm, dataframe, max_mae_increase, min_rule_decrease, readability_tradeoff, max_depth,
+        super().__init__(algorithm, dataframe, max_error_increase, min_rule_decrease, readability_tradeoff, max_depth,
                          patience, output, normalization, discretization)
 
     def search(self):
@@ -26,10 +26,11 @@ class OrCHiD(DepthThresholdOptimizer):
         params, best = [], None
 
         for depth in range(1, self.max_depth + 1):
-            params += self.__search_threshold(depth)
-            current = Optimizer._best(params[-1])[1]
+            current_params = self.__search_threshold(depth)
+            current_best = Optimizer._best(current_params)[1]
             print()
-            best, to_break = self._check_depth_improvement(best, current)
+            best, to_break = self._check_depth_improvement(best, current_best)
+            params += current_params
 
             if len(params) > 1 and to_break:
                 break
@@ -37,7 +38,7 @@ class OrCHiD(DepthThresholdOptimizer):
 
     def __search_threshold(self, depth):
         step = 1.0
-        threshold = 1.0  # self.max_mae_increase * 0.9
+        threshold = 1.0
         params = []
         patience = self.patience
         while patience > 0:
@@ -65,7 +66,7 @@ class OrCHiD(DepthThresholdOptimizer):
                 params.append((p, n, depth, threshold))
                 break
 
-            if p > params[0][0] * self.max_mae_increase:
+            if p > params[0][0] * self.max_error_increase:
                 break
 
             improvement = (params[-1][0] / p) + (1 - n / params[-1][1])
