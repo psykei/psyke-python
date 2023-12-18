@@ -3,6 +3,7 @@ from enum import Enum
 import numpy as np
 import pandas as pd
 
+from psyke.extraction.hypercubic import Grid
 from psyke.utils import Target
 
 
@@ -29,14 +30,6 @@ class Optimizer:
 
     def search(self):
         raise NotImplementedError
-
-    def _depth_improvement(self, best, other):
-        if other[0] == best[0]:
-            return (best[1] - other[1]) * 2
-        return 1 / (
-                (1 - other[0] / best[0]) ** self.readability_tradeoff *
-                np.ceil(other[1] / self.readability_tradeoff) / np.ceil(best[1] / self.readability_tradeoff)
-        )
 
     @staticmethod
     def _best(params):
@@ -65,13 +58,34 @@ class Optimizer:
         raise NotImplementedError
 
 
-class GridOptimizer(Optimizer, ABC):
+class SKEOptimizer(Optimizer, ABC):
     def __init__(self, predictor, algorithm, dataframe: pd.DataFrame, max_mae_increase: float = 1.2,
-                 min_rule_decrease: float = 0.9, readability_tradeoff: float = 0.1, max_depth: int = 10,
-                 patience: int = 5, objective: Objective = Objective.MODEL, output: Target = Target.CONSTANT,
+                 min_rule_decrease: float = 0.9, readability_tradeoff: float = 0.1, patience: int = 5,
+                 objective: Objective = Objective.MODEL, output: Target = Target.CONSTANT,
                  normalization=None, discretization=None):
         super().__init__(dataframe, algorithm, output, max_mae_increase, min_rule_decrease, readability_tradeoff,
                          patience, normalization, discretization)
         self.predictor = predictor
-        self.max_depth = max_depth
         self.objective = objective
+
+
+class DepthThresholdOptimizer(Optimizer, ABC):
+    def __init__(self, algorithm, dataframe: pd.DataFrame, max_mae_increase: float = 1.2,
+                 min_rule_decrease: float = 0.9, readability_tradeoff: float = 0.1, max_depth: int = 10,
+                 patience: int = 5, output: Target = Target.CONSTANT, normalization=None, discretization=None):
+        super().__init__(dataframe, algorithm, output, max_mae_increase, min_rule_decrease, readability_tradeoff,
+                         patience, normalization, discretization)
+        self.max_depth = max_depth
+
+    def _depth_improvement(self, best, other):
+        if other[0] == best[0]:
+            return (best[1] - other[1]) * 2
+        return 1 / (
+                (1 - other[0] / best[0]) ** self.readability_tradeoff *
+                np.ceil(other[1] / self.readability_tradeoff) / np.ceil(best[1] / self.readability_tradeoff)
+        )
+
+    def _check_depth_improvement(self, best, current):
+        improvement = \
+            self._depth_improvement([best[0], best[1]], [current[0], current[1]]) if best is not None else np.inf
+        return current, improvement < 1.2

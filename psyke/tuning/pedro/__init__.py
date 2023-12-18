@@ -1,13 +1,13 @@
 import numpy as np
 import pandas as pd
 from enum import Enum
-from psyke import Extractor
+from psyke import Extractor, Target
 from psyke.extraction.hypercubic import Grid, FeatureRanker
 from psyke.extraction.hypercubic.strategy import AdaptiveStrategy, FixedStrategy
-from psyke.tuning import Objective, GridOptimizer
+from psyke.tuning import Objective, DepthThresholdOptimizer, SKEOptimizer
 
 
-class PEDRO(GridOptimizer):
+class PEDRO(SKEOptimizer, DepthThresholdOptimizer):
     class Algorithm(Enum):
         GRIDEX = 1,
         GRIDREX = 2
@@ -15,12 +15,28 @@ class PEDRO(GridOptimizer):
     def __init__(self, predictor, dataframe: pd.DataFrame, max_mae_increase: float = 1.2,
                  min_rule_decrease: float = 0.9, readability_tradeoff: float = 0.1, max_depth: int = 3,
                  patience: int = 3, algorithm: Algorithm = Algorithm.GRIDREX, objective: Objective = Objective.MODEL,
-                 normalization=None):
-        super().__init__(predictor, algorithm, dataframe, max_mae_increase, min_rule_decrease, readability_tradeoff,
-                         max_depth, patience, objective, normalization)
+                 output: Target = Target.CONSTANT, normalization=None, discretization=None):
+        super(SKEOptimizer).__init__(predictor, algorithm, dataframe, max_mae_increase, min_rule_decrease,
+                                     readability_tradeoff, patience, objective, output, normalization, discretization)
+        super(DepthThresholdOptimizer).__init__(algorithm, dataframe, max_mae_increase, min_rule_decrease,
+                                                readability_tradeoff, max_depth, patience, output, normalization,
+                                                discretization)
         self.ranked = FeatureRanker(dataframe.columns[:-1]).fit(predictor, dataframe.iloc[:, :-1]).rankings()
         self.model_mae = abs(self.predictor.predict(dataframe.iloc[:, :-1]).flatten() -
                              self.dataframe.iloc[:, -1].values).mean()
+
+    def _search_depth(self, strategy, critical, max_partitions):
+        params, best = [], None
+
+        for iterations in range(self.max_depth):
+            params += self.__search_threshold(Grid(iterations + 1, strategy), critical, max_partitions)
+            current = DepthThresholdOptimizer._best(params[-1])[1]
+            print()
+            best, to_break = self._check_depth_improvement(best, current)
+
+            if len(params) > 1 and to_break:
+                break
+        return params
 
     def __search_threshold(self, grid, critical, max_partitions):
         step = self.model_mae / 2.0
@@ -64,26 +80,6 @@ class PEDRO(GridOptimizer):
             threshold += step
         return params
 
-    def __search_depth(self, strategy, critical, max_partitions):
-        params = []
-        best = None
-
-        for iterations in range(self.max_depth):
-            grid = Grid(iterations + 1, strategy)
-            p = self.__search_threshold(grid, critical, max_partitions)
-            b = GridOptimizer._best(p)[1]
-            print()
-            improvement = self._depth_improvement(
-                [best[0], best[1]], [b[0], b[1]]
-            ) if best is not None else np.inf
-
-            best = b
-            params += p
-
-            if len(params) > 1 and improvement < 1.2:
-                break
-        return params
-
     def __contains(self, strategies, strategy):
         for s in strategies:
             if strategy.equals(s, self.dataframe.columns[:-1]):
@@ -116,9 +112,9 @@ class PEDRO(GridOptimizer):
 
         params = []
         for strategy in strategies:
-            params += self.__search_depth(strategy,
-                                          strategy.partition_number(self.dataframe.columns[:-1]) > avg,
-                                          base_partitions * 3)
+            params += self._search_depth(strategy,
+                                         strategy.partition_number(self.dataframe.columns[:-1]) > avg,
+                                         base_partitions * 3)
         self.params = params
 
     def _print_params(self, name, params):

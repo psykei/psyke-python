@@ -43,45 +43,6 @@ class CRASH(Optimizer):
                 break
         return params
 
-    def __search_threshold(self, depth):
-        step = self.model_mae / 2.0
-        threshold = self.model_mae * 0.9
-        params = []
-        patience = self.patience
-        while patience > 0:
-            print(f"{self.algorithm}. Depth: {depth}. Threshold = {threshold:.2f}. ", end="")
-            extractor = Extractor.creepy(
-                self.predictor, depth=depth, error_threshold=threshold, output=self.output,
-                gauss_components=10, normalization=self.normalization,
-                clustering=Clustering.cream if self.algorithm == CRASH.Algorithm.CREAM else Clustering.exact
-            )
-            _ = extractor.extract(self.dataframe)
-            mae, n = (extractor.mae(self.dataframe, self.predictor) if self.objective == Objective.MODEL else
-                      extractor.mae(self.dataframe)), extractor.n_rules
-            print(f"MAE = {mae:.2f}, {n} rules")
-
-            if len(params) == 0:
-                params.append((mae, n, depth, threshold))
-                threshold += step
-                continue
-
-            if (n == 1) or (mae == 0.0):
-                params.append((mae, n, depth, threshold))
-                break
-
-            if mae > params[0][0] * self.max_mae_increase:
-                break
-
-            improvement = (params[-1][0] / mae) + (1 - n / params[-1][1])
-
-            if improvement <= 1 or n > np.ceil(params[-1][1] * self.min_rule_decrease):
-                patience -= 1
-                step = max(step, abs(mae - threshold) / max(patience, 1))
-            if mae != params[-1][0] or n != params[-1][1]:
-                params.append((mae, n, depth, threshold))
-            threshold += step
-        return params
-
     def _print_params(self, name, params):
         print("**********************")
         print(f"Best {name}")
