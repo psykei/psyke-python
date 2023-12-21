@@ -9,7 +9,7 @@ from tuprolog.theory import Theory
 from psyke import Clustering
 from psyke.clustering import HyperCubeClustering
 from psyke.extraction.hypercubic import HyperCubeExtractor
-from psyke.utils import Target
+from psyke.utils import Target, get_default_random_seed
 from psyke.utils.logic import last_in_body
 
 
@@ -20,10 +20,12 @@ class CReEPy(HyperCubeExtractor):
 
     def __init__(self, predictor, depth: int, error_threshold: float, output: Target = Target.CONSTANT,
                  gauss_components: int = 5, ranks: list[(str, float)] = [], ignore_threshold: float = 0.0,
-                 discretization=None, normalization=None, clustering=Clustering.exact):
+                 discretization=None, normalization=None, clustering=Clustering.exact,
+                 seed: int = get_default_random_seed()):
         super().__init__(predictor, Target.CLASSIFICATION if isinstance(predictor, ClassifierMixin) else output,
                          discretization, normalization)
-        self.clustering = clustering(depth, error_threshold, self._output, gauss_components)
+        self.clustering = clustering(depth, error_threshold, self._output, gauss_components, discretization,
+                                     normalization, seed)
         self.ranks = ranks
         self.ignore_threshold = ignore_threshold
 

@@ -11,17 +11,18 @@ from psyke.extraction.hypercubic import RegressionCube, GenericCube, Point
 
 
 class HyperCubePredictor(EvaluableModel):
-    def __init__(self, output=Target.CONSTANT, normalization=None):
-        super().__init__(normalization)
+    def __init__(self, output=Target.CONSTANT, discretization=None, normalization=None):
+        super().__init__(discretization, normalization)
         self._hypercubes = []
         self._output = output
+        self._surrounding = None
 
     def _predict(self, dataframe: pd.DataFrame) -> Iterable:
         return np.array([self._predict_from_cubes(row.to_dict()) for _, row in dataframe.iterrows()])
 
     def _brute_predict(self, dataframe: pd.DataFrame, criterion: str = 'corner', n: int = 2,
                        mapping: dict[str: int] = None) -> Iterable:
-        predictions = self._predict(dataframe)
+        predictions = np.array(self._predict(dataframe))
         idx = [prediction is None for prediction in predictions]
         if sum(idx) > 0:
             if criterion == 'default':
@@ -46,7 +47,7 @@ class HyperCubePredictor(EvaluableModel):
 
     def _brute_predict_surface(self, row: dict[str, float]) -> GenericCube:
         distances = [(
-            cube.surface_distance(Point(list(row.keys()), list(row.values))), cube.volume(), cube
+            cube.surface_distance(Point(list(row.keys()), list(row.values()))), cube.volume(), cube
         ) for cube in self._hypercubes]
         return min(distances)[-1]
 

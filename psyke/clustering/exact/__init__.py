@@ -13,7 +13,7 @@ from psyke.clustering import HyperCubeClustering
 from psyke.extraction.hypercubic import Node, ClosedCube, HyperCube
 from psyke.clustering.utils import select_gaussian_mixture, select_dbscan_epsilon
 from psyke.extraction.hypercubic.hypercube import ClosedRegressionCube, ClosedClassificationCube
-from psyke.utils import Target
+from psyke.utils import Target, get_default_random_seed
 
 
 class ExACT(HyperCubeClustering, ABC):
@@ -22,13 +22,15 @@ class ExACT(HyperCubeClustering, ABC):
     """
 
     def __init__(self, depth: int = 2, error_threshold: float = 0.1, output: Target = Target.CONSTANT,
-                 gauss_components: int = 2, normalization=None):
-        super().__init__(output, normalization)
+                 gauss_components: int = 2, discretization=None, normalization=None,
+                 seed: int = get_default_random_seed()):
+        super().__init__(output, discretization, normalization)
         self.depth = depth
         self.error_threshold = error_threshold
         self.gauss_components = gauss_components
         self._predictor = KNeighborsClassifier() if output == Target.CLASSIFICATION else KNeighborsRegressor()
         self._predictor.n_neighbors = 1
+        self.seed = seed
 
     def __eligible_cubes(self, gauss_pred: np.ndarray, node: Node, clusters: int):
         cubes = []
@@ -56,6 +58,7 @@ class ExACT(HyperCubeClustering, ABC):
         )
 
     def fit(self, dataframe: pd.DataFrame):
+        np.random.seed(self.seed)
         self._predictor.fit(dataframe.iloc[:, :-1], dataframe.iloc[:, -1])
         self._hypercubes = \
             self._iterate(Node(dataframe, HyperCube.create_surrounding_cube(dataframe, True, self._output)))

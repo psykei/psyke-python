@@ -8,8 +8,8 @@ from psyke.hypercubepredictor import HyperCubePredictor
 
 class HyperCubeClustering(HyperCubePredictor, Clustering, ABC):
 
-    def __init__(self, output: Target = Target.CONSTANT, normalization=None):
-        HyperCubePredictor.__init__(self, output=output, normalization=normalization)
+    def __init__(self, output: Target = Target.CONSTANT, discretization=None, normalization=None):
+        HyperCubePredictor.__init__(self, output=output, discretization=discretization, normalization=normalization)
 
     def get_hypercubes(self) -> Iterable[HyperCube]:
         raise NotImplementedError('get_hypercubes')

@@ -7,10 +7,10 @@ from sklearn.metrics import accuracy_score
 from psyke import Extractor, Target
 from psyke.extraction.hypercubic import Grid, FeatureRanker
 from psyke.extraction.hypercubic.strategy import AdaptiveStrategy, FixedStrategy
-from psyke.tuning import Objective, DepthThresholdOptimizer, SKEOptimizer
+from psyke.tuning import Objective, IterativeOptimizer, SKEOptimizer
 
 
-class PEDRO(SKEOptimizer, DepthThresholdOptimizer):
+class PEDRO(SKEOptimizer, IterativeOptimizer):
     class Algorithm(Enum):
         GRIDEX = 1,
         GRIDREX = 2
@@ -21,9 +21,8 @@ class PEDRO(SKEOptimizer, DepthThresholdOptimizer):
                  output: Target = Target.CONSTANT, normalization=None, discretization=None):
         SKEOptimizer.__init__(self, predictor, dataframe, max_error_increase, min_rule_decrease,
                               readability_tradeoff, patience, objective, output, normalization, discretization)
-        DepthThresholdOptimizer.__init__(self, dataframe, max_error_increase, min_rule_decrease,
-                                         readability_tradeoff, max_depth, patience, output, normalization,
-                                         discretization)
+        IterativeOptimizer.__init__(self, dataframe, max_error_increase, min_rule_decrease, readability_tradeoff,
+                                    max_depth, patience, output, normalization, discretization)
         self.algorithm = algorithm
         self.ranked = FeatureRanker(dataframe.columns[:-1]).fit(predictor, dataframe.iloc[:, :-1]).rankings()
         predictions = self.predictor.predict(dataframe.iloc[:, :-1]).flatten()
@@ -36,9 +35,9 @@ class PEDRO(SKEOptimizer, DepthThresholdOptimizer):
 
         for iterations in range(self.max_depth):
             current_params = self.__search_threshold(Grid(iterations + 1, strategy), critical, max_partitions)
-            current_best = DepthThresholdOptimizer._best(current_params)[1]
+            current_best = self._best(current_params)[1]
             print()
-            best, to_break = self._check_depth_improvement(best, current_best)
+            best, to_break = self._check_iteration_improvement(best, current_best)
             params += current_params
 
             if len(params) > 1 and to_break:

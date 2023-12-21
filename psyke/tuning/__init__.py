@@ -30,15 +30,13 @@ class Optimizer:
     def search(self):
         raise NotImplementedError
 
-    @staticmethod
-    def _best(params):
-        param_dict = {Optimizer.__score(t): t for t in params}
+    def _best(self, params):
+        param_dict = {self._score(t): t for t in params}
         min_param = min(param_dict)
         return min_param, param_dict[min_param]
 
-    @staticmethod
-    def __score(param):
-        return param[0] * np.ceil(param[1] / 5)
+    def _score(self, param):
+        return param[0] * np.ceil(param[1] * self.readability_tradeoff)
 
     def _best_param(self, param):
         param_dict = {t[param]: t for t in self.params}
@@ -47,11 +45,11 @@ class Optimizer:
 
     def get_best(self):
         names = ["Combined", "Predictive loss", "N rules"]
-        params = [Optimizer._best(self.params), self._best_param(0), self._best_param(1)]
+        params = [self._best(self.params), self._best_param(0), self._best_param(1)]
         for n, p in zip(names, params):
             self._print_params(n, p[1])
             print()
-        return Optimizer._best(self.params)[1], self._best_param(0)[1], self._best_param(1)[1]
+        return self._best(self.params)[1], self._best_param(0)[1], self._best_param(1)[1]
 
     def _print_params(self, n, param):
         raise NotImplementedError
@@ -68,7 +66,7 @@ class SKEOptimizer(Optimizer, ABC):
         self.objective = objective
 
 
-class DepthThresholdOptimizer(Optimizer, ABC):
+class IterativeOptimizer(Optimizer, ABC):
     def __init__(self, dataframe: pd.DataFrame, max_error_increase: float = 1.2,
                  min_rule_decrease: float = 0.9, readability_tradeoff: float = 0.1, max_depth: int = 10,
                  patience: int = 5, output: Target = Target.CONSTANT, normalization=None, discretization=None):
@@ -76,7 +74,7 @@ class DepthThresholdOptimizer(Optimizer, ABC):
                          patience, normalization, discretization)
         self.max_depth = max_depth
 
-    def _depth_improvement(self, best, other):
+    def _iteration_improvement(self, best, other):
         if other[0] == best[0]:
             return (best[1] - other[1]) * 2
         return 1 / (
@@ -84,7 +82,7 @@ class DepthThresholdOptimizer(Optimizer, ABC):
                 np.ceil(other[1] / self.readability_tradeoff) / np.ceil(best[1] / self.readability_tradeoff)
         )
 
-    def _check_depth_improvement(self, best, current):
+    def _check_iteration_improvement(self, best, current):
         improvement = \
-            self._depth_improvement([best[0], best[1]], [current[0], current[1]]) if best is not None else np.inf
+            self._iteration_improvement([best[0], best[1]], [current[0], current[1]]) if best is not None else np.inf
         return current, improvement < 1.2

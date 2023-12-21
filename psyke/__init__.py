@@ -44,9 +44,9 @@ class EvaluableModel(object):
         V = 3,
         FMI = 4
 
-    def __init__(self, normalization=None, discretization=None):
-        self.normalization = normalization
+    def __init__(self, discretization=None, normalization=None):
         self.discretization = discretization
+        self.normalization = normalization
 
     def predict(self, dataframe: pd.DataFrame, mapping: dict[str: int] = None) -> Iterable:
         """
@@ -312,13 +312,14 @@ class Extractor(EvaluableModel, ABC):
     @staticmethod
     def creepy(predictor, clustering, depth: int, error_threshold: float, output: Target = Target.CONSTANT,
                gauss_components: int = 2, ranks: [(str, float)] = [], ignore_threshold: float = 0.0,
-               discretization=None, normalization: dict[str, tuple[float, float]] = None) -> Extractor:
+               discretization=None, normalization: dict[str, tuple[float, float]] = None,
+               seed: int = get_default_random_seed()) -> Extractor:
         """
         Creates a new CReEPy extractor.
         """
         from psyke.extraction.hypercubic.creepy import CReEPy
         return CReEPy(predictor, depth, error_threshold, output, gauss_components, ranks, ignore_threshold,
-                      discretization, normalization, clustering)
+                      discretization, normalization, clustering, seed)
 
     @staticmethod
     def real(predictor, discretization=None) -> Extractor:
@@ -341,8 +342,8 @@ class Extractor(EvaluableModel, ABC):
 
 
 class Clustering(EvaluableModel, ABC):
-    def __init__(self, normalization=None):
-        super().__init__(normalization)
+    def __init__(self, discretization=None, normalization=None):
+        super().__init__(discretization, normalization)
 
     def fit(self, dataframe: pd.DataFrame):
         raise NotImplementedError('fit')
@@ -351,18 +352,19 @@ class Clustering(EvaluableModel, ABC):
         raise NotImplementedError('explain')
 
     @staticmethod
-    def exact(depth: int = 2, error_threshold: float = 0.1, output: Target = Target.CONSTANT,
-              gauss_components: int = 2) -> Clustering:
+    def exact(depth: int = 2, error_threshold: float = 0.1, output: Target = Target.CONSTANT, gauss_components: int = 2,
+              discretization=None, normalization=None, seed: int = get_default_random_seed()) -> Clustering:
         """
         Creates a new ExACT instance.
         """
         from psyke.clustering.exact import ExACT
-        return ExACT(depth, error_threshold, output, gauss_components)
+        return ExACT(depth, error_threshold, output, gauss_components, discretization, normalization, seed)
 
     @staticmethod
-    def cream(depth: int, error_threshold: float, output, gauss_components: int = 2) -> Clustering:
+    def cream(depth: int = 2, error_threshold: float = 0.1, output: Target = Target.CONSTANT, gauss_components: int = 2,
+              discretization=None, normalization=None, seed: int = get_default_random_seed()) -> Clustering:
         """
         Creates a new CREAM instance.
         """
         from psyke.clustering.cream import CREAM
-        return CREAM(depth, error_threshold, output, gauss_components)
+        return CREAM(depth, error_threshold, output, gauss_components, discretization, normalization, seed)

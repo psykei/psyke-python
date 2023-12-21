@@ -5,7 +5,7 @@ from typing import Iterable
 import numpy as np
 import pandas as pd
 
-import psyke.utils
+from psyke.utils import Target, get_default_random_seed
 from psyke.clustering.exact import ExACT
 from psyke.extraction.hypercubic import Node, HyperCube, ClosedCube
 from psyke.clustering.utils import select_gaussian_mixture
@@ -16,9 +16,9 @@ class CREAM(ExACT):
     Explanator implementing CREAM algorithm.
     """
 
-    def __init__(self, depth: int, error_threshold: float,
-                 output: psyke.utils.Target = psyke.utils.Target.CONSTANT, gauss_components: int = 5):
-        super().__init__(depth, error_threshold, output, gauss_components)
+    def __init__(self, depth: int, error_threshold: float, output: Target = Target.CONSTANT, gauss_components: int = 5,
+                 discretization=None, normalization=None, seed: int = get_default_random_seed()):
+        super().__init__(depth, error_threshold, output, gauss_components, discretization, normalization, seed)
 
     def __eligible_cubes(self, gauss_pred: np.ndarray, node: Node, clusters: int):
         cubes = []
