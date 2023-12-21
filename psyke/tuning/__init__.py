@@ -13,9 +13,8 @@ class Objective(Enum):
 
 
 class Optimizer:
-    def __init__(self, dataframe: pd.DataFrame, output: Target = Target.CONSTANT,
-                 max_error_increase: float = 1.2, min_rule_decrease: float = 0.9,
-                 readability_tradeoff: float = 0.1, patience: int = 5,
+    def __init__(self, dataframe: pd.DataFrame, output: Target = Target.CONSTANT, max_error_increase: float = 1.2,
+                 min_rule_decrease: float = 0.9, readability_tradeoff: float = 0.1, patience: int = 5,
                  normalization=None, discretization=None):
         self.dataframe = dataframe
         self.output = output
