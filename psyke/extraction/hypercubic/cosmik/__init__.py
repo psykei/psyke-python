@@ -1,8 +1,9 @@
+import numpy as np
 import pandas as pd
 from sklearn.mixture import GaussianMixture
 from tuprolog.theory import Theory
 
-from psyke import Target, Extractor
+from psyke import Target, Extractor, get_default_random_seed
 from psyke.clustering.utils import select_gaussian_mixture
 from psyke.extraction.hypercubic import HyperCube, HyperCubeExtractor, RegressionCube
 
@@ -13,15 +14,18 @@ class COSMiK(HyperCubeExtractor):
     """
 
     def __init__(self, predictor, max_components: int = 4, k: int = 5, patience: int = 15, close_to_center: bool = True,
-                 output: Target = Target.CONSTANT, discretization=None, normalization=None):
+                 output: Target = Target.CONSTANT, discretization=None, normalization=None,
+                 seed: int = get_default_random_seed()):
         super().__init__(predictor, Target.REGRESSION, discretization, normalization)
         self.max = max_components
         self.k = k
         self.patience = patience
         self.output = output
         self.close_to_center = close_to_center
+        self.seed = seed
 
     def _extract(self, dataframe: pd.DataFrame, mapping: dict[str: int] = None, sort: bool = True) -> Theory:
+        np.random.seed(self.seed)
         X, y = dataframe.iloc[:, :-1], dataframe.iloc[:, -1]
 
         _, n, _ = select_gaussian_mixture(dataframe, self.max)

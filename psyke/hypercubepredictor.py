@@ -47,7 +47,7 @@ class HyperCubePredictor(EvaluableModel):
 
     def _brute_predict_surface(self, row: dict[str, float]) -> GenericCube:
         distances = [(
-            cube.surface_distance(Point(list(row.keys()), list(row.values()))), cube.volume(), cube
+            cube.surface_distance(Point(list(row.keys()), list(row.values))), cube.volume(), cube
         ) for cube in self._hypercubes]
         return min(distances)[-1]
 

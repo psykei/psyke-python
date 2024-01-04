@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 from tuprolog.theory import Theory
 
-from psyke import Target
+from psyke import Target, get_default_random_seed
 from psyke.extraction.hypercubic import HyperCubeExtractor
 from psyke.extraction.hypercubic.hypercube import Point, GenericCube, HyperCube
 
@@ -15,11 +15,12 @@ class DiViNE(HyperCubeExtractor):
     """
 
     def __init__(self, predictor, k: int = 5, patience: int = 15, close_to_center: bool = True,
-                 discretization=None, normalization=None):
+                 discretization=None, normalization=None, seed: int = get_default_random_seed()):
         super().__init__(predictor, Target.CLASSIFICATION, discretization, normalization)
         self.k = k
         self.patience = patience
         self.vicinity_function = DiViNE.closest_to_center if close_to_center else DiViNE.closest_to_corners
+        self.seed = seed
 
     @staticmethod
     def __pop(data: pd.DataFrame, idx: int = None) -> (Point, pd.DataFrame):
@@ -58,6 +59,7 @@ class DiViNE(HyperCubeExtractor):
         return idx[np.argmin(distance)][-1]
 
     def _extract(self, dataframe: pd.DataFrame, mapping: dict[str: int] = None, sort: bool = True) -> Theory:
+        np.random.seed(self.seed)
         data = self.__clean(dataframe)
 
         while len(data) > 0:

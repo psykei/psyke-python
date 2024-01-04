@@ -259,24 +259,25 @@ class Extractor(EvaluableModel, ABC):
 
     @staticmethod
     def divine(predictor, k: int = 5, patience: int = 15, close_to_center: bool = True,
-               discretization: Iterable[DiscreteFeature] = None, normalization=None) -> Extractor:
+               discretization: Iterable[DiscreteFeature] = None, normalization=None,
+               seed: int = get_default_random_seed()) -> Extractor:
         """
         Creates a new DiViNE extractor.
         """
         from psyke.extraction.hypercubic.divine import DiViNE
         return DiViNE(predictor, k=k, patience=patience, close_to_center=close_to_center,
-                      discretization=discretization, normalization=normalization)
+                      discretization=discretization, normalization=normalization, seed=seed)
 
     @staticmethod
     def cosmik(predictor, max_components: int = 4, k: int = 5, patience: int = 15, close_to_center: bool = True,
-               output: Target = Target.CONSTANT,
-               discretization: Iterable[DiscreteFeature] = None, normalization=None) -> Extractor:
+               output: Target = Target.CONSTANT, discretization: Iterable[DiscreteFeature] = None, normalization=None,
+               seed: int = get_default_random_seed()) -> Extractor:
         """
         Creates a new COSMiK extractor.
         """
         from psyke.extraction.hypercubic.cosmik import COSMiK
         return COSMiK(predictor, max_components=max_components, k=k, patience=patience, close_to_center=close_to_center,
-                      output=output, discretization=discretization, normalization=normalization)
+                      output=output, discretization=discretization, normalization=normalization, seed=seed)
 
     @staticmethod
     def iter(predictor, min_update: float = 0.1, n_points: int = 1, max_iterations: int = 600, min_examples: int = 250,
@@ -318,8 +319,8 @@ class Extractor(EvaluableModel, ABC):
         Creates a new CReEPy extractor.
         """
         from psyke.extraction.hypercubic.creepy import CReEPy
-        return CReEPy(predictor, depth, error_threshold, output, gauss_components, ranks, ignore_threshold,
-                      discretization, normalization, clustering, seed)
+        return CReEPy(predictor, clustering, depth, error_threshold, output, gauss_components, ranks, ignore_threshold,
+                      discretization, normalization, seed)
 
     @staticmethod
     def real(predictor, discretization=None) -> Extractor:

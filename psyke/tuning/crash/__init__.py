@@ -1,3 +1,5 @@
+from enum import Enum
+
 import pandas as pd
 
 from psyke.tuning import Objective, SKEOptimizer
@@ -6,6 +8,10 @@ from psyke.utils import Target
 
 
 class CRASH(SKEOptimizer):
+    class Algorithm(Enum):
+        ExACT = 1,
+        CREAM = 2
+
     def __init__(self, predictor, dataframe: pd.DataFrame, max_error_increase: float = 1.2,
                  min_rule_decrease: float = 0.9, readability_tradeoff: float = 0.1, max_depth: int = 10,
                  max_gauss_components: int = 5, patience: int = 5, output: Target = Target.CONSTANT,
