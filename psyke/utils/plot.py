@@ -26,16 +26,16 @@ def plot_init(xlim, ylim, xlabel, ylabel, size=(4, 3), equal=False):
     plt.gca().set_rasterized(True)
 
 
-def plot_point(x, y, color, marker):
-    plt.scatter(x, y, c=color, marker=marker)
+def plot_point(x, y, color, marker, ec=None):
+    plt.scatter(x, y, c=color, marker=marker, edgecolors=ec, linewidths=0.6)
 
 
-def plot_classification_samples(dataframe, classes, colors, markers, labels, loc, name, show=True):
+def plot_classification_samples(dataframe, classes, colors, markers, labels, loc, name, show=True, ec=None):
     marks = [Line2D([0], [0], color=c, marker=m, lw="0") for c, m in zip(colors, markers)]
 
     for cl, c, m in zip(classes, colors, markers):
         df = dataframe[dataframe.target == cl]
-        plot_point(df["petal length"], df["petal width"], c, m)
+        plot_point(df["petal length"], df["petal width"], c, m, ec=ec)
 
     plt.gca().legend(marks, labels, loc=loc)
     plt.savefig("plot/{}.pdf".format(name), dpi=500, bbox_inches='tight')
@@ -44,10 +44,11 @@ def plot_classification_samples(dataframe, classes, colors, markers, labels, loc
 
 
 def plot_boundaries(extractor: HyperCubeExtractor, x: str, y: str, colors: dict[str, str],
-                    a: float = .5, h: str = '////////', ls='-', e=.05):
+                    a: float = .5, h: str = '////////', ls='-', e=.05, fc='none', ec=None):
     for cube in extractor._hypercubes:
         plt.gca().fill_between((cube[x][0] - e, cube[x][1] + e), cube[y][0] - e, cube[y][1] + e,
-                               fc='none', ec=colors[cube.output], alpha=a, hatch=h, linestyle=ls)
+                               fc=colors[cube.output] if fc is None else fc,
+                               ec=colors[cube.output] if ec is None else ec, alpha=a, hatch=h, linestyle=ls)
 
 
 def plot_surfaces(extractor: HyperCubeExtractor, x: str, y: str, colors: dict[str, str], ec='r', e=.05):

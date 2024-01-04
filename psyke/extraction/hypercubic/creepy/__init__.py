@@ -18,9 +18,9 @@ class CReEPy(HyperCubeExtractor):
     Explanator implementing CReEPy algorithm.
     """
 
-    def __init__(self, predictor, depth: int, error_threshold: float, output: Target = Target.CONSTANT,
-                 gauss_components: int = 5, ranks: list[(str, float)] = [], ignore_threshold: float = 0.0,
-                 discretization=None, normalization=None, clustering=Clustering.exact,
+    def __init__(self, predictor, clustering=Clustering.exact, depth: int = 3, error_threshold: float = 0.1,
+                 output: Target = Target.CONSTANT, gauss_components: int = 5, ranks: list[(str, float)] = [],
+                 ignore_threshold: float = 0.0, discretization=None, normalization=None,
                  seed: int = get_default_random_seed()):
         super().__init__(predictor, Target.CLASSIFICATION if isinstance(predictor, ClassifierMixin) else output,
                          discretization, normalization)
