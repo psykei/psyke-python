@@ -44,6 +44,19 @@ class GridEx(HyperCubeExtractor):
             ranges[feature] = [(a + size * i, a + size * (i + 1)) for i in range(n_bins)]
         return ranges
 
+    def _cubes_to_split(self, cube, iteration, dataframe, fake):
+        to_split = []
+        for (pn, p) in enumerate(list(product(*self._create_ranges(cube, iteration).values()))):
+            cube = self._default_cube()
+            for i, f in enumerate(dataframe.columns[:-1]):
+                cube.update_dimension(f, p[i])
+            n = cube.count(dataframe)
+            if n > 0:
+                fake = pd.concat([fake, cube.create_samples(self.min_examples - n, self.__generator)])
+                cube.update(fake, self.predictor)
+                to_split.append(cube)
+        return to_split
+
     def _iterate(self, surrounding: HyperCube, dataframe: pd.DataFrame):
         fake = dataframe.copy()
         prev = [surrounding]
@@ -52,23 +65,12 @@ class GridEx(HyperCubeExtractor):
         for iteration in self.grid.iterate():
             next_iteration = []
             for cube in prev:
-                to_split = []
                 if cube.count(dataframe) == 0:
                     continue
                 if cube.diversity < self.threshold:
                     self._hypercubes += [cube]
                     continue
-                ranges = self._create_ranges(cube, iteration)
-                for (pn, p) in enumerate(list(product(*ranges.values()))):
-                    cube = self._default_cube()
-                    for i, f in enumerate(dataframe.columns[:-1]):
-                        cube.update_dimension(f, p[i])
-                    n = cube.count(dataframe)
-                    if n > 0:
-                        fake = pd.concat([fake, cube.create_samples(self.min_examples - n, self.__generator)])
-                        cube.update(fake, self.predictor)
-                        to_split += [cube]
-                to_split = self._merge(to_split, fake)
+                to_split = self._merge(self._cubes_to_split(cube, iteration, dataframe, fake), fake)
                 next_iteration += [cube for cube in to_split]
             prev = next_iteration.copy()
         self._hypercubes += [cube for cube in next_iteration]
