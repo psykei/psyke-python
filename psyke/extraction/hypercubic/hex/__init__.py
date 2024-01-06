@@ -16,6 +16,7 @@ class HEx(GridEx):
     def __init__(self, predictor, grid: Grid, min_examples: int, threshold: float, normalization,
                  seed=get_default_random_seed()):
         super().__init__(predictor, grid, min_examples, threshold, normalization, seed)
+        self._default_surrounding_cube = True
 
     def _different_output(self, this_cube, other_cube):
         if isinstance(this_cube.output, str) and this_cube.output == other_cube.output:
@@ -38,8 +39,7 @@ class HEx(GridEx):
                 subcubes = [c for c in self._merge(self._cubes_to_split(cube, iteration, dataframe, fake, True), fake)]
                 cleaned = [c for c in subcubes if c.count(dataframe) > 0 and self._different_output(cube, c)]
                 if len(subcubes) > len(cleaned):
-                    self._hypercubes += [cube]
+                    self._hypercubes = [cube] + self._hypercubes
                 next_iteration += cleaned
             prev = next_iteration.copy()
-        self._hypercubes += [cube for cube in next_iteration]
-        self._hypercubes.reverse()
+        self._hypercubes = [cube for cube in next_iteration] + self._hypercubes

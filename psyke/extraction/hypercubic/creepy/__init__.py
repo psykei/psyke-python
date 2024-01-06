@@ -4,13 +4,11 @@ from collections import Iterable
 import numpy as np
 import pandas as pd
 from sklearn.base import ClassifierMixin
-from tuprolog.core import clause
 from tuprolog.theory import Theory
 from psyke import Clustering
 from psyke.clustering import HyperCubeClustering
 from psyke.extraction.hypercubic import HyperCubeExtractor
 from psyke.utils import Target, get_default_random_seed
-from psyke.utils.logic import last_in_body
 
 
 class CReEPy(HyperCubeExtractor):
@@ -28,6 +26,7 @@ class CReEPy(HyperCubeExtractor):
                                      normalization, seed)
         self.ranks = ranks
         self.ignore_threshold = ignore_threshold
+        self._default_surrounding_cube = True
 
     def _extract(self, dataframe: pd.DataFrame, mapping: dict[str: int] = None, sort: bool = True) -> Theory:
         if not isinstance(self.clustering, HyperCubeClustering):
@@ -38,15 +37,7 @@ class CReEPy(HyperCubeExtractor):
         for cube in self._hypercubes:
             for dimension in self._ignore_dimensions():
                 cube[dimension] = [-np.inf, np.inf]
-        theory = self._create_theory(dataframe)
-        last_clause = list(theory.clauses)[-1]
-        theory.retract(last_clause)
-        theory.assertZ(clause(
-            last_clause.head, [last_in_body(last_clause.body)] if self._output is Target.REGRESSION else []))
-        last_cube = self._hypercubes[-1]
-        for dimension in last_cube.dimensions.keys():
-            last_cube[dimension] = [-np.inf, np.inf]
-        return theory
+        return self._create_theory(dataframe)
 
     def _ignore_dimensions(self) -> Iterable[str]:
         return [dimension for dimension, relevance in self.ranks if relevance < self.ignore_threshold]

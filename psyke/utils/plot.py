@@ -45,7 +45,7 @@ def plot_classification_samples(dataframe, classes, colors, markers, labels, loc
 
 def plot_boundaries(extractor: HyperCubeExtractor, x: str, y: str, colors: dict[str, str],
                     a: float = .5, h: str = '////////', ls='-', e=.05, fc='none', ec=None, reverse=False):
-    cubes = extractor._hypercubes
+    cubes = extractor._hypercubes.copy()
     if reverse:
         cubes.reverse()
     for cube in cubes:
