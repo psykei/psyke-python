@@ -44,8 +44,11 @@ def plot_classification_samples(dataframe, classes, colors, markers, labels, loc
 
 
 def plot_boundaries(extractor: HyperCubeExtractor, x: str, y: str, colors: dict[str, str],
-                    a: float = .5, h: str = '////////', ls='-', e=.05, fc='none', ec=None):
-    for cube in extractor._hypercubes:
+                    a: float = .5, h: str = '////////', ls='-', e=.05, fc='none', ec=None, reverse=False):
+    cubes = extractor._hypercubes
+    if reverse:
+        cubes.reverse()
+    for cube in cubes:
         plt.gca().fill_between((cube[x][0] - e, cube[x][1] + e), cube[y][0] - e, cube[y][1] + e,
                                fc=colors[cube.output] if fc is None else fc,
                                ec=colors[cube.output] if ec is None else ec, alpha=a, hatch=h, linestyle=ls)
