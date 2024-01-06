@@ -36,6 +36,14 @@ class GridEx(HyperCubeExtractor):
         cube = self._hypercubes[0]
         return [d for d in cube.dimensions if all(c[d] == cube[d] for c in self._hypercubes)]
 
+    def _create_ranges(self, cube, iteration):
+        ranges = {}
+        for (feature, (a, b)) in cube.dimensions.items():
+            n_bins = self.grid.get(feature, iteration)
+            size = (b - a) / n_bins
+            ranges[feature] = [(a + size * i, a + size * (i + 1)) for i in range(n_bins)]
+        return ranges
+
     def _iterate(self, surrounding: HyperCube, dataframe: pd.DataFrame):
         fake = dataframe.copy()
         prev = [surrounding]
@@ -50,14 +58,7 @@ class GridEx(HyperCubeExtractor):
                 if cube.diversity < self.threshold:
                     self._hypercubes += [cube]
                     continue
-                ranges = {}
-                for (feature, (a, b)) in cube.dimensions.items():
-                    bins = []
-                    n_bins = self.grid.get(feature, iteration)
-                    size = (b - a) / n_bins
-                    for i in range(n_bins):
-                        bins.append((a + size * i, a + size * (i + 1)))
-                    ranges[feature] = bins
+                ranges = self._create_ranges(cube, iteration)
                 for (pn, p) in enumerate(list(product(*ranges.values()))):
                     cube = self._default_cube()
                     for i, f in enumerate(dataframe.columns[:-1]):
@@ -102,15 +103,16 @@ class GridEx(HyperCubeExtractor):
         not_in_cache = [cube for cube in to_split]
         adjacent_cache = {}
         merge_cache = {}
-        # TODO: refactor this. A while true with a break is as ugly as hunger.
-        while True:
+        cont = True
+        while cont:
             to_merge = [([cube, other_cube], merge_cache[(cube, other_cube)]) for cube, other_cube, feature in
                         GridEx._find_couples(to_split, not_in_cache, adjacent_cache) if
                         self._evaluate_merge(not_in_cache, dataframe, feature, cube, other_cube, merge_cache)]
             if len(to_merge) == 0:
-                break
-            sorted(to_merge, key=lambda c: c[1].diversity)
-            best = to_merge[0]
-            to_split = [cube for cube in to_split if cube not in best[0]] + [best[1]]
-            not_in_cache = [best[1]]
+                cont = False
+            else:
+                sorted(to_merge, key=lambda c: c[1].diversity)
+                best = to_merge[0]
+                to_split = [cube for cube in to_split if cube not in best[0]] + [best[1]]
+                not_in_cache = [best[1]]
         return to_split

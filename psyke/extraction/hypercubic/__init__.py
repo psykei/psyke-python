@@ -33,7 +33,7 @@ class HyperCubeExtractor(HyperCubePredictor, PedagogicalExtractor, ABC):
         return ClassificationCube()
 
     def _sort_cubes(self):
-        cubes = [(cube.diversity, i, cube) for i, cube in enumerate(self._hypercubes)]
+        cubes = [[cube.diversity, i, cube] for i, cube in enumerate(self._hypercubes)]
         cubes.sort()
         self._hypercubes = [cube[2] for cube in cubes]
 
