@@ -70,8 +70,7 @@ class GridEx(HyperCubeExtractor):
                 if cube.diversity < self.threshold:
                     self._hypercubes += [cube]
                     continue
-                to_split = self._merge(self._cubes_to_split(cube, iteration, dataframe, fake), fake)
-                next_iteration += [cube for cube in to_split]
+                next_iteration += [c for c in self._merge(self._cubes_to_split(cube, iteration, dataframe, fake), fake)]
             prev = next_iteration.copy()
         self._hypercubes += [cube for cube in next_iteration]
 
