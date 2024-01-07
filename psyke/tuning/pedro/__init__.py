@@ -13,7 +13,8 @@ from psyke.tuning import Objective, IterativeOptimizer, SKEOptimizer
 class PEDRO(SKEOptimizer, IterativeOptimizer):
     class Algorithm(Enum):
         GRIDEX = 1,
-        GRIDREX = 2
+        GRIDREX = 2,
+        HEX = 3
 
     def __init__(self, predictor, dataframe: pd.DataFrame, max_error_increase: float = 1.2,
                  min_rule_decrease: float = 0.9, readability_tradeoff: float = 0.1, max_depth: int = 3,
@@ -23,7 +24,10 @@ class PEDRO(SKEOptimizer, IterativeOptimizer):
                               readability_tradeoff, patience, objective, output, normalization, discretization)
         IterativeOptimizer.__init__(self, dataframe, max_error_increase, min_rule_decrease, readability_tradeoff,
                                     max_depth, patience, output, normalization, discretization)
-        self.algorithm = algorithm
+        self.algorithm = Extractor.gridrex if algorithm == PEDRO.Algorithm.GRIDREX else \
+            Extractor.gridex if algorithm == PEDRO.Algorithm.GRIDEX else Extractor.hex
+        self.algorithm_name = "GridREx" if algorithm == PEDRO.Algorithm.GRIDREX else \
+            "GridEx" if algorithm == PEDRO.Algorithm.GRIDEX else "HEx"
         self.ranked = FeatureRanker(dataframe.columns[:-1]).fit(predictor, dataframe.iloc[:, :-1]).rankings()
         predictions = self.predictor.predict(dataframe.iloc[:, :-1]).flatten()
         expected = self.dataframe.iloc[:, -1].values
@@ -50,10 +54,8 @@ class PEDRO(SKEOptimizer, IterativeOptimizer):
         params = []
         patience = self.patience
         while patience > 0:
-            print("{}. {}. Threshold = {:.2f}. ".format(self.algorithm, grid, threshold), end="")
-            extractor = Extractor.gridrex(self.predictor, grid, threshold=threshold, normalization=self.normalization) \
-                if self.algorithm == PEDRO.Algorithm.GRIDREX \
-                else Extractor.gridex(self.predictor, grid, threshold=threshold, normalization=self.normalization)
+            print("{}. {}. Threshold = {:.2f}. ".format(self.algorithm_name, grid, threshold), end="")
+            extractor = self.algorithm(self.predictor, grid, threshold=threshold, normalization=self.normalization)
             _ = extractor.extract(self.dataframe)
             error_function = (lambda *x: 1 - extractor.accuracy(*x)) if self.output == Target.CLASSIFICATION \
                 else extractor.mae

@@ -26,11 +26,7 @@ class PedagogicalExtractor(Extractor, ABC):
         new_y = pd.DataFrame(new_y).set_index(dataframe.index)
         data = dataframe.iloc[:, :-1].copy().join(new_y)
         data.columns = dataframe.columns
-        theory = self._extract(data, mapping, sort)
-        if isinstance(self, HyperCubeExtractor):
-            self._surrounding = HyperCube.create_surrounding_cube(dataframe, output=self._output)
-            self._surrounding.update(dataframe, self.predictor)
-        return theory
+        return self._extract(data, mapping, sort)
 
     def _extract(self, dataframe: pd.DataFrame, mapping: dict[str: int] = None, sort: bool = True) -> Theory:
         raise NotImplementedError('extract')

@@ -35,9 +35,7 @@ class CReEPy(HyperCubeExtractor):
         self.clustering.fit(dataframe)
         self._hypercubes = self.clustering.get_hypercubes()
         for cube in self._hypercubes:
-            for dimension in self._ignore_dimensions():
-                cube[dimension] = [-np.inf, np.inf]
+            for dimension, relevance in self.ranks:
+                if relevance < self.ignore_threshold:
+                    cube[dimension] = [-np.inf, np.inf]
         return self._create_theory(dataframe)
-
-    def _ignore_dimensions(self) -> Iterable[str]:
-        return [dimension for dimension, relevance in self.ranks if relevance < self.ignore_threshold]

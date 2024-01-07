@@ -48,14 +48,20 @@ class HyperCubeExtractor(HyperCubePredictor, PedagogicalExtractor, ABC):
             last_cube[dimension] = [-np.inf, np.inf]
         return theory
 
+    def extract(self, dataframe: pd.DataFrame, mapping: dict[str: int] = None, sort: bool = True) -> Theory:
+        theory = PedagogicalExtractor.extract(self, dataframe, mapping, sort)
+        self._surrounding = HyperCube.create_surrounding_cube(dataframe, output=self._output)
+        self._surrounding.update(dataframe, self.predictor)
+        return theory
+
     @staticmethod
     def _create_head(dataframe: pd.DataFrame, variables: list[Var], output: float | LinearRegression) -> Struct:
         return create_head(dataframe.columns[-1], variables[:-1], output) \
             if not isinstance(output, LinearRegression) else \
             create_head(dataframe.columns[-1], variables[:-1], variables[-1])
 
-    def _ignore_dimensions(self) -> Iterable[str]:
-        return []
+    def _ignore_dimensions(self, cube: HyperCube) -> Iterable[str]:
+        return [d for d in cube.dimensions if cube[d][0] == -np.inf or cube[d][1] == np.inf]
 
     def __drop(self, dataframe: pd.DataFrame):
         self._hypercubes = [cube for cube in self._hypercubes if cube.count(dataframe) > 1]
@@ -70,7 +76,7 @@ class HyperCubeExtractor(HyperCubePredictor, PedagogicalExtractor, ABC):
             variables[dataframe.columns[-1]] = to_var(dataframe.columns[-1])
             head = HyperCubeExtractor._create_head(dataframe, list(variables.values()),
                                                    self.unscale(cube.output, dataframe.columns[-1]))
-            body = cube.body(variables, self._ignore_dimensions(), self.unscale, self.normalization)
+            body = cube.body(variables, self._ignore_dimensions(cube), self.unscale, self.normalization)
             new_theory.assertZ(clause(head, body))
         new_theory = HyperCubeExtractor._prettify_theory(new_theory)
         return self._last_cube_as_default(new_theory) if self._default_surrounding_cube else new_theory

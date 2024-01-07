@@ -36,7 +36,9 @@ class HEx(GridEx):
         for iteration in self.grid.iterate():
             next_iteration = []
             for cube in prev:
-                subcubes = [c for c in self._merge(self._cubes_to_split(cube, iteration, dataframe, fake, True), fake)]
+                # subcubes =
+                # [c for c in self._merge(self._cubes_to_split(cube, iteration, dataframe, fake, True), fake)]
+                subcubes = [c for c in self._cubes_to_split(cube, iteration, dataframe, fake, True)]
                 cleaned = [c for c in subcubes if c.count(dataframe) > 0 and self._different_output(cube, c)]
                 if len(subcubes) > len(cleaned):
                     self._hypercubes = [cube] + self._hypercubes

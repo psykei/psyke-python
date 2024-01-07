@@ -32,16 +32,15 @@ class GridEx(HyperCubeExtractor):
         self._iterate(surrounding, dataframe)
         return self._create_theory(dataframe, sort)
 
-    def _ignore_dimensions(self) -> Iterable[str]:
-        cube = self._hypercubes[0]
-        return [d for d in cube.dimensions if all(c[d] == cube[d] for c in self._hypercubes)]
-
     def _create_ranges(self, cube, iteration):
         ranges = {}
         for (feature, (a, b)) in cube.dimensions.items():
             n_bins = self.grid.get(feature, iteration)
-            size = (b - a) / n_bins
-            ranges[feature] = [(a + size * i, a + size * (i + 1)) for i in range(n_bins)]
+            if n_bins == 1:
+                ranges[feature] = [(-np.inf, np.inf)]
+            else:
+                size = (b - a) / n_bins
+                ranges[feature] = [(a + size * i, a + size * (i + 1)) for i in range(n_bins)]
         return ranges
 
     def _cubes_to_split(self, cube, iteration, dataframe, fake, keep_empty=False):
