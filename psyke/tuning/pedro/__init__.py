@@ -55,7 +55,8 @@ class PEDRO(SKEOptimizer, IterativeOptimizer):
         patience = self.patience
         while patience > 0:
             print("{}. {}. Threshold = {:.2f}. ".format(self.algorithm_name, grid, threshold), end="")
-            extractor = self.algorithm(self.predictor, grid, threshold=threshold, normalization=self.normalization)
+            extractor = self.algorithm(self.predictor, grid, min_examples=25,
+                                       threshold=threshold, normalization=self.normalization)
             _ = extractor.extract(self.dataframe)
             error_function = (lambda *x: 1 - extractor.accuracy(*x)) if self.output == Target.CLASSIFICATION \
                 else extractor.mae
