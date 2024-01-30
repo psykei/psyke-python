@@ -72,6 +72,6 @@ jobs:
             echo "Releasing $A"
           done
           RELEASE_TAG='${{ steps.get-version.outputs.version }}'
-          hub release create "${ASSETS[@]}" -m "$RELEASE_TAG" "$RELEASE_TAG"
+          gh release create "${ASSETS[@]}" -m "$RELEASE_TAG" "$RELEASE_TAG"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
