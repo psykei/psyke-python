@@ -4,6 +4,7 @@ from itertools import product
 from typing import Iterable
 import numpy as np
 import pandas as pd
+from sklearn.base import ClassifierMixin
 from tuprolog.theory import Theory
 from psyke import get_default_random_seed
 from psyke.utils import Target
@@ -15,18 +16,17 @@ class GridEx(HyperCubeExtractor):
     Explanator implementing GridEx algorithm, doi:10.1007/978-3-030-82017-6_2.
     """
 
-    def __init__(self, predictor, grid: Grid, min_examples: int, threshold: float, normalization=None,
-                 seed=get_default_random_seed()):
-        super().__init__(predictor, Target.CONSTANT, normalization=normalization)
+    def __init__(self, predictor, grid: Grid, min_examples: int, threshold: float, output: Target = Target.CONSTANT,
+                 discretization=None, normalization=None, seed: int = get_default_random_seed()):
+        super().__init__(predictor, Target.CLASSIFICATION if isinstance(predictor, ClassifierMixin) else output,
+                         discretization, normalization)
         self.grid = grid
         self.min_examples = min_examples
         self.threshold = threshold
-        self.__generator = rnd.Random(seed)
+        self._generator = rnd.Random(seed)
 
     def _extract(self, dataframe: pd.DataFrame, mapping: dict[str: int] = None, sort: bool = True) -> Theory:
         self._hypercubes = []
-        if isinstance(np.array(self.predictor.predict(dataframe.iloc[0:1, :-1])).flatten()[0], str):
-            self._output = Target.CLASSIFICATION
         surrounding = HyperCube.create_surrounding_cube(dataframe, output=self._output)
         surrounding.init_diversity(2 * self.threshold)
         self._iterate(surrounding, dataframe)
@@ -51,7 +51,7 @@ class GridEx(HyperCubeExtractor):
                 cube.update_dimension(f, p[i])
             n = cube.count(dataframe)
             if n > 0 or keep_empty:
-                fake = pd.concat([fake, cube.create_samples(self.min_examples - n, self.__generator)])
+                fake = pd.concat([fake, cube.create_samples(self.min_examples - n, self._generator)])
                 cube.update(fake, self.predictor)
                 to_split.append(cube)
         return to_split
