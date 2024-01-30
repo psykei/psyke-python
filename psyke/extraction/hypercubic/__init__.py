@@ -14,7 +14,7 @@ from psyke.extraction import PedagogicalExtractor
 from psyke.extraction.hypercubic.hypercube import HyperCube, RegressionCube, ClassificationCube, ClosedCube, Point, \
     GenericCube
 from psyke.hypercubepredictor import HyperCubePredictor
-from psyke.utils.logic import create_variable_list, create_head, to_var, Simplifier
+from psyke.utils.logic import create_variable_list, create_head, to_var, Simplifier, last_in_body
 from psyke.utils import Target
 from psyke.extraction.hypercubic.strategy import Strategy, FixedStrategy
 
@@ -24,6 +24,7 @@ class HyperCubeExtractor(HyperCubePredictor, PedagogicalExtractor, ABC):
         HyperCubePredictor.__init__(self, output=output, normalization=normalization)
         PedagogicalExtractor.__init__(self, predictor, discretization=discretization, normalization=normalization)
         self._surrounding = None
+        self._default_surrounding_cube = False
 
     def _default_cube(self) -> HyperCube | RegressionCube | ClassificationCube:
         if self._output == Target.CONSTANT:
@@ -37,14 +38,30 @@ class HyperCubeExtractor(HyperCubePredictor, PedagogicalExtractor, ABC):
         cubes.sort()
         self._hypercubes = [cube[2] for cube in cubes]
 
+    def _last_cube_as_default(self, theory):
+        last_clause = list(theory.clauses)[-1]
+        theory.retract(last_clause)
+        theory.assertZ(clause(
+            last_clause.head, [last_in_body(last_clause.body)] if self._output is Target.REGRESSION else []))
+        last_cube = self._hypercubes[-1]
+        for dimension in last_cube.dimensions.keys():
+            last_cube[dimension] = [-np.inf, np.inf]
+        return theory
+
+    def extract(self, dataframe: pd.DataFrame, mapping: dict[str: int] = None, sort: bool = True) -> Theory:
+        theory = PedagogicalExtractor.extract(self, dataframe, mapping, sort)
+        self._surrounding = HyperCube.create_surrounding_cube(dataframe, output=self._output)
+        self._surrounding.update(dataframe, self.predictor)
+        return theory
+
     @staticmethod
     def _create_head(dataframe: pd.DataFrame, variables: list[Var], output: float | LinearRegression) -> Struct:
         return create_head(dataframe.columns[-1], variables[:-1], output) \
             if not isinstance(output, LinearRegression) else \
             create_head(dataframe.columns[-1], variables[:-1], variables[-1])
 
-    def _ignore_dimensions(self) -> Iterable[str]:
-        return []
+    def _ignore_dimensions(self, cube: HyperCube) -> Iterable[str]:
+        return [d for d in cube.dimensions if cube[d][0] == -np.inf or cube[d][1] == np.inf]
 
     def __drop(self, dataframe: pd.DataFrame):
         self._hypercubes = [cube for cube in self._hypercubes if cube.count(dataframe) > 1]
@@ -59,9 +76,10 @@ class HyperCubeExtractor(HyperCubePredictor, PedagogicalExtractor, ABC):
             variables[dataframe.columns[-1]] = to_var(dataframe.columns[-1])
             head = HyperCubeExtractor._create_head(dataframe, list(variables.values()),
                                                    self.unscale(cube.output, dataframe.columns[-1]))
-            body = cube.body(variables, self._ignore_dimensions(), self.unscale, self.normalization)
+            body = cube.body(variables, self._ignore_dimensions(cube), self.unscale, self.normalization)
             new_theory.assertZ(clause(head, body))
-        return HyperCubeExtractor._prettify_theory(new_theory)
+        new_theory = HyperCubeExtractor._prettify_theory(new_theory)
+        return self._last_cube_as_default(new_theory) if self._default_surrounding_cube else new_theory
 
     @staticmethod
     def _prettify_theory(theory: Theory) -> Theory:

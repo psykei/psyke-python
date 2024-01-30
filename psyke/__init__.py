@@ -291,14 +291,24 @@ class Extractor(EvaluableModel, ABC):
                     normalization, output, seed)
 
     @staticmethod
-    def gridex(predictor, grid, min_examples: int = 250, threshold: float = 0.1,
-               normalization: dict[str, tuple[float, float]] = None,
+    def gridex(predictor, grid, min_examples: int = 250, threshold: float = 0.1, output: Target = Target.CONSTANT,
+               discretization=None, normalization: dict[str, tuple[float, float]] = None,
                seed: int = get_default_random_seed()) -> Extractor:
         """
         Creates a new GridEx extractor.
         """
         from psyke.extraction.hypercubic.gridex import GridEx
-        return GridEx(predictor, grid, min_examples, threshold, normalization, seed)
+        return GridEx(predictor, grid, min_examples, threshold, output, discretization, normalization, seed)
+
+    @staticmethod
+    def hex(predictor, grid, min_examples: int = 250, threshold: float = 0.1, output: Target = Target.CONSTANT,
+            discretization=None, normalization: dict[str, tuple[float, float]] = None,
+            seed: int = get_default_random_seed()) -> Extractor:
+        """
+        Creates a new HEx extractor.
+        """
+        from psyke.extraction.hypercubic.hex import HEx
+        return HEx(predictor, grid, min_examples, threshold, output, discretization, normalization, seed)
 
     @staticmethod
     def gridrex(predictor, grid, min_examples: int = 250, threshold: float = 0.1,

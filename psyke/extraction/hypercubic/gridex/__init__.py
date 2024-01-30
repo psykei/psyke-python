@@ -4,6 +4,7 @@ from itertools import product
 from typing import Iterable
 import numpy as np
 import pandas as pd
+from sklearn.base import ClassifierMixin
 from tuprolog.theory import Theory
 from psyke import get_default_random_seed
 from psyke.utils import Target
@@ -15,26 +16,45 @@ class GridEx(HyperCubeExtractor):
     Explanator implementing GridEx algorithm, doi:10.1007/978-3-030-82017-6_2.
     """
 
-    def __init__(self, predictor, grid: Grid, min_examples: int, threshold: float, normalization=None,
-                 seed=get_default_random_seed()):
-        super().__init__(predictor, Target.CONSTANT, normalization=normalization)
+    def __init__(self, predictor, grid: Grid, min_examples: int, threshold: float, output: Target = Target.CONSTANT,
+                 discretization=None, normalization=None, seed: int = get_default_random_seed()):
+        super().__init__(predictor, Target.CLASSIFICATION if isinstance(predictor, ClassifierMixin) else output,
+                         discretization, normalization)
         self.grid = grid
         self.min_examples = min_examples
         self.threshold = threshold
-        self.__generator = rnd.Random(seed)
+        self._generator = rnd.Random(seed)
 
     def _extract(self, dataframe: pd.DataFrame, mapping: dict[str: int] = None, sort: bool = True) -> Theory:
         self._hypercubes = []
-        if isinstance(np.array(self.predictor.predict(dataframe.iloc[0:1, :-1])).flatten()[0], str):
-            self._output = Target.CLASSIFICATION
         surrounding = HyperCube.create_surrounding_cube(dataframe, output=self._output)
         surrounding.init_diversity(2 * self.threshold)
         self._iterate(surrounding, dataframe)
         return self._create_theory(dataframe, sort)
 
-    def _ignore_dimensions(self) -> Iterable[str]:
-        cube = self._hypercubes[0]
-        return [d for d in cube.dimensions if all(c[d] == cube[d] for c in self._hypercubes)]
+    def _create_ranges(self, cube, iteration):
+        ranges = {}
+        for (feature, (a, b)) in cube.dimensions.items():
+            n_bins = self.grid.get(feature, iteration)
+            if n_bins == 1:
+                ranges[feature] = [(-np.inf, np.inf)]
+            else:
+                size = (b - a) / n_bins
+                ranges[feature] = [(a + size * i, a + size * (i + 1)) for i in range(n_bins)]
+        return ranges
+
+    def _cubes_to_split(self, cube, iteration, dataframe, fake, keep_empty=False):
+        to_split = []
+        for (pn, p) in enumerate(list(product(*self._create_ranges(cube, iteration).values()))):
+            cube = self._default_cube()
+            for i, f in enumerate(dataframe.columns[:-1]):
+                cube.update_dimension(f, p[i])
+            n = cube.count(dataframe)
+            if n > 0 or keep_empty:
+                fake = pd.concat([fake, cube.create_samples(self.min_examples - n, self._generator)])
+                cube.update(fake, self.predictor)
+                to_split.append(cube)
+        return to_split
 
     def _iterate(self, surrounding: HyperCube, dataframe: pd.DataFrame):
         fake = dataframe.copy()
@@ -44,31 +64,12 @@ class GridEx(HyperCubeExtractor):
         for iteration in self.grid.iterate():
             next_iteration = []
             for cube in prev:
-                to_split = []
                 if cube.count(dataframe) == 0:
                     continue
                 if cube.diversity < self.threshold:
                     self._hypercubes += [cube]
                     continue
-                ranges = {}
-                for (feature, (a, b)) in cube.dimensions.items():
-                    bins = []
-                    n_bins = self.grid.get(feature, iteration)
-                    size = (b - a) / n_bins
-                    for i in range(n_bins):
-                        bins.append((a + size * i, a + size * (i + 1)))
-                    ranges[feature] = bins
-                for (pn, p) in enumerate(list(product(*ranges.values()))):
-                    cube = self._default_cube()
-                    for i, f in enumerate(dataframe.columns[:-1]):
-                        cube.update_dimension(f, p[i])
-                    n = cube.count(dataframe)
-                    if n > 0:
-                        fake = pd.concat([fake, cube.create_samples(self.min_examples - n, self.__generator)])
-                        cube.update(fake, self.predictor)
-                        to_split += [cube]
-                to_split = self._merge(to_split, fake)
-                next_iteration += [cube for cube in to_split]
+                next_iteration += [c for c in self._merge(self._cubes_to_split(cube, iteration, dataframe, fake), fake)]
             prev = next_iteration.copy()
         self._hypercubes += [cube for cube in next_iteration]
 
@@ -102,15 +103,16 @@ class GridEx(HyperCubeExtractor):
         not_in_cache = [cube for cube in to_split]
         adjacent_cache = {}
         merge_cache = {}
-        # TODO: refactor this. A while true with a break is as ugly as hunger.
-        while True:
+        cont = True
+        while cont:
             to_merge = [([cube, other_cube], merge_cache[(cube, other_cube)]) for cube, other_cube, feature in
                         GridEx._find_couples(to_split, not_in_cache, adjacent_cache) if
                         self._evaluate_merge(not_in_cache, dataframe, feature, cube, other_cube, merge_cache)]
             if len(to_merge) == 0:
-                break
-            sorted(to_merge, key=lambda c: c[1].diversity)
-            best = to_merge[0]
-            to_split = [cube for cube in to_split if cube not in best[0]] + [best[1]]
-            not_in_cache = [best[1]]
+                cont = False
+            else:
+                sorted(to_merge, key=lambda c: c[1].diversity)
+                best = to_merge[0]
+                to_split = [cube for cube in to_split if cube not in best[0]] + [best[1]]
+                not_in_cache = [best[1]]
         return to_split

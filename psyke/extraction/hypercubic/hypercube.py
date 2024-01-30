@@ -209,7 +209,8 @@ class HyperCube:
         return HyperCube(dimensions)
 
     def _create_tuple(self, generator: Random) -> dict:
-        return {k: generator.uniform(self.get_first(k), self.get_second(k)) for k in self._dimensions.keys()}
+        return {k: generator.uniform(self.get_first(k, False), self.get_second(k, False))
+                for k in self._dimensions.keys()}
 
     @staticmethod
     def cube_from_point(point: dict[str, float], output=None) -> GenericCube:
@@ -242,11 +243,11 @@ class HyperCube:
         for update in updates:
             self._expand_one(update, surrounding, ratio)
 
-    def get_first(self, feature: str) -> float:
-        return self[feature][0]
+    def get_first(self, feature: str, inf: bool = True) -> float:
+        return self[feature][0] if inf or np.isfinite(self[feature][0]) else 0.0
 
-    def get_second(self, feature: str) -> float:
-        return self[feature][1]
+    def get_second(self, feature: str, inf: bool = True) -> float:
+        return self[feature][1] if inf or np.isfinite(self[feature][1]) else 0.0
 
     def has_volume(self) -> bool:
         return all([dimension[1] - dimension[0] > HyperCube.EPSILON for dimension in self._dimensions.values()])
