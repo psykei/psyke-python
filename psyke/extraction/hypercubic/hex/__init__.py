@@ -1,3 +1,4 @@
+import numpy as np
 import pandas as pd
 from sklearn.linear_model import LinearRegression
 
@@ -41,10 +42,13 @@ class HEx(GridEx):
             for cube in prev:
                 # subcubes =
                 # [c for c in self._merge(self._cubes_to_split(cube, iteration, dataframe, fake, True), fake)]
-                subcubes = [c for c in self._cubes_to_split(cube, iteration, dataframe, fake, True)]
+                subcubes, fake = self._cubes_to_split(cube, surrounding, iteration, dataframe, fake, True)
                 cleaned = [c for c in subcubes if c.count(dataframe) > 0 and self._gain(cube, c)]
                 if len(subcubes) > len(cleaned):
+                    if len(cleaned) > 0:
+                        idx = np.any([c.filter_indices(fake.iloc[:, :-1]) for c in cleaned], axis=0)
+                        cube.update(fake[~idx], self.predictor)
                     self._hypercubes = [cube] + self._hypercubes
-                next_iteration += cleaned
+                next_iteration += self._merge(cleaned, fake)
             prev = next_iteration.copy()
         self._hypercubes = [cube for cube in next_iteration] + self._hypercubes

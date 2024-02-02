@@ -38,7 +38,8 @@ class ITER(HyperCubeExtractor):
         expansions = []
         for limit in cubes:
             count = limit.cube.count(dataframe)
-            dataframe = pd.concat([dataframe, limit.cube.create_samples(self.min_examples - count, self.__generator)])
+            dataframe = pd.concat([dataframe, limit.cube.create_samples(self.min_examples - count,
+                                                                        generator=self.__generator)])
             limit.cube.update(dataframe, self.predictor)
             expansions.append(Expansion(
                 limit.cube, limit.feature, limit.direction,

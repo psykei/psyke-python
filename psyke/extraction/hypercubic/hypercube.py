@@ -158,8 +158,9 @@ class HyperCube:
             return '*'
         raise Exception('Too many limits for this feature')
 
-    def create_samples(self, n: int = 1, generator: Random = Random(get_default_random_seed())) -> pd.DataFrame:
-        return pd.DataFrame([self._create_tuple(generator) for _ in range(n)])
+    def create_samples(self, n: int = 1, surrounding: GenericCube = None,
+                       generator: Random = Random(get_default_random_seed())) -> pd.DataFrame:
+        return pd.DataFrame([self._create_tuple(generator, surrounding) for _ in range(n)])
 
     @staticmethod
     def check_overlap(to_check: Iterable[HyperCube], hypercubes: Iterable[HyperCube]) -> bool:
@@ -208,9 +209,10 @@ class HyperCube:
             return RegressionCube(dimensions)
         return HyperCube(dimensions)
 
-    def _create_tuple(self, generator: Random) -> dict:
-        return {k: generator.uniform(self.get_first(k, False), self.get_second(k, False))
-                for k in self._dimensions.keys()}
+    def _create_tuple(self, generator: Random, surrounding: GenericCube) -> dict:
+        minmax = {k: (self[k][0] if np.isfinite(self[k][0]) else surrounding[k][0],
+                      self[k][1] if np.isfinite(self[k][1]) else surrounding[k][1]) for k in self._dimensions.keys()}
+        return {k: generator.uniform(minmax[k][0], minmax[k][1]) for k in self._dimensions.keys()}
 
     @staticmethod
     def cube_from_point(point: dict[str, float], output=None) -> GenericCube:
@@ -243,11 +245,11 @@ class HyperCube:
         for update in updates:
             self._expand_one(update, surrounding, ratio)
 
-    def get_first(self, feature: str, inf: bool = True) -> float:
-        return self[feature][0] if inf or np.isfinite(self[feature][0]) else 0.0
+    def get_first(self, feature: str) -> float:
+        return self[feature][0]
 
-    def get_second(self, feature: str, inf: bool = True) -> float:
-        return self[feature][1] if inf or np.isfinite(self[feature][1]) else 0.0
+    def get_second(self, feature: str) -> float:
+        return self[feature][1]
 
     def has_volume(self) -> bool:
         return all([dimension[1] - dimension[0] > HyperCube.EPSILON for dimension in self._dimensions.values()])
