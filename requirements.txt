@@ -8,7 +8,7 @@ skl2onnx==1.16.0
 onnxruntime==1.16.3
 tensorflow==2.14.1
 parameterized==0.9.0
-protobuf==4.25.2
+protobuf==4.25.3
 setuptools==69.1.0
 kneed==0.8.5
 sympy==1.12
