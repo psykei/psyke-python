@@ -3,7 +3,7 @@ import pandas as pd
 from sklearn.linear_model import LinearRegression
 
 from psyke import get_default_random_seed, Target
-from psyke.extraction.hypercubic import Grid, HyperCube, GenericCube, ClassificationCube
+from psyke.extraction.hypercubic import Grid, HyperCube, GenericCube, ClassificationCube, RegressionCube
 from psyke.extraction.hypercubic.gridex import GridEx
 
 
@@ -29,19 +29,16 @@ class HEx(GridEx):
     def _gain(self, parent_cube: GenericCube, new_cube: GenericCube) -> float:
         if isinstance(parent_cube, ClassificationCube):
             return parent_cube.output != new_cube.output
-        return parent_cube.diversity - new_cube.diversity > self.threshold / 3.0
+        return parent_cube.diversity - new_cube.diversity > self.threshold
 
     def _iterate(self, surrounding: HyperCube, dataframe: pd.DataFrame):
         fake = dataframe.copy()
         surrounding.update(dataframe, self.predictor)
         prev = [surrounding]
-        next_iteration = []
 
         for iteration in self.grid.iterate():
             next_iteration = []
             for cube in prev:
-                # subcubes =
-                # [c for c in self._merge(self._cubes_to_split(cube, iteration, dataframe, fake, True), fake)]
                 subcubes, fake = self._cubes_to_split(cube, surrounding, iteration, dataframe, fake, True)
                 cleaned = [c for c in subcubes if c.count(dataframe) > 0 and self._gain(cube, c)]
                 if len(subcubes) > len(cleaned):
@@ -51,4 +48,4 @@ class HEx(GridEx):
                     self._hypercubes = [cube] + self._hypercubes
                 next_iteration += self._merge(cleaned, fake)
             prev = next_iteration.copy()
-        self._hypercubes = [cube for cube in next_iteration] + self._hypercubes
+        self._hypercubes = [cube for cube in prev] + self._hypercubes

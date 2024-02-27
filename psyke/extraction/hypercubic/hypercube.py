@@ -70,6 +70,7 @@ class HyperCube:
         self._limits = limits if limits is not None else set()
         self._output = output
         self._diversity = 0.0
+        self._error = 0.0
         self._barycenter = Point([], [])
 
     def __contains__(self, point: dict[str, float]) -> bool:
@@ -114,6 +115,10 @@ class HyperCube:
     @property
     def diversity(self) -> float:
         return self._diversity
+
+    @property
+    def error(self) -> float:
+        return self._error
 
     @property
     def barycenter(self) -> Point:
@@ -369,6 +374,7 @@ class HyperCube:
         predictions = predictor.predict(filtered)
         self._output = np.mean(predictions)
         self._diversity = np.std(predictions)
+        self._error = (abs(predictions - self._output)).mean()
         means = filtered.describe().loc['mean']
         self._barycenter = Point(means.index.values, means.values)
 
@@ -386,7 +392,7 @@ class RegressionCube(HyperCube):
         if len(filtered > 0):
             predictions = predictor.predict(filtered)
             self._output.fit(filtered, predictions)
-            self._diversity = (abs(self._output.predict(filtered) - predictions)).mean()
+            self._diversity = self._error = (abs(self._output.predict(filtered) - predictions)).mean()
             means = filtered.describe().loc['mean']
             self._barycenter = Point(means.index.values, means.values)
 
@@ -415,7 +421,7 @@ class ClassificationCube(HyperCube):
         if len(filtered > 0):
             predictions = predictor.predict(filtered)
             self._output = mode(predictions)
-            self._diversity = 1 - sum(prediction == self.output for prediction in predictions) / len(filtered)
+            self._diversity = self._error = 1 - sum(p == self.output for p in predictions) / len(predictions)
             means = filtered.describe().loc['mean']
             self._barycenter = Point(means.index.values, means.values)
 
