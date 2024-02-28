@@ -29,7 +29,7 @@ class HEx(GridEx):
     def _gain(self, parent_cube: GenericCube, new_cube: GenericCube) -> float:
         if isinstance(parent_cube, ClassificationCube):
             return parent_cube.output != new_cube.output
-        return parent_cube.diversity - new_cube.diversity > self.threshold
+        return parent_cube.error - new_cube.error > self.threshold
 
     def _iterate(self, surrounding: HyperCube, dataframe: pd.DataFrame):
         fake = dataframe.copy()
