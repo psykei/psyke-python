@@ -45,7 +45,7 @@ class EvaluableModel(object):
         FMI = 4
 
     def __init__(self, discretization=None, normalization=None):
-        self.discretization = discretization
+        self.discretization = [] if discretization is None else list(discretization)
         self.normalization = normalization
 
     def predict(self, dataframe: pd.DataFrame, mapping: dict[str: int] = None) -> Iterable:
@@ -155,9 +155,8 @@ class Extractor(EvaluableModel, ABC):
     """
 
     def __init__(self, predictor, discretization: Iterable[DiscreteFeature] = None, normalization=None):
-        super().__init__(normalization)
+        super().__init__(discretization, normalization)
         self.predictor = predictor
-        self.discretization = [] if discretization is None else list(discretization)
 
     def extract(self, dataframe: pd.DataFrame, mapping: dict[str: int] = None, sort: bool = True) -> Theory:
         """
