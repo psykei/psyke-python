@@ -48,8 +48,8 @@ class HyperCubeExtractor(HyperCubePredictor, PedagogicalExtractor, ABC):
             last_cube[dimension] = [-np.inf, np.inf]
         return theory
 
-    def extract(self, dataframe: pd.DataFrame, mapping: dict[str: int] = None, sort: bool = True) -> Theory:
-        theory = PedagogicalExtractor.extract(self, dataframe, mapping, sort)
+    def extract(self, dataframe: pd.DataFrame) -> Theory:
+        theory = PedagogicalExtractor.extract(self, dataframe)
         self._surrounding = HyperCube.create_surrounding_cube(dataframe, output=self._output)
         self._surrounding.update(dataframe, self.predictor)
         return theory

@@ -158,24 +158,20 @@ class Extractor(EvaluableModel, ABC):
         super().__init__(discretization, normalization)
         self.predictor = predictor
 
-    def extract(self, dataframe: pd.DataFrame, mapping: dict[str: int] = None, sort: bool = True) -> Theory:
+    def extract(self, dataframe: pd.DataFrame) -> Theory:
         """
         Extracts rules from the underlying predictor.
 
         :param dataframe: is the set of instances to be used for the extraction.
-        :param mapping: for one-hot encoding.
-        :param sort: alphabetically sort the variables of the head of the rules.
         :return: the theory created from the extracted rules.
         """
         raise NotImplementedError('extract')
 
-    def predict_why(self, dataframe: pd.DataFrame, mapping: dict[str: int] = None, sort: bool = True) -> Theory:
+    def predict_why(self, dataframe: pd.DataFrame) -> Theory:
         """
         Extracts rules from the underlying predictor.
 
         :param dataframe: is the set of instances to be used for the extraction.
-        :param mapping: for one-hot encoding.
-        :param sort: alphabetically sort the variables of the head of the rules.
         :return: the theory created from the extracted rules.
         """
         raise NotImplementedError('extract')
