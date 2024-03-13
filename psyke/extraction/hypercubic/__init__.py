@@ -87,13 +87,13 @@ class HyperCubeExtractor(HyperCubePredictor, PedagogicalExtractor, ABC):
     def __drop(self, dataframe: pd.DataFrame):
         self._hypercubes = [cube for cube in self._hypercubes if cube.count(dataframe) > 1]
 
-    def _create_theory(self, dataframe: pd.DataFrame, sort: bool = False) -> Theory:
+    def _create_theory(self, dataframe: pd.DataFrame) -> Theory:
         self.__drop(dataframe)
         new_theory = mutable_theory()
         for cube in self._hypercubes:
             logger.info(cube.output)
             logger.info(cube.dimensions)
-            variables = create_variable_list([], dataframe, sort)
+            variables = create_variable_list([], dataframe)
             variables[dataframe.columns[-1]] = to_var(dataframe.columns[-1])
             head = HyperCubeExtractor._create_head(dataframe, list(variables.values()),
                                                    self.unscale(cube.output, dataframe.columns[-1]))
