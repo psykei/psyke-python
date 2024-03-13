@@ -14,7 +14,7 @@ from psyke.extraction import PedagogicalExtractor
 from psyke.extraction.hypercubic.hypercube import HyperCube, RegressionCube, ClassificationCube, ClosedCube, Point, \
     GenericCube
 from psyke.hypercubepredictor import HyperCubePredictor
-from psyke.utils.logic import create_variable_list, create_head, to_var, Simplifier, last_in_body
+from psyke.utils.logic import create_variable_list, create_head, to_var, Simplifier, last_in_body, PRECISION
 from psyke.utils import Target
 from psyke.extraction.hypercubic.strategy import Strategy, FixedStrategy
 
@@ -57,10 +57,23 @@ class HyperCubeExtractor(HyperCubePredictor, PedagogicalExtractor, ABC):
     def predict_why(self, data: dict[str, float]):
         cube = self._find_cube(data)
         if cube is None:
-            print("The extracted knowledge is not exhaustive; impossible to predict this instance.")
+            print("The extracted knowledge is not exhaustive; impossible to predict this instance")
         else:
             output = self._predict_from_cubes(data)
-            print()
+            print(f"The output is {output} because")
+            conditions = []
+            for d in cube.finite_dimensions:
+                conditions.append(f'     {d} is between {round(cube.dimensions[d][0], 1)} and '
+                                  f'{round(cube.dimensions[d][1], 1)}')
+
+            subcubes = cube.subcubes(self._hypercubes)
+            for c in [c for c in subcubes if sum(c in sc and c != sc for sc in subcubes) == 0]:
+                for d in c.finite_dimensions:
+                    conditions.append(f'     {d} is not between {round(c.dimensions[d][0], 1)} and '
+                                      f'{round(c.dimensions[d][1], 1)}')
+            conditions = sorted(set(conditions))
+            for condition in conditions:
+                print(condition)
 
     @staticmethod
     def _create_head(dataframe: pd.DataFrame, variables: list[Var], output: float | LinearRegression) -> Struct:

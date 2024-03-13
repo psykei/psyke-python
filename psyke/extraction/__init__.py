@@ -1,7 +1,6 @@
 from abc import ABC
 
 import pandas as pd
-from numpy import argmax
 from tuprolog.theory import Theory
 
 from psyke import Extractor
@@ -13,7 +12,6 @@ class PedagogicalExtractor(Extractor, ABC):
         Extractor.__init__(self, predictor=predictor, discretization=discretization, normalization=normalization)
 
     def extract(self, dataframe: pd.DataFrame) -> Theory:
-        from psyke.extraction.hypercubic import HyperCubeExtractor, HyperCube
         new_y = pd.DataFrame(self.predictor.predict(dataframe.iloc[:, :-1])).set_index(dataframe.index)
         data = dataframe.iloc[:, :-1].copy().join(new_y)
         data.columns = dataframe.columns
