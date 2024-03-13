@@ -54,8 +54,13 @@ class HyperCubeExtractor(HyperCubePredictor, PedagogicalExtractor, ABC):
         self._surrounding.update(dataframe, self.predictor)
         return theory
 
-    def predict_why(self, dataframe: pd.DataFrame):
-        pass
+    def predict_why(self, data: dict[str, float]):
+        cube = self._find_cube(data)
+        if cube is None:
+            print("The extracted knowledge is not exhaustive; impossible to predict this instance.")
+        else:
+            output = self._predict_from_cubes(data)
+            print()
 
     @staticmethod
     def _create_head(dataframe: pd.DataFrame, variables: list[Var], output: float | LinearRegression) -> Struct:

@@ -167,11 +167,11 @@ class Extractor(EvaluableModel, ABC):
         """
         raise NotImplementedError('extract')
 
-    def predict_why(self, dataframe: pd.DataFrame):
+    def predict_why(self, data: dict[str, float]):
         """
-        Provides predictions and corresponding explanations.
+        Provides a prediction and the corresponding explanation.
 
-        :param dataframe: is the set of instances to predict.
+        :param data: is the instance to predict.
         """
         raise NotImplementedError('predict_why')
 
