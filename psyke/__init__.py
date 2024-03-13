@@ -167,14 +167,13 @@ class Extractor(EvaluableModel, ABC):
         """
         raise NotImplementedError('extract')
 
-    def predict_why(self, dataframe: pd.DataFrame) -> Theory:
+    def predict_why(self, dataframe: pd.DataFrame):
         """
-        Extracts rules from the underlying predictor.
+        Provides predictions and corresponding explanations.
 
-        :param dataframe: is the set of instances to be used for the extraction.
-        :return: the theory created from the extracted rules.
+        :param dataframe: is the set of instances to predict.
         """
-        raise NotImplementedError('extract')
+        raise NotImplementedError('predict_why')
 
     def mae(self, dataframe: pd.DataFrame, predictor=None, brute: bool = False, criterion: str = 'center',
             n: int = 3) -> float:

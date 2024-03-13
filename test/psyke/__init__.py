@@ -77,12 +77,8 @@ def initialize(file: str) -> list[dict[str:Theory]]:
         solver = prolog_solver(static_kb=mutable_theory(theory).assertZ(get_in_rule()).assertZ(get_not_in_rule()))
         substitutions = [solver.solveOnce(data_to_struct(data)) for _, data in ordered_test_set.iterrows()]
         expected = [cast(query.solved_query.get_arg_at(index)) for query in substitutions if query.is_yes]
-        if mapping is not None:
-            predictions = [prediction for prediction in extractor.predict(test_set_for_predictor.iloc[:, :-1], mapping)
-                          if prediction is not None]
-        else:
-            predictions = [prediction for prediction in extractor.predict(test_set_for_predictor.iloc[:, :-1])
-                           if prediction is not None]
+        predictions = [prediction for prediction in extractor.predict(test_set_for_predictor.iloc[:, :-1])
+                       if prediction is not None]
 
         yield {
             'extractor': extractor,

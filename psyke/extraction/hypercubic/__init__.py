@@ -54,6 +54,9 @@ class HyperCubeExtractor(HyperCubePredictor, PedagogicalExtractor, ABC):
         self._surrounding.update(dataframe, self.predictor)
         return theory
 
+    def predict_why(self, dataframe: pd.DataFrame):
+        pass
+
     @staticmethod
     def _create_head(dataframe: pd.DataFrame, variables: list[Var], output: float | LinearRegression) -> Struct:
         return create_head(dataframe.columns[-1], variables[:-1], output) \
