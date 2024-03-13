@@ -66,8 +66,7 @@ def initialize(file: str) -> list[dict[str:Theory]]:
                 params['grid'] = Grid(int(row['grid']), AdaptiveStrategy(ranked, n))
 
         extractor = get_extractor(row['extractor_type'], params)
-        mapping = None if 'output_mapping' not in row.keys() or row['output_mapping'] == '' else ast.literal_eval(row['output_mapping'])
-        theory = extractor.extract(training_set, mapping) if mapping is not None else extractor.extract(training_set)
+        theory = extractor.extract(training_set)
 
         # Compute predictions from rules
         index = test_set.shape[1] - 1

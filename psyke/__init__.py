@@ -169,6 +169,17 @@ class Extractor(EvaluableModel, ABC):
         """
         raise NotImplementedError('extract')
 
+    def predict_why(self, dataframe: pd.DataFrame, mapping: dict[str: int] = None, sort: bool = True) -> Theory:
+        """
+        Extracts rules from the underlying predictor.
+
+        :param dataframe: is the set of instances to be used for the extraction.
+        :param mapping: for one-hot encoding.
+        :param sort: alphabetically sort the variables of the head of the rules.
+        :return: the theory created from the extracted rules.
+        """
+        raise NotImplementedError('extract')
+
     def mae(self, dataframe: pd.DataFrame, predictor=None, brute: bool = False, criterion: str = 'center',
             n: int = 3) -> float:
         """
