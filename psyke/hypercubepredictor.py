@@ -20,8 +20,7 @@ class HyperCubePredictor(EvaluableModel):
     def _predict(self, dataframe: pd.DataFrame) -> Iterable:
         return np.array([self._predict_from_cubes(row.to_dict()) for _, row in dataframe.iterrows()])
 
-    def _brute_predict(self, dataframe: pd.DataFrame, criterion: str = 'corner', n: int = 2,
-                       mapping: dict[str: int] = None) -> Iterable:
+    def _brute_predict(self, dataframe: pd.DataFrame, criterion: str = 'corner', n: int = 2) -> Iterable:
         predictions = np.array(self._predict(dataframe))
         idx = [prediction is None for prediction in predictions]
         if sum(idx) > 0:

@@ -48,34 +48,28 @@ class EvaluableModel(object):
         self.discretization = [] if discretization is None else list(discretization)
         self.normalization = normalization
 
-    def predict(self, dataframe: pd.DataFrame, mapping: dict[str: int] = None) -> Iterable:
+    def predict(self, dataframe: pd.DataFrame) -> Iterable:
         """
         Predicts the output values of every sample in dataset.
 
         :param dataframe: is the set of instances to predict.
-        :param mapping: for one-hot encoding.
         :return: a list of predictions.
         """
-        return self.__convert(self._predict(dataframe), mapping)
+        return self.__convert(self._predict(dataframe))
 
     def _predict(self, dataframe: pd.DataFrame) -> Iterable:
         raise NotImplementedError('predict')
 
-    def __convert(self, ys: Iterable, mapping: dict[str: int] = None) -> Iterable:
-        if mapping is not None:
-            inverse_mapping = {v: k for k, v in mapping.items()}
-            ys = [inverse_mapping[y] for y in ys]
+    def __convert(self, ys: Iterable) -> Iterable:
         if self.normalization is not None:
             m, s = self.normalization[list(self.normalization.keys())[-1]]
             ys = [prediction if prediction is None else prediction * s + m for prediction in ys]
         return ys
 
-    def brute_predict(self, dataframe: pd.DataFrame, criterion: str = 'corner', n: int = 2,
-                      mapping: dict[str: int] = None) -> Iterable:
-        return self.__convert(self._brute_predict(dataframe, criterion, n, mapping), mapping)
+    def brute_predict(self, dataframe: pd.DataFrame, criterion: str = 'corner', n: int = 2) -> Iterable:
+        return self.__convert(self._brute_predict(dataframe, criterion, n))
 
-    def _brute_predict(self, dataframe: pd.DataFrame, criterion: str = 'corner', n: int = 2,
-                       mapping: dict[str: int] = None) -> Iterable:
+    def _brute_predict(self, dataframe: pd.DataFrame, criterion: str = 'corner', n: int = 2) -> Iterable:
         raise NotImplementedError('brute_predict')
 
     def unscale(self, values, name):

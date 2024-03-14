@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC
+from itertools import groupby
 from typing import Iterable
 import numpy as np
 import pandas as pd
@@ -14,6 +15,7 @@ from psyke.extraction import PedagogicalExtractor
 from psyke.extraction.hypercubic.hypercube import HyperCube, RegressionCube, ClassificationCube, ClosedCube, Point, \
     GenericCube
 from psyke.hypercubepredictor import HyperCubePredictor
+from psyke.schema import Between, Outside
 from psyke.utils.logic import create_variable_list, create_head, to_var, Simplifier, last_in_body, PRECISION
 from psyke.utils import Target
 from psyke.extraction.hypercubic.strategy import Strategy, FixedStrategy
@@ -61,19 +63,60 @@ class HyperCubeExtractor(HyperCubePredictor, PedagogicalExtractor, ABC):
         else:
             output = self._predict_from_cubes(data)
             print(f"The output is {output} because")
-            conditions = []
+            conditions = {d: [] for d in cube.dimensions}
             for d in cube.finite_dimensions:
-                conditions.append(f'     {d} is between {round(cube.dimensions[d][0], 1)} and '
-                                  f'{round(cube.dimensions[d][1], 1)}')
-
+                # conditions.append(f'     {d} is between {round(cube.dimensions[d][0], 1)} and '
+                #                  f'{round(cube.dimensions[d][1], 1)}')
+                conditions[d].append(Between(*cube.dimensions[d]))
             subcubes = cube.subcubes(self._hypercubes)
             for c in [c for c in subcubes if sum(c in sc and c != sc for sc in subcubes) == 0]:
                 for d in c.finite_dimensions:
-                    conditions.append(f'     {d} is not between {round(c.dimensions[d][0], 1)} and '
-                                      f'{round(c.dimensions[d][1], 1)}')
-            conditions = sorted(set(conditions))
-            for condition in conditions:
-                print(condition)
+                    # conditions.append(f'     {d} is not between {round(c.dimensions[d][0], 1)} and '
+                    #                  f'{round(c.dimensions[d][1], 1)}')
+                    conditions[d].append(Outside(*c.dimensions[d]))
+            for d in conditions:
+                simplified = self.__simplify(conditions[d])
+                for i, condition in enumerate(simplified):
+                    if i == 0:
+                        print('    ', d, 'is', end=' ')
+                    else:
+                        print('and', end=' ')
+                    if isinstance(condition, Outside):
+                        print('not', end=' ')
+                    print('between', round(condition.lower, 1), 'and', round(condition.upper, 1), end=' ')
+                    if i + 1 == len(simplified):
+                        print()
+
+    def __simplify(self, conditions):
+        simplified = [] # [Between(-np.inf, np.inf)]
+        for condition in conditions:
+            to_add = True
+            for i, simple in enumerate(simplified):
+                if isinstance(condition, Outside) and isinstance(simple, Outside):
+                    if simple.lower <= condition.lower <= simple.upper or \
+                            simple.lower <= condition.upper <= simple.upper or \
+                            condition.lower <= simple.lower <= simple.upper <= condition.upper:
+                        simplified[i].upper = max(condition.upper, simple.upper)
+                        simplified[i].lower = min(condition.lower, simple.lower)
+                        to_add = False
+                        break
+                elif isinstance(condition, Outside) and isinstance(simple, Between):
+                    if simple.lower >= condition.upper or simple.upper <= condition.lower:
+                        to_add = False
+                        break
+                    elif condition.lower <= simple.lower <= condition.upper <= simple.upper:
+                        simplified[i].lower = condition.upper
+                        to_add = False
+                        break
+                    elif simple.lower <= condition.lower <= simple.upper <= condition.upper:
+                        simplified[i].upper = condition.lower
+                        to_add = False
+                        break
+                    elif condition.lower <= simple.lower <= simple.upper <= condition.upper:
+                        raise ValueError
+            if to_add:
+                simplified.append(condition)
+        return simplified
 
     @staticmethod
     def _create_head(dataframe: pd.DataFrame, variables: list[Var], output: float | LinearRegression) -> Struct:

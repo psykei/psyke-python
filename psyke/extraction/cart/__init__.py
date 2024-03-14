@@ -65,10 +65,8 @@ class Cart(PedagogicalExtractor):
         return new_theory
 
     def _extract(self, data: pd.DataFrame) -> Theory:
-        self._cart_predictor.predictor = DecisionTreeClassifier(random_state=TREE_SEED) \
-            if isinstance(data.iloc[0, -1], str) else DecisionTreeRegressor(random_state=TREE_SEED)
-        self._cart_predictor.predictor.max_depth = self.depth
-        self._cart_predictor.predictor.max_leaf_nodes = self.leaves
+        tree = DecisionTreeClassifier if isinstance(data.iloc[0, -1], str) else DecisionTreeRegressor
+        self._cart_predictor.predictor = tree(random_state=TREE_SEED, max_depth=self.depth, max_leaf_nodes=self.leaves)
         self._cart_predictor.predictor.fit(data.iloc[:, :-1], data.iloc[:, -1])
         return self._create_theory(data)
 
