@@ -145,7 +145,7 @@ class Extractor(EvaluableModel, ABC):
     ----------
     predictor : the underling black box predictor.
     discretization : A collection of sets of discretised features.
-        Each set corresponds to a set of features derived from a single non-discrete feature.
+    Each set corresponds to a set of features derived from a single non-discrete feature.
     """
 
     def __init__(self, predictor, discretization: Iterable[DiscreteFeature] = None, normalization=None):
@@ -164,10 +164,16 @@ class Extractor(EvaluableModel, ABC):
     def predict_why(self, data: dict[str, float]):
         """
         Provides a prediction and the corresponding explanation.
-
         :param data: is the instance to predict.
         """
         raise NotImplementedError('predict_why')
+
+    def predict_counter(self, data: dict[str, float]):
+        """
+        Provides a prediction and counterfactual explanations.
+        :param data: is the instance to predict.
+        """
+        raise NotImplementedError('predict_counter')
 
     def mae(self, dataframe: pd.DataFrame, predictor=None, brute: bool = False, criterion: str = 'center',
             n: int = 3) -> float:

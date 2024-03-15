@@ -45,10 +45,9 @@ class HyperCubePredictor(EvaluableModel):
         return HyperCubePredictor._get_cube_output(cubes[idx], row)
 
     def _brute_predict_surface(self, row: dict[str, float]) -> GenericCube:
-        distances = [(
-            cube.surface_distance(Point(list(row.keys()), list(row.values))), cube.volume(), cube
-        ) for cube in self._hypercubes]
-        return min(distances)[-1]
+        return min([(
+            cube.surface_distance(Point(list(row.keys()), list(row.values()))), cube.volume(), cube
+        ) for cube in self._hypercubes])[-1]
 
     def _create_brute_tree(self, criterion: str = 'center', n: int = 2) -> (BallTree, list[GenericCube]):
         admissible_criteria = ['surface', 'center', 'corner', 'perimeter', 'density', 'default']

@@ -15,7 +15,7 @@ from psyke.extraction import PedagogicalExtractor
 from psyke.extraction.hypercubic.hypercube import HyperCube, RegressionCube, ClassificationCube, ClosedCube, Point, \
     GenericCube
 from psyke.hypercubepredictor import HyperCubePredictor
-from psyke.schema import Between, Outside
+from psyke.schema import Between, Outside, Value
 from psyke.utils.logic import create_variable_list, create_head, to_var, Simplifier, last_in_body, PRECISION
 from psyke.utils import Target
 from psyke.extraction.hypercubic.strategy import Strategy, FixedStrategy
@@ -56,6 +56,40 @@ class HyperCubeExtractor(HyperCubePredictor, PedagogicalExtractor, ABC):
         self._surrounding.update(dataframe, self.predictor)
         return theory
 
+    def predict_counter(self, data: dict[str, float]):
+        cube = self._find_cube(data)
+        if cube is None:
+            print("The extracted knowledge is not exhaustive; impossible to predict this instance")
+        else:
+            print("The output is", self._predict_from_cubes(data))
+
+        point = Point(list(data.keys()), list(data.values()))
+        cubes = self._hypercubes if cube is None else [c for c in self._hypercubes if cube.output != c.output]
+        cubes = sorted([(cube.surface_distance(point), cube.volume(), cube) for cube in cubes])
+        outputs = []
+        for _, _, c in cubes:
+            if c.output not in outputs:
+                outputs.append(c.output)
+                print("The output may be", c.output, 'if')
+
+                for d in c.dimensions.keys():
+                    lower, upper = c[d]
+                    p = point[d]
+                    if p < lower:
+                        print('    ', d, '=', round(lower, 1))
+                    elif p > upper:
+                        print('    ', d, '=', round(upper, 1))
+
+    def __get_local_conditions(self, cube: GenericCube) -> dict[list[Value]]:
+        conditions = {d: [] for d in cube.dimensions}
+        for d in cube.finite_dimensions:
+            conditions[d].append(Between(*cube.dimensions[d]))
+        subcubes = cube.subcubes(self._hypercubes)
+        for c in [c for c in subcubes if sum(c in sc and c != sc for sc in subcubes) == 0]:
+            for d in c.finite_dimensions:
+                conditions[d].append(Outside(*c.dimensions[d]))
+        return conditions
+
     def predict_why(self, data: dict[str, float]):
         cube = self._find_cube(data)
         if cube is None:
@@ -63,19 +97,9 @@ class HyperCubeExtractor(HyperCubePredictor, PedagogicalExtractor, ABC):
         else:
             output = self._predict_from_cubes(data)
             print(f"The output is {output} because")
-            conditions = {d: [] for d in cube.dimensions}
-            for d in cube.finite_dimensions:
-                # conditions.append(f'     {d} is between {round(cube.dimensions[d][0], 1)} and '
-                #                  f'{round(cube.dimensions[d][1], 1)}')
-                conditions[d].append(Between(*cube.dimensions[d]))
-            subcubes = cube.subcubes(self._hypercubes)
-            for c in [c for c in subcubes if sum(c in sc and c != sc for sc in subcubes) == 0]:
-                for d in c.finite_dimensions:
-                    # conditions.append(f'     {d} is not between {round(c.dimensions[d][0], 1)} and '
-                    #                  f'{round(c.dimensions[d][1], 1)}')
-                    conditions[d].append(Outside(*c.dimensions[d]))
+            conditions = self.__get_local_conditions(cube)
             for d in conditions:
-                simplified = self.__simplify(conditions[d])
+                simplified = HyperCubeExtractor.__simplify(conditions[d])
                 for i, condition in enumerate(simplified):
                     if i == 0:
                         print('    ', d, 'is', end=' ')
@@ -87,8 +111,9 @@ class HyperCubeExtractor(HyperCubePredictor, PedagogicalExtractor, ABC):
                     if i + 1 == len(simplified):
                         print()
 
-    def __simplify(self, conditions):
-        simplified = [] # [Between(-np.inf, np.inf)]
+    @staticmethod
+    def __simplify(conditions):
+        simplified = []
         for condition in conditions:
             to_add = True
             for i, simple in enumerate(simplified):
