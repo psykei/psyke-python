@@ -25,12 +25,12 @@ class GridEx(HyperCubeExtractor):
         self.threshold = threshold
         self._generator = rnd.Random(seed)
 
-    def _extract(self, dataframe: pd.DataFrame, mapping: dict[str: int] = None, sort: bool = True) -> Theory:
+    def _extract(self, dataframe: pd.DataFrame) -> Theory:
         self._hypercubes = []
         surrounding = HyperCube.create_surrounding_cube(dataframe, output=self._output)
         surrounding.init_diversity(2 * self.threshold)
         self._iterate(surrounding, dataframe)
-        return self._create_theory(dataframe, sort)
+        return self._create_theory(dataframe)
 
     def _create_ranges(self, cube, iteration):
         ranges = {}

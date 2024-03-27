@@ -246,7 +246,7 @@ class TestHypercube(AbstractTestHypercube):
 
     def test_zip_dimensions(self):
         cube = HyperCube({'X': self.y, 'Y': self.x})
-        expected = [ZippedDimension(d, self.cube[d], cube[d]) for d in self.dimensions.keys()]
+        expected = [ZippedDimension(d, self.cube[d], cube[d]) for d in set(self.dimensions)]
         self.assertEqual(self.cube._zip_dimensions(cube), expected)
 
     def test_fit_dimension(self):

@@ -136,7 +136,7 @@ class Trepan(PedagogicalExtractor):
                 nodes.append(child)
         return len(to_remove)
 
-    def _extract(self, dataframe: pd.DataFrame, mapping: dict[str: int] = None, sort: bool = True) -> Theory:
+    def _extract(self, dataframe: pd.DataFrame) -> Theory:
         queue = self._init(dataframe)
         while len(queue) > 0:
             node = queue.pop()
@@ -149,7 +149,7 @@ class Trepan(PedagogicalExtractor):
             queue.add_all(best)
             node.children += list(best)
         self._optimize()
-        return self._create_theory(dataframe.columns[-1], sort)
+        return self._create_theory(dataframe.columns[-1])
 
     def _predict(self, dataframe: pd.DataFrame) -> Iterable:
         return np.array(

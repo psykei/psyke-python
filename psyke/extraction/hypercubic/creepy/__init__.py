@@ -28,7 +28,7 @@ class CReEPy(HyperCubeExtractor):
         self.ignore_threshold = ignore_threshold
         self._default_surrounding_cube = True
 
-    def _extract(self, dataframe: pd.DataFrame, mapping: dict[str: int] = None, sort: bool = True) -> Theory:
+    def _extract(self, dataframe: pd.DataFrame) -> Theory:
         if not isinstance(self.clustering, HyperCubeClustering):
             raise TypeError("clustering must be a HyperCubeClustering")
 

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC
+from itertools import groupby
 from typing import Iterable
 import numpy as np
 import pandas as pd
@@ -14,7 +15,8 @@ from psyke.extraction import PedagogicalExtractor
 from psyke.extraction.hypercubic.hypercube import HyperCube, RegressionCube, ClassificationCube, ClosedCube, Point, \
     GenericCube
 from psyke.hypercubepredictor import HyperCubePredictor
-from psyke.utils.logic import create_variable_list, create_head, to_var, Simplifier, last_in_body
+from psyke.schema import Between, Outside, Value
+from psyke.utils.logic import create_variable_list, create_head, to_var, Simplifier, last_in_body, PRECISION
 from psyke.utils import Target
 from psyke.extraction.hypercubic.strategy import Strategy, FixedStrategy
 
@@ -48,11 +50,98 @@ class HyperCubeExtractor(HyperCubePredictor, PedagogicalExtractor, ABC):
             last_cube[dimension] = [-np.inf, np.inf]
         return theory
 
-    def extract(self, dataframe: pd.DataFrame, mapping: dict[str: int] = None, sort: bool = True) -> Theory:
-        theory = PedagogicalExtractor.extract(self, dataframe, mapping, sort)
+    def extract(self, dataframe: pd.DataFrame) -> Theory:
+        theory = PedagogicalExtractor.extract(self, dataframe)
         self._surrounding = HyperCube.create_surrounding_cube(dataframe, output=self._output)
         self._surrounding.update(dataframe, self.predictor)
         return theory
+
+    def predict_counter(self, data: dict[str, float]):
+        cube = self._find_cube(data)
+        if cube is None:
+            print("The extracted knowledge is not exhaustive; impossible to predict this instance")
+        else:
+            print("The output is", self._predict_from_cubes(data))
+
+        point = Point(list(data.keys()), list(data.values()))
+        cubes = self._hypercubes if cube is None else [c for c in self._hypercubes if cube.output != c.output]
+        cubes = sorted([(cube.surface_distance(point), cube.volume(), cube) for cube in cubes])
+        outputs = []
+        for _, _, c in cubes:
+            if c.output not in outputs:
+                outputs.append(c.output)
+                print("The output may be", c.output, 'if')
+
+                for d in c.dimensions.keys():
+                    lower, upper = c[d]
+                    p = point[d]
+                    if p < lower:
+                        print('    ', d, '=', round(lower, 1))
+                    elif p > upper:
+                        print('    ', d, '=', round(upper, 1))
+
+    def __get_local_conditions(self, cube: GenericCube) -> dict[list[Value]]:
+        conditions = {d: [] for d in cube.dimensions}
+        for d in cube.finite_dimensions:
+            conditions[d].append(Between(*cube.dimensions[d]))
+        subcubes = cube.subcubes(self._hypercubes)
+        for c in [c for c in subcubes if sum(c in sc and c != sc for sc in subcubes) == 0]:
+            for d in c.finite_dimensions:
+                conditions[d].append(Outside(*c.dimensions[d]))
+        return conditions
+
+    def predict_why(self, data: dict[str, float]):
+        cube = self._find_cube(data)
+        if cube is None:
+            print("The extracted knowledge is not exhaustive; impossible to predict this instance")
+        else:
+            output = self._predict_from_cubes(data)
+            print(f"The output is {output} because")
+            conditions = self.__get_local_conditions(cube)
+            for d in conditions:
+                simplified = HyperCubeExtractor.__simplify(conditions[d])
+                for i, condition in enumerate(simplified):
+                    if i == 0:
+                        print('    ', d, 'is', end=' ')
+                    else:
+                        print('and', end=' ')
+                    if isinstance(condition, Outside):
+                        print('not', end=' ')
+                    print('between', round(condition.lower, 1), 'and', round(condition.upper, 1), end=' ')
+                    if i + 1 == len(simplified):
+                        print()
+
+    @staticmethod
+    def __simplify(conditions):
+        simplified = []
+        for condition in conditions:
+            to_add = True
+            for i, simple in enumerate(simplified):
+                if isinstance(condition, Outside) and isinstance(simple, Outside):
+                    if simple.lower <= condition.lower <= simple.upper or \
+                            simple.lower <= condition.upper <= simple.upper or \
+                            condition.lower <= simple.lower <= simple.upper <= condition.upper:
+                        simplified[i].upper = max(condition.upper, simple.upper)
+                        simplified[i].lower = min(condition.lower, simple.lower)
+                        to_add = False
+                        break
+                elif isinstance(condition, Outside) and isinstance(simple, Between):
+                    if simple.lower >= condition.upper or simple.upper <= condition.lower:
+                        to_add = False
+                        break
+                    elif condition.lower <= simple.lower <= condition.upper <= simple.upper:
+                        simplified[i].lower = condition.upper
+                        to_add = False
+                        break
+                    elif simple.lower <= condition.lower <= simple.upper <= condition.upper:
+                        simplified[i].upper = condition.lower
+                        to_add = False
+                        break
+                    elif condition.lower <= simple.lower <= simple.upper <= condition.upper:
+                        raise ValueError
+            if to_add:
+                simplified.append(condition)
+        return simplified
 
     @staticmethod
     def _create_head(dataframe: pd.DataFrame, variables: list[Var], output: float | LinearRegression) -> Struct:
@@ -66,13 +155,13 @@ class HyperCubeExtractor(HyperCubePredictor, PedagogicalExtractor, ABC):
     def __drop(self, dataframe: pd.DataFrame):
         self._hypercubes = [cube for cube in self._hypercubes if cube.count(dataframe) > 1]
 
-    def _create_theory(self, dataframe: pd.DataFrame, sort: bool = False) -> Theory:
+    def _create_theory(self, dataframe: pd.DataFrame) -> Theory:
         self.__drop(dataframe)
         new_theory = mutable_theory()
         for cube in self._hypercubes:
             logger.info(cube.output)
             logger.info(cube.dimensions)
-            variables = create_variable_list([], dataframe, sort)
+            variables = create_variable_list([], dataframe)
             variables[dataframe.columns[-1]] = to_var(dataframe.columns[-1])
             head = HyperCubeExtractor._create_head(dataframe, list(variables.values()),
                                                    self.unscale(cube.output, dataframe.columns[-1]))

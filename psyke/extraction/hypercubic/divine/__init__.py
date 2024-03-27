@@ -58,7 +58,7 @@ class DiViNE(HyperCubeExtractor):
         distance, idx = tree.query([list(point.dimensions.values()) for point in cube.corners()], k=1)
         return idx[np.argmin(distance)][-1]
 
-    def _extract(self, dataframe: pd.DataFrame, mapping: dict[str: int] = None, sort: bool = True) -> Theory:
+    def _extract(self, dataframe: pd.DataFrame) -> Theory:
         np.random.seed(self.seed)
         data = self.__clean(dataframe)
 
@@ -82,4 +82,4 @@ class DiViNE(HyperCubeExtractor):
             if len(discarded) > 0:
                 data = pd.concat([data] + [d.to_dataframe() for d in discarded]).reset_index(drop=True)
         self._sort_cubes()
-        return self._create_theory(dataframe, sort)
+        return self._create_theory(dataframe)

@@ -45,6 +45,16 @@ class Point:
     def __eq__(self, other: Point) -> bool:
         return all([abs(self[dimension] - other[dimension]) < Point.EPSILON for dimension in self._dimensions])
 
+    def distance(self, other: Point, metric: str='Euclidean') -> float:
+        distances = [abs(self[dimension] - other[dimension]) for dimension in self._dimensions]
+        if metric == 'Euclidean':
+            distance = sum(np.array(distances)**2)**0.5
+        elif metric == 'Manhattan':
+            distance = sum(distances)
+        else:
+            raise ValueError("metric should be 'Euclidean' or 'Manhattan'")
+        return distance
+
     @property
     def dimensions(self) -> dict[str, float | str]:
         return self._dimensions
@@ -73,19 +83,25 @@ class HyperCube:
         self._error = 0.0
         self._barycenter = Point([], [])
 
-    def __contains__(self, point: dict[str, float]) -> bool:
+    def __contains__(self, obj: dict[str, float] | HyperCube) -> bool:
         """
-        Note that a point (dict[str, float]) is inside a hypercube if ALL its dimensions' values satisfy:
-            min_dim <= value < max_dim
-        :param point: an N-dimensional point
-        :return: true if the point is inside the hypercube, false otherwise
+        Note that a point is inside a hypercube if ALL its dimensions' values satisfy:
+            min_dim <= object dimension < max_dim
+        :param obj: an N-dimensional object (point or hypercube)
+        :return: true if the object is inside the hypercube, false otherwise
         """
-        return all([(self.get_first(k) <= v < self.get_second(k)) for k, v in point.items()])
+        if isinstance(obj, HyperCube):
+            return all([(self.get_first(k) <= obj.get_first(k) <= obj.get_second(k) <= self.get_second(k))
+                        for k in obj.dimensions])
+        elif isinstance(obj, dict):
+            return all([(self.get_first(k) <= v < self.get_second(k)) for k, v in obj.items()])
+        else:
+            raise TypeError("Invalid type for obj parameter")
 
     def __eq__(self, other: HyperCube) -> bool:
         return all([(abs(dimension.this_dimension[0] - dimension.other_dimension[0]) < HyperCube.EPSILON)
                     & (abs(dimension.this_dimension[1] - dimension.other_dimension[1]) < HyperCube.EPSILON)
-                    for dimension in self._zip_dimensions(other)])
+                    for dimension in self._zip_dimensions(other, True)])
 
     def __getitem__(self, feature: str) -> Dimension:
         if feature in self._dimensions.keys():
@@ -103,6 +119,10 @@ class HyperCube:
     @property
     def dimensions(self) -> Dimensions:
         return self._dimensions
+
+    @property
+    def finite_dimensions(self) -> Dimensions:
+        return {k: v for k, v in self._dimensions.items() if np.isfinite(v[0]) and np.isfinite(v[1])}
 
     @property
     def limit_count(self) -> int:
@@ -124,6 +144,9 @@ class HyperCube:
     def barycenter(self) -> Point:
         return self._barycenter
 
+    def subcubes(self, cubes: Iterable[GenericCube]) -> Iterable[GenericCube]:
+        return [c for c in cubes if c in self and c != self]
+
     def _fit_dimension(self, dimension: dict[str, tuple[float, float]]) -> dict[str, tuple[float, float]]:
         new_dimension: dict[str, tuple[float, float]] = {}
         for key, value in dimension.items():
@@ -144,8 +167,10 @@ class HyperCube:
     def filter_dataframe(self, dataset: pd.DataFrame) -> pd.DataFrame:
         return dataset[self.filter_indices(dataset)]
 
-    def _zip_dimensions(self, other: HyperCube) -> list[ZippedDimension]:
-        return [ZippedDimension(dimension, self[dimension], other[dimension]) for dimension in self._dimensions.keys()]
+    def _zip_dimensions(self, other: HyperCube, check_finite: bool = False) -> list[ZippedDimension]:
+        dimensions = set(self.finite_dimensions).union(set(other.finite_dimensions)) if check_finite else \
+            set(self.dimensions)
+        return [ZippedDimension(dimension, self[dimension], other[dimension]) for dimension in dimensions]
 
     def add_limit(self, limit_or_feature: Limit | str, direction: str = None) -> None:
         if isinstance(limit_or_feature, Limit):
@@ -433,8 +458,20 @@ class ClosedCube(HyperCube):
     def __init__(self, dimension: dict[str, tuple] = None):
         super().__init__(dimension=dimension)
 
-    def __contains__(self, point: dict[str, float]) -> bool:
-        return all([(self.get_first(k) <= v <= self.get_second(k)) for k, v in point.items()])
+    def __contains__(self, obj: dict[str, float] | ClosedCube) -> bool:
+        """
+       Note that an object is inside a hypercube if ALL its dimensions' values satisfy:
+           min_dim <= object dimension <= max_dim
+       :param obj: an N-dimensional object (point or hypercube)
+       :return: true if the object is inside the hypercube, false otherwise
+        """
+        if isinstance(obj, ClosedCube):
+            return all([(self.get_first(k) <= obj.get_first(k) <= obj.get_second(k) <= self.get_second(k))
+                        for k in obj.dimensions])
+        elif isinstance(obj, dict):
+            return all([(self.get_first(k) <= v <= self.get_second(k)) for k, v in obj.items()])
+        else:
+            raise TypeError("Invalid type for obj parameter")
 
     def filter_indices(self, dataset: pd.DataFrame) -> ndarray:
         v = np.array([v for _, v in self._dimensions.items()])

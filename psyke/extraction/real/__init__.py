@@ -58,10 +58,10 @@ class REAL(PedagogicalExtractor):
                 rules.append(self._create_new_rule(sample))
         return ruleset.optimize()
 
-    def _create_theory(self, dataset: pd.DataFrame, ruleset: IndexedRuleSet, sort: bool = True) -> MutableTheory:
+    def _create_theory(self, dataset: pd.DataFrame, ruleset: IndexedRuleSet) -> MutableTheory:
         theory = mutable_theory()
         for key, rule in ruleset.flatten():
-            variables = create_variable_list(self.discretization, sort=sort)
+            variables = create_variable_list(self.discretization)
             theory.assertZ(self._create_clause(dataset, variables, key, rule))
         return theory
 
@@ -111,16 +111,12 @@ class REAL(PedagogicalExtractor):
         samples_all = samples_0.append(samples_1)
         return samples_all, len(set(self.predictor.predict(samples_all))) == 1
 
-    def _extract(self, dataframe: pd.DataFrame, mapping: dict[str: int] = None, sort: bool = True) -> Theory:
+    def _extract(self, dataframe: pd.DataFrame) -> Theory:
         # Order the dataset by column to preserve reproducibility.
         dataframe = dataframe.sort_values(by=list(dataframe.columns.values), ascending=False)
-        # Always perform output mapping in the same (sorted) way to preserve reproducibility.
-        if mapping is None:
-            self._output_mapping = {value: index for index, value in enumerate(sorted(set(dataframe.iloc[:, -1])))}
-        else:
-            self._output_mapping = {value: index for index, value in enumerate(sorted(set(mapping[dataframe.iloc[:, -1]])))}
+        self._output_mapping = {value: index for index, value in enumerate(sorted(set(dataframe.iloc[:, -1])))}
         self._ruleset = self._get_or_set(HashableDataFrame(dataframe))
-        return self._create_theory(dataframe, self._ruleset, sort)
+        return self._create_theory(dataframe, self._ruleset)
 
     def _predict(self, dataframe) -> Iterable:
         return np.array([self._internal_predict(data.transpose()) for _, data in dataframe.iterrows()])

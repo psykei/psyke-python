@@ -20,8 +20,7 @@ class HyperCubePredictor(EvaluableModel):
     def _predict(self, dataframe: pd.DataFrame) -> Iterable:
         return np.array([self._predict_from_cubes(row.to_dict()) for _, row in dataframe.iterrows()])
 
-    def _brute_predict(self, dataframe: pd.DataFrame, criterion: str = 'corner', n: int = 2,
-                       mapping: dict[str: int] = None) -> Iterable:
+    def _brute_predict(self, dataframe: pd.DataFrame, criterion: str = 'corner', n: int = 2) -> Iterable:
         predictions = np.array(self._predict(dataframe))
         idx = [prediction is None for prediction in predictions]
         if sum(idx) > 0:
@@ -46,10 +45,9 @@ class HyperCubePredictor(EvaluableModel):
         return HyperCubePredictor._get_cube_output(cubes[idx], row)
 
     def _brute_predict_surface(self, row: dict[str, float]) -> GenericCube:
-        distances = [(
-            cube.surface_distance(Point(list(row.keys()), list(row.values))), cube.volume(), cube
-        ) for cube in self._hypercubes]
-        return min(distances)[-1]
+        return min([(
+            cube.surface_distance(Point(list(row.keys()), list(row.values()))), cube.volume(), cube
+        ) for cube in self._hypercubes])[-1]
 
     def _create_brute_tree(self, criterion: str = 'center', n: int = 2) -> (BallTree, list[GenericCube]):
         admissible_criteria = ['surface', 'center', 'corner', 'perimeter', 'density', 'default']
@@ -68,12 +66,18 @@ class HyperCubePredictor(EvaluableModel):
             [point[1] for point in points]
 
     def _predict_from_cubes(self, data: dict[str, float]) -> float | str | None:
+        cube = self._find_cube(data)
+        if cube is None:
+            return None
+        elif self._output == Target.CLASSIFICATION:
+            return HyperCubePredictor._get_cube_output(cube, data)
+        else:
+            return round(HyperCubePredictor._get_cube_output(cube, data), get_int_precision())
+
+    def _find_cube(self, data: dict[str, float]) -> GenericCube | None:
         for cube in self._hypercubes:
             if data in cube:
-                if self._output == Target.CLASSIFICATION:
-                    return HyperCubePredictor._get_cube_output(cube, data)
-                else:
-                    return round(HyperCubePredictor._get_cube_output(cube, data), get_int_precision())
+                return cube
         return None
 
     @property

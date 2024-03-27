@@ -16,19 +16,23 @@ class HEx(GridEx):
     """
 
     class Node:
-        def __init__(self, cube: GenericCube, parent: HEx.Node = None, gain: bool = True, threshold: float = None):
+        def __init__(self, cube: GenericCube, parent: HEx.Node = None, threshold: float = None):
             self.cube = cube
             self.parent = parent
             self.children: Iterable[HEx.Node] = []
-            self.gain = gain if not threshold else self.check(threshold)
+            self.threshold = threshold
+            self.gain = True if parent is None else self.check()
 
-        def check(self, threshold: float) -> bool:
+        def check(self) -> bool:
             other = self.parent
-            while not other.gain:
-                other = other.parent
+            try:
+                while not other.gain:
+                    other = other.parent
+            except AttributeError:
+                return True
             if isinstance(other.cube, ClassificationCube):
                 return other.cube.output != self.cube.output
-            return other.cube.error - self.cube.error > threshold * .6
+            return other.cube.error - self.cube.error > self.threshold * .6
 
         def indices(self, dataframe: pd.DataFrame):
             return self.cube.filter_indices(dataframe.iloc[:, :-1])
@@ -71,7 +75,7 @@ class HEx(GridEx):
     def _iterate(self, surrounding: HyperCube, dataframe: pd.DataFrame):
         fake = dataframe.copy()
         surrounding.update(dataframe, self.predictor)
-        root = HEx.Node(surrounding)
+        root = HEx.Node(surrounding, threshold=self.threshold)
         current = [root]
 
         for iteration in self.grid.iterate():
@@ -82,7 +86,7 @@ class HEx(GridEx):
                 cleaned = node.update(fake, self.predictor, False)
                 node.children = [HEx.Node(c, node, threshold=self.threshold) for c in self._merge(
                     [c for c, _ in cleaned], fake)]
-                next_iteration += [n for n in node.permanent_children(fake)]
+                next_iteration += [n for n in node.children]
 
             current = next_iteration.copy()
         _ = root.update(fake, self.predictor, True)

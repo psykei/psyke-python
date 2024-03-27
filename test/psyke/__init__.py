@@ -66,8 +66,7 @@ def initialize(file: str) -> list[dict[str:Theory]]:
                 params['grid'] = Grid(int(row['grid']), AdaptiveStrategy(ranked, n))
 
         extractor = get_extractor(row['extractor_type'], params)
-        mapping = None if 'output_mapping' not in row.keys() or row['output_mapping'] == '' else ast.literal_eval(row['output_mapping'])
-        theory = extractor.extract(training_set, mapping) if mapping is not None else extractor.extract(training_set)
+        theory = extractor.extract(training_set)
 
         # Compute predictions from rules
         index = test_set.shape[1] - 1
@@ -78,12 +77,8 @@ def initialize(file: str) -> list[dict[str:Theory]]:
         solver = prolog_solver(static_kb=mutable_theory(theory).assertZ(get_in_rule()).assertZ(get_not_in_rule()))
         substitutions = [solver.solveOnce(data_to_struct(data)) for _, data in ordered_test_set.iterrows()]
         expected = [cast(query.solved_query.get_arg_at(index)) for query in substitutions if query.is_yes]
-        if mapping is not None:
-            predictions = [prediction for prediction in extractor.predict(test_set_for_predictor.iloc[:, :-1], mapping)
-                          if prediction is not None]
-        else:
-            predictions = [prediction for prediction in extractor.predict(test_set_for_predictor.iloc[:, :-1])
-                           if prediction is not None]
+        predictions = [prediction for prediction in extractor.predict(test_set_for_predictor.iloc[:, :-1])
+                       if prediction is not None]
 
         yield {
             'extractor': extractor,

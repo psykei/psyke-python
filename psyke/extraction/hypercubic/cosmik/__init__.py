@@ -24,7 +24,7 @@ class COSMiK(HyperCubeExtractor):
         self.close_to_center = close_to_center
         self.seed = seed
 
-    def _extract(self, dataframe: pd.DataFrame, mapping: dict[str: int] = None, sort: bool = True) -> Theory:
+    def _extract(self, dataframe: pd.DataFrame) -> Theory:
         np.random.seed(self.seed)
         X, y = dataframe.iloc[:, :-1], dataframe.iloc[:, -1]
 
@@ -44,4 +44,4 @@ class COSMiK(HyperCubeExtractor):
             cube.update(dataframe, self.predictor)
 
         self._sort_cubes()
-        return self._create_theory(dataframe, sort)
+        return self._create_theory(dataframe)
