@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 
 from psyke import get_default_random_seed, Target
-from psyke.extraction.hypercubic import Grid, HyperCube, GenericCube, ClassificationCube, RegressionCube
+from psyke.extraction.hypercubic import Grid, HyperCube, GenericCube, ClassificationCube
 from psyke.extraction.hypercubic.gridex import GridEx
 
 
