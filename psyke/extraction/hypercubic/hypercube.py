@@ -45,6 +45,16 @@ class Point:
     def __eq__(self, other: Point) -> bool:
         return all([abs(self[dimension] - other[dimension]) < Point.EPSILON for dimension in self._dimensions])
 
+    def distance(self, other: Point, metric: str='Euclidean') -> float:
+        distances = [abs(self[dimension] - other[dimension]) for dimension in self._dimensions]
+        if metric == 'Euclidean':
+            distance = sum(np.array(distances)**2)**0.5
+        elif metric == 'Manhattan':
+            distance = sum(distances)
+        else:
+            raise ValueError("metric should be 'Euclidean' or 'Manhattan'")
+        return distance
+
     @property
     def dimensions(self) -> dict[str, float | str]:
         return self._dimensions
