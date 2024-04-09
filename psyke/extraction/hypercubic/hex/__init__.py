@@ -81,6 +81,8 @@ class HEx(GridEx):
         for iteration in self.grid.iterate():
             next_iteration = []
             for node in current:
+                if node.cube.diversity < self.threshold:
+                    continue
                 children, fake = self._cubes_to_split(node.cube, surrounding, iteration, dataframe, fake, True)
                 node.children = [HEx.Node(c, node, threshold=self.threshold) for c in children]
                 cleaned = node.update(fake, self.predictor, False)
