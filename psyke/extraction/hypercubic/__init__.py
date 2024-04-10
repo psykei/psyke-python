@@ -40,16 +40,6 @@ class HyperCubeExtractor(HyperCubePredictor, PedagogicalExtractor, ABC):
         cubes.sort()
         self._hypercubes = [cube[2] for cube in cubes]
 
-    def _last_cube_as_default(self, theory):
-        last_clause = list(theory.clauses)[-1]
-        theory.retract(last_clause)
-        theory.assertZ(clause(
-            last_clause.head, [last_in_body(last_clause.body)] if self._output is Target.REGRESSION else []))
-        last_cube = self._hypercubes[-1]
-        for dimension in last_cube.dimensions.keys():
-            last_cube[dimension] = [-np.inf, np.inf]
-        return theory
-
     def extract(self, dataframe: pd.DataFrame) -> Theory:
         theory = PedagogicalExtractor.extract(self, dataframe)
         self._surrounding = HyperCube.create_surrounding_cube(dataframe, output=self._output)
@@ -57,7 +47,7 @@ class HyperCubeExtractor(HyperCubePredictor, PedagogicalExtractor, ABC):
         return theory
 
     def predict_counter(self, data: dict[str, float]):
-        cube = self._find_cube(data)
+        cube = self._find_cube(data.copy())
         if cube is None:
             print("The extracted knowledge is not exhaustive; impossible to predict this instance")
         else:
@@ -72,7 +62,7 @@ class HyperCubeExtractor(HyperCubePredictor, PedagogicalExtractor, ABC):
                 outputs.append(c.output)
                 print("The output may be", c.output, 'if')
 
-                for d in c.dimensions.keys():
+                for d in point.dimensions.keys():
                     lower, upper = c[d]
                     p = point[d]
                     if p < lower:
@@ -91,14 +81,14 @@ class HyperCubeExtractor(HyperCubePredictor, PedagogicalExtractor, ABC):
         return conditions
 
     def predict_why(self, data: dict[str, float]):
-        cube = self._find_cube(data)
+        cube = self._find_cube(data.copy())
         if cube is None:
             print("The extracted knowledge is not exhaustive; impossible to predict this instance")
         else:
             output = self._predict_from_cubes(data)
             print(f"The output is {output} because")
             conditions = self.__get_local_conditions(cube)
-            for d in conditions:
+            for d in data.keys():
                 simplified = HyperCubeExtractor.__simplify(conditions[d])
                 for i, condition in enumerate(simplified):
                     if i == 0:
@@ -149,14 +139,14 @@ class HyperCubeExtractor(HyperCubePredictor, PedagogicalExtractor, ABC):
             if not isinstance(output, LinearRegression) else \
             create_head(dataframe.columns[-1], variables[:-1], variables[-1])
 
-    def _ignore_dimensions(self, cube: HyperCube) -> Iterable[str]:
-        return [d for d in cube.dimensions if cube[d][0] == -np.inf or cube[d][1] == np.inf]
-
     def __drop(self, dataframe: pd.DataFrame):
         self._hypercubes = [cube for cube in self._hypercubes if cube.count(dataframe) > 1]
 
     def _create_theory(self, dataframe: pd.DataFrame) -> Theory:
         self.__drop(dataframe)
+        if self._default_surrounding_cube:
+            self._hypercubes[-1].set_default()
+
         new_theory = mutable_theory()
         for cube in self._hypercubes:
             logger.info(cube.output)
@@ -165,10 +155,9 @@ class HyperCubeExtractor(HyperCubePredictor, PedagogicalExtractor, ABC):
             variables[dataframe.columns[-1]] = to_var(dataframe.columns[-1])
             head = HyperCubeExtractor._create_head(dataframe, list(variables.values()),
                                                    self.unscale(cube.output, dataframe.columns[-1]))
-            body = cube.body(variables, self._ignore_dimensions(cube), self.unscale, self.normalization)
+            body = cube.body(variables, self._dimensions_to_ignore, self.unscale, self.normalization)
             new_theory.assertZ(clause(head, body))
-        new_theory = HyperCubeExtractor._prettify_theory(new_theory)
-        return self._last_cube_as_default(new_theory) if self._default_surrounding_cube else new_theory
+        return HyperCubeExtractor._prettify_theory(new_theory)
 
     @staticmethod
     def _prettify_theory(theory: Theory) -> Theory:

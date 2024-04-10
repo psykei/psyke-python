@@ -14,6 +14,7 @@ class HyperCubePredictor(EvaluableModel):
     def __init__(self, output=Target.CONSTANT, discretization=None, normalization=None):
         super().__init__(discretization, normalization)
         self._hypercubes = []
+        self._dimensions_to_ignore = []
         self._output = output
         self._surrounding = None
 
@@ -75,10 +76,16 @@ class HyperCubePredictor(EvaluableModel):
             return round(HyperCubePredictor._get_cube_output(cube, data), get_int_precision())
 
     def _find_cube(self, data: dict[str, float]) -> GenericCube | None:
+        for dimension in self._dimensions_to_ignore:
+            del data[dimension]
+        found = None
         for cube in self._hypercubes:
             if data in cube:
-                return cube
-        return None
+                found = cube.copy()
+                break
+        if found is None and self._hypercubes[-1].is_default:
+            found = self._hypercubes[-1].copy()
+        return found
 
     @property
     def n_rules(self):

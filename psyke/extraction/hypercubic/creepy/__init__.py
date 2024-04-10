@@ -24,9 +24,8 @@ class CReEPy(HyperCubeExtractor):
                          discretization, normalization)
         self.clustering = clustering(depth, error_threshold, self._output, gauss_components, discretization,
                                      normalization, seed)
-        self.ranks = ranks
-        self.ignore_threshold = ignore_threshold
         self._default_surrounding_cube = True
+        self._dimensions_to_ignore = [dimension for dimension, relevance in ranks if relevance < ignore_threshold]
 
     def _extract(self, dataframe: pd.DataFrame) -> Theory:
         if not isinstance(self.clustering, HyperCubeClustering):
@@ -34,8 +33,4 @@ class CReEPy(HyperCubeExtractor):
 
         self.clustering.fit(dataframe)
         self._hypercubes = self.clustering.get_hypercubes()
-        for cube in self._hypercubes:
-            for dimension, relevance in self.ranks:
-                if relevance < self.ignore_threshold:
-                    cube[dimension] = [-np.inf, np.inf]
         return self._create_theory(dataframe)
