@@ -37,7 +37,8 @@ class GridEx(HyperCubeExtractor):
         for (feature, (a, b)) in cube.dimensions.items():
             n_bins = self.grid.get(feature, iteration)
             if n_bins == 1:
-                ranges[feature] = [(-np.inf, np.inf)]
+                ranges[feature] = [(a, b)]
+                self._dimensions_to_ignore.append(feature)
             else:
                 size = (b - a) / n_bins
                 ranges[feature] = [(a + size * i, a + size * (i + 1)) for i in range(n_bins)]

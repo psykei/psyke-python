@@ -82,6 +82,7 @@ class HyperCube:
         self._diversity = 0.0
         self._error = 0.0
         self._barycenter = Point([], [])
+        self._default = False
 
     def __contains__(self, obj: dict[str, float] | HyperCube) -> bool:
         """
@@ -115,6 +116,13 @@ class HyperCube:
     def __hash__(self) -> int:
         result = [hash(name + str(dimension[0]) + str(dimension[1])) for name, dimension in self.dimensions.items()]
         return sum(result)
+
+    @property
+    def is_default(self) -> bool:
+        return self._default
+
+    def set_default(self):
+        self._default = True
 
     @property
     def dimensions(self) -> Dimensions:
@@ -212,12 +220,8 @@ class HyperCube:
 
     def body(self, variables: dict[str, Var], ignore: list[str], unscale=None, normalization=None) -> Iterable[Struct]:
         dimensions = dict(self.dimensions)
-        # TODO: there is something strange in the tests here
-        # print('search', [name for name in dimensions.keys()], 'in', (variables.keys()))
-        for dimension in ignore:
-            del dimensions[dimension]
         return [create_term(variables[name], Between(unscale(values[0], name), unscale(values[1], name)))
-                for name, values in dimensions.items()]
+                for name, values in dimensions.items() if name not in ignore and not self.is_default]
 
     @staticmethod
     def create_surrounding_cube(dataset: pd.DataFrame, closed: bool = False,
@@ -282,10 +286,12 @@ class HyperCube:
         return self[feature][1]
 
     def has_volume(self) -> bool:
-        return all([dimension[1] - dimension[0] > HyperCube.EPSILON for dimension in self._dimensions.values()])
+        return all([dimension[1] - dimension[0] > HyperCube.EPSILON for dimension in self._dimensions.values()
+                    if np.isfinite(dimension[0]) and np.isfinite(dimension[1])])
 
     def volume(self) -> float:
-        return reduce(lambda a, b: a * b, [dimension[1] - dimension[0] for dimension in self._dimensions.values()], 1)
+        return reduce(lambda a, b: a * b, [dimension[1] - dimension[0] for dimension in self._dimensions.values()
+                                           if np.isfinite(dimension[0]) and np.isfinite(dimension[1])], 1)
 
     def diagonal(self) -> float:
         return reduce(
@@ -304,7 +310,7 @@ class HyperCube:
 
     def surface_distance(self, point: Point) -> float:
         s = 0
-        for d in self.dimensions.keys():
+        for d in point.dimensions.keys():
             lower, upper = self[d]
             p = point[d]
             if p > upper:
@@ -409,8 +415,8 @@ class HyperCube:
 
 
 class RegressionCube(HyperCube):
-    def __init__(self, dimension: dict[str, tuple] = None):
-        super().__init__(dimension=dimension, output=LinearRegression())
+    def __init__(self, dimension: dict[str, tuple] = None, output=LinearRegression()):
+        super().__init__(dimension=dimension, output=output)
 
     def update(self, dataset: pd.DataFrame, predictor) -> None:
         filtered = self.filter_dataframe(dataset.iloc[:, :-1])
@@ -422,7 +428,7 @@ class RegressionCube(HyperCube):
             self._barycenter = Point(means.index.values, means.values)
 
     def copy(self) -> RegressionCube:
-        return RegressionCube(self.dimensions.copy())
+        return RegressionCube(self.dimensions.copy(), output=self._output)
 
     def body(self, variables: dict[str, Var], ignore: list[str], unscale=None, normalization=None) -> Iterable[Struct]:
         intercept = self.output.intercept_ if normalization is None else unscale(sum(
@@ -455,8 +461,8 @@ class ClassificationCube(HyperCube):
 
 
 class ClosedCube(HyperCube):
-    def __init__(self, dimension: dict[str, tuple] = None):
-        super().__init__(dimension=dimension)
+    def __init__(self, dimension: dict[str, tuple] = None, output: str | LinearRegression | float = 0.0):
+        super().__init__(dimension=dimension, output=output)
 
     def __contains__(self, obj: dict[str, float] | ClosedCube) -> bool:
         """
@@ -479,23 +485,23 @@ class ClosedCube(HyperCube):
         return np.all((v[:, 0] <= ds) & (ds <= v[:, 1]), axis=1)
 
     def copy(self) -> ClosedCube:
-        return ClosedCube(self.dimensions.copy())
+        return ClosedCube(self.dimensions.copy(), output=self._output)
 
 
 class ClosedRegressionCube(ClosedCube, RegressionCube):
-    def __init__(self, dimension: dict[str, tuple] = None):
-        super().__init__(dimension=dimension)
+    def __init__(self, dimension: dict[str, tuple] = None, output: LinearRegression = LinearRegression()):
+        super().__init__(dimension=dimension, output=output)
 
     def copy(self) -> ClosedRegressionCube:
-        return ClosedRegressionCube(self.dimensions.copy())
+        return ClosedRegressionCube(self.dimensions.copy(), output=self._output)
 
 
 class ClosedClassificationCube(ClosedCube, ClassificationCube):
-    def __init__(self, dimension: dict[str, tuple] = None):
-        super().__init__(dimension=dimension)
+    def __init__(self, dimension: dict[str, tuple] = None, output: str = None):
+        super().__init__(dimension=dimension, output=output)
 
     def copy(self) -> ClosedClassificationCube:
-        return ClosedClassificationCube(self.dimensions.copy())
+        return ClosedClassificationCube(self.dimensions.copy(), output=self._output)
 
 
 GenericCube = Union[HyperCube, ClassificationCube, RegressionCube,
