@@ -53,8 +53,8 @@ class GridEx(HyperCubeExtractor):
             n = cube.count(dataframe)
             if n > 0 or keep_empty:
                 fake = pd.concat([fake, cube.create_samples(self.min_examples - n, surrounding, self._generator)])
-                cube.update(fake, self.predictor)
                 to_split.append(cube)
+            cube.update(fake, self.predictor)
         return to_split, fake
 
     def _iterate(self, surrounding: HyperCube, dataframe: pd.DataFrame):
