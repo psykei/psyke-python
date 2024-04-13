@@ -1,8 +1,6 @@
 from __future__ import annotations
 
 from abc import ABC
-from itertools import groupby
-from typing import Iterable
 import numpy as np
 import pandas as pd
 from sklearn.base import ClassifierMixin
@@ -16,7 +14,7 @@ from psyke.extraction.hypercubic.hypercube import HyperCube, RegressionCube, Cla
     GenericCube
 from psyke.hypercubepredictor import HyperCubePredictor
 from psyke.schema import Between, Outside, Value
-from psyke.utils.logic import create_variable_list, create_head, to_var, Simplifier, last_in_body, PRECISION
+from psyke.utils.logic import create_variable_list, create_head, to_var, Simplifier
 from psyke.utils import Target
 from psyke.extraction.hypercubic.strategy import Strategy, FixedStrategy
 

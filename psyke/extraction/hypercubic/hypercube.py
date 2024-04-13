@@ -415,8 +415,8 @@ class HyperCube:
 
 
 class RegressionCube(HyperCube):
-    def __init__(self, dimension: dict[str, tuple] = None, output=LinearRegression()):
-        super().__init__(dimension=dimension, output=output)
+    def __init__(self, dimension: dict[str, tuple] = None, output=None):
+        super().__init__(dimension=dimension, output=LinearRegression() if output is None else output)
 
     def update(self, dataset: pd.DataFrame, predictor) -> None:
         filtered = self.filter_dataframe(dataset.iloc[:, :-1])
@@ -428,7 +428,13 @@ class RegressionCube(HyperCube):
             self._barycenter = Point(means.index.values, means.values)
 
     def copy(self) -> RegressionCube:
-        return RegressionCube(self.dimensions.copy(), output=self._output)
+        output = LinearRegression()
+        try:
+            output.coef_ = self.output.coef_.copy()
+            output.intercept_ = self.output.intercept_
+        except AttributeError:
+            pass
+        return RegressionCube(self.dimensions.copy(), output=output)
 
     def body(self, variables: dict[str, Var], ignore: list[str], unscale=None, normalization=None) -> Iterable[Struct]:
         intercept = self.output.intercept_ if normalization is None else unscale(sum(
@@ -489,11 +495,17 @@ class ClosedCube(HyperCube):
 
 
 class ClosedRegressionCube(ClosedCube, RegressionCube):
-    def __init__(self, dimension: dict[str, tuple] = None, output: LinearRegression = LinearRegression()):
-        super().__init__(dimension=dimension, output=output)
+    def __init__(self, dimension: dict[str, tuple] = None, output=None):
+        super().__init__(dimension=dimension, output=LinearRegression() if output is None else output)
 
     def copy(self) -> ClosedRegressionCube:
-        return ClosedRegressionCube(self.dimensions.copy(), output=self._output)
+        output = LinearRegression()
+        try:
+            output.coef_ = self.output.coef_.copy()
+            output.intercept_ = self.output.intercept_
+        except AttributeError:
+            pass
+        return ClosedRegressionCube(self.dimensions.copy(), output=output)
 
 
 class ClosedClassificationCube(ClosedCube, ClassificationCube):
