@@ -429,8 +429,11 @@ class RegressionCube(HyperCube):
 
     def copy(self) -> RegressionCube:
         output = LinearRegression()
-        output.coef_ = self.output.coef_.copy()
-        output.intercept_ = self.output.intercept_
+        try:
+            output.coef_ = self.output.coef_.copy()
+            output.intercept_ = self.output.intercept_
+        except AttributeError:
+            pass
         return RegressionCube(self.dimensions.copy(), output=output)
 
     def body(self, variables: dict[str, Var], ignore: list[str], unscale=None, normalization=None) -> Iterable[Struct]:
@@ -497,8 +500,11 @@ class ClosedRegressionCube(ClosedCube, RegressionCube):
 
     def copy(self) -> ClosedRegressionCube:
         output = LinearRegression()
-        output.coef_ = self.output.coef_.copy()
-        output.intercept_ = self.output.intercept_
+        try:
+            output.coef_ = self.output.coef_.copy()
+            output.intercept_ = self.output.intercept_
+        except AttributeError:
+            pass
         return ClosedRegressionCube(self.dimensions.copy(), output=output)
 
 
