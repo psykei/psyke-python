@@ -44,6 +44,26 @@ class HyperCubeExtractor(HyperCubePredictor, PedagogicalExtractor, ABC):
         self._surrounding.update(dataframe, self.predictor)
         return theory
 
+    def pairwise_fairness(self, data: dict[str, float], neighbor: dict[str, float]):
+        cube1 = self._find_cube(data.copy())
+        cube2 = self._find_cube(neighbor.copy())
+        different_prediction_reasons = []
+
+        if cube1.output == cube2.output:
+            print("Prediction", cube1.output, "is FAIR")
+        else:
+            print("Prediction", cube1.output, "may be UNFAIR")
+            print("It could be", cube2.output, "if:")
+            for d in data:
+                a, b = cube2.dimensions[d]
+                if data[d] < a:
+                    print('    ', d, 'increases up to', round(a, 1))
+                    different_prediction_reasons.append(d)
+                elif data[d] > b:
+                    print('    ', d, 'decreases down to', round(b, 1))
+                    different_prediction_reasons.append(d)
+        return different_prediction_reasons
+
     def predict_counter(self, data: dict[str, float]):
         cube = self._find_cube(data.copy())
         if cube is None:
@@ -68,14 +88,15 @@ class HyperCubeExtractor(HyperCubePredictor, PedagogicalExtractor, ABC):
                     elif p > upper:
                         print('    ', d, '=', round(upper, 1))
 
-    def __get_local_conditions(self, cube: GenericCube) -> dict[list[Value]]:
+    def __get_local_conditions(self, data: dict[str, float], cube: GenericCube) -> dict[list[Value]]:
         conditions = {d: [] for d in cube.dimensions}
         for d in cube.finite_dimensions:
             conditions[d].append(Between(*cube.dimensions[d]))
         subcubes = cube.subcubes(self._hypercubes)
         for c in [c for c in subcubes if sum(c in sc and c != sc for sc in subcubes) == 0]:
-            for d in c.finite_dimensions:
-                conditions[d].append(Outside(*c.dimensions[d]))
+            for d in [d for d in c.finite_dimensions if d in data]:
+                if c.dimensions[d][0] > data[d] or c.dimensions[d][1] < data[d]:
+                    conditions[d].append(Outside(*c.dimensions[d]))
         return conditions
 
     def predict_why(self, data: dict[str, float]):
@@ -85,7 +106,7 @@ class HyperCubeExtractor(HyperCubePredictor, PedagogicalExtractor, ABC):
         else:
             output = self._predict_from_cubes(data)
             print(f"The output is {output} because")
-            conditions = self.__get_local_conditions(cube)
+            conditions = self.__get_local_conditions(data, cube)
             for d in data.keys():
                 simplified = HyperCubeExtractor.__simplify(conditions[d])
                 for i, condition in enumerate(simplified):
