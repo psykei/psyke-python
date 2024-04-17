@@ -57,36 +57,45 @@ class HyperCubeExtractor(HyperCubePredictor, PedagogicalExtractor, ABC):
             for d in data:
                 a, b = cube2.dimensions[d]
                 if data[d] < a:
-                    print('    ', d, 'increases up to', round(a, 1))
+                    print('    ', d, 'increases above', round(a, 1))
                     different_prediction_reasons.append(d)
                 elif data[d] > b:
-                    print('    ', d, 'decreases down to', round(b, 1))
+                    print('    ', d, 'decreases below', round(b, 1))
                     different_prediction_reasons.append(d)
         return different_prediction_reasons
 
-    def predict_counter(self, data: dict[str, float]):
+    def predict_counter(self, data: dict[str, float], verbose=True):
+        output = ""
+        prediction = None
         cube = self._find_cube(data.copy())
         if cube is None:
-            print("The extracted knowledge is not exhaustive; impossible to predict this instance")
+            output += "The extracted knowledge is not exhaustive; impossible to predict this instance"
         else:
-            print("The output is", self._predict_from_cubes(data))
+            prediction = self._predict_from_cubes(data)
+            output += f"The output is {prediction}\n"
 
         point = Point(list(data.keys()), list(data.values()))
         cubes = self._hypercubes if cube is None else [c for c in self._hypercubes if cube.output != c.output]
         cubes = sorted([(cube.surface_distance(point), cube.volume(), cube) for cube in cubes])
         outputs = []
+        different_prediction_reasons = []
         for _, _, c in cubes:
             if c.output not in outputs:
                 outputs.append(c.output)
-                print("The output may be", c.output, 'if')
+                output += f"The output may be {c.output} if"
 
                 for d in point.dimensions.keys():
                     lower, upper = c[d]
                     p = point[d]
                     if p < lower:
-                        print('    ', d, '=', round(lower, 1))
+                        output += f"\n     {d} increases above {round(lower, 1)}"
+                        different_prediction_reasons.append((d, '>=', lower))
                     elif p > upper:
-                        print('    ', d, '=', round(upper, 1))
+                        output += f"\n     {d} decreses below {round(upper, 1)}"
+                        different_prediction_reasons.append((d, '<=', upper))
+        if verbose:
+            print(output)
+        return prediction, different_prediction_reasons
 
     def __get_local_conditions(self, data: dict[str, float], cube: GenericCube) -> dict[list[Value]]:
         conditions = {d: [] for d in cube.dimensions}
