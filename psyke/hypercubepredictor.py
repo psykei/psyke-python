@@ -14,7 +14,7 @@ class HyperCubePredictor(EvaluableModel):
     def __init__(self, output=Target.CONSTANT, discretization=None, normalization=None):
         super().__init__(discretization, normalization)
         self._hypercubes = []
-        self._dimensions_to_ignore = []
+        self._dimensions_to_ignore = set()
         self._output = output
         self._surrounding = None
 
