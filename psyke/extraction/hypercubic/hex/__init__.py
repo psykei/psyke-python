@@ -58,9 +58,10 @@ class HEx(GridEx):
                 self.cube.update(dataframe[self.indices(dataframe) & ~idx], predictor)
             return cleaned
 
-        def linearize(self, dataframe):
-            children = [c.linearize(dataframe) for c in self.permanent_children(dataframe)]
-            return [cc for c in children for cc in c if c != []] + list(self.permanent_children(dataframe))
+        def linearize(self, dataframe, depth=1):
+            children = [c.linearize(dataframe, depth + 1) for c in self.permanent_children(dataframe)]
+            return [(cc, dd) for c in children for cc, dd in c if c != []] + \
+                   [(c, depth) for c in self.permanent_children(dataframe)]
 
     def __init__(self, predictor, grid: Grid, min_examples: int, threshold: float, output: Target = Target.CONSTANT,
                  discretization=None, normalization=None, seed: int = get_default_random_seed()):
@@ -92,7 +93,10 @@ class HEx(GridEx):
 
             current = next_iteration.copy()
         _ = root.update(fake, self.predictor, True)
-        self._hypercubes = [c.cube for c in root.linearize(fake)]
+        self._hypercubes = []
+        linearized = root.linearize(fake)
+        for depth in sorted(np.unique([d for (_, d) in linearized]), reverse=True):
+            self._hypercubes += self._merge([c.cube for (c, d) in linearized if d == depth], fake)
 
         if len(self._hypercubes) == 0:
             self._hypercubes = [surrounding]
