@@ -76,10 +76,10 @@ class HyperCubeExtractor(HyperCubePredictor, PedagogicalExtractor, ABC):
 
         point = Point(list(data.keys()), list(data.values()))
         cubes = self._hypercubes if cube is None else [c for c in self._hypercubes if cube.output != c.output]
-        cubes = sorted([(cube.surface_distance(point), cube.volume(), cube) for cube in cubes])
+        cubes = sorted([(cube.surface_distance(point), cube.volume(), i, cube) for i, cube in enumerate(cubes)])
         outputs = []
         different_prediction_reasons = []
-        for _, _, c in cubes:
+        for _, _, _, c in cubes:
             if c.output not in outputs:
                 outputs.append(c.output)
                 output += f"The output may be {c.output} if"
