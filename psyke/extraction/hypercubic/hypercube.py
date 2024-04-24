@@ -68,7 +68,7 @@ class Point:
 
 class HyperCube:
     """
-    An N-dimensional cube holding a numeric value.
+    An N-dimensional cube holding an output numeric value.
     """
 
     EPSILON = get_default_precision()  # Precision used when comparing two hypercubes
@@ -102,7 +102,7 @@ class HyperCube:
     def __eq__(self, other: HyperCube) -> bool:
         return all([(abs(dimension.this_dimension[0] - dimension.other_dimension[0]) < HyperCube.EPSILON)
                     & (abs(dimension.this_dimension[1] - dimension.other_dimension[1]) < HyperCube.EPSILON)
-                    for dimension in self._zip_dimensions(other, True)])
+                    for dimension in self._zip_dimensions(other)])
 
     def __getitem__(self, feature: str) -> Dimension:
         if feature in self._dimensions.keys():
@@ -175,10 +175,8 @@ class HyperCube:
     def filter_dataframe(self, dataset: pd.DataFrame) -> pd.DataFrame:
         return dataset[self.filter_indices(dataset)]
 
-    def _zip_dimensions(self, other: HyperCube, check_finite: bool = False) -> list[ZippedDimension]:
-        dimensions = set(self.finite_dimensions).union(set(other.finite_dimensions)) if check_finite else \
-            set(self.dimensions)
-        return [ZippedDimension(dimension, self[dimension], other[dimension]) for dimension in dimensions]
+    def _zip_dimensions(self, other: HyperCube) -> list[ZippedDimension]:
+        return [ZippedDimension(dimension, self[dimension], other[dimension]) for dimension in self.dimensions]
 
     def add_limit(self, limit_or_feature: Limit | str, direction: str = None) -> None:
         if isinstance(limit_or_feature, Limit):
