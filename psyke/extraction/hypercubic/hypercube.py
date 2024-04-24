@@ -176,7 +176,7 @@ class HyperCube:
         return dataset[self.filter_indices(dataset)]
 
     def _zip_dimensions(self, other: HyperCube) -> list[ZippedDimension]:
-        return [ZippedDimension(dimension, self[dimension], other[dimension]) for dimension in self._dimensions.keys()]
+        return [ZippedDimension(dimension, self[dimension], other[dimension]) for dimension in self.dimensions]
 
     def add_limit(self, limit_or_feature: Limit | str, direction: str = None) -> None:
         if isinstance(limit_or_feature, Limit):

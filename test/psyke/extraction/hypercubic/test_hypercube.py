@@ -247,7 +247,10 @@ class TestHypercube(AbstractTestHypercube):
     def test_zip_dimensions(self):
         cube = HyperCube({'X': self.y, 'Y': self.x})
         expected = [ZippedDimension(d, self.cube[d], cube[d]) for d in set(self.dimensions)]
-        self.assertEqual(self.cube._zip_dimensions(cube), expected)
+        actual = self.cube._zip_dimensions(cube)
+        print(expected[0].name, expected[0].this_dimension, expected[0].other_dimension)
+        print(actual[0].name, actual[0].this_dimension, actual[0].other_dimension)
+        self.assertEqual(actual, expected)
 
     def test_fit_dimension(self):
         new_dimensions = {'X': (5.2, 3.6), 'Y': (9.3, 6.4)}

@@ -8,7 +8,6 @@ from sklearn.feature_selection import SelectKBest, f_regression, f_classif
 from sklearn.linear_model import LinearRegression
 from tuprolog.core import Var, Struct, clause
 from tuprolog.theory import Theory, mutable_theory
-from psyke import logger
 from psyke.extraction import PedagogicalExtractor
 from psyke.extraction.hypercubic.hypercube import HyperCube, RegressionCube, ClassificationCube, ClosedCube, Point, \
     GenericCube
@@ -175,8 +174,6 @@ class HyperCubeExtractor(HyperCubePredictor, PedagogicalExtractor, ABC):
 
         new_theory = mutable_theory()
         for cube in self._hypercubes:
-            logger.info(cube.output)
-            logger.info(cube.dimensions)
             variables = create_variable_list([], dataframe)
             variables[dataframe.columns[-1]] = to_var(dataframe.columns[-1])
             head = HyperCubeExtractor._create_head(dataframe, list(variables.values()),
