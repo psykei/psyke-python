@@ -67,7 +67,8 @@ jobs:
         os:
           - ubuntu-latest
           - windows-latest
-          - macos-latest
+          # - macos-latest
+          - macos-13
         python-version:
           - '3.9.12'
           - '3.9.13'
