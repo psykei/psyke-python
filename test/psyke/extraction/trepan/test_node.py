@@ -65,8 +65,8 @@ class TestNode(unittest.TestCase):
         node = Node(self.dataset, self.n_examples, (('V1', 0.0), ('V2', 1.0)))
         self.assertEqual(' = setosa', str(self.all_node))
         self.assertEqual(' = setosa', str(self.setosa_40))
-        self.assertEqual(' = virginica', str(self.versicolor_50))
-        self.assertEqual(' = versicolor', str(self.virginica_10))
+        self.assertEqual(' = versicolor', str(self.versicolor_50))
+        self.assertEqual(' = virginica', str(self.virginica_10))
         self.assertEqual('!V1, V2 = setosa', str(node))
 
 
