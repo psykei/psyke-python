@@ -5,15 +5,19 @@ from typing import Iterable, Union
 import numpy as np
 import onnxruntime
 import pandas as pd
-from tensorflow.python.saved_model.save import save
+from keras import Input, Model
+from keras.src.layers import Dense
+#from tensorflow.python.saved_model.save import save
+from tensorflow.saved_model import save
 from onnxconverter_common import FloatTensorType, Int64TensorType, StringTensorType, DataType
 from skl2onnx import convert_sklearn
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
-from tensorflow.python.framework.random_seed import set_seed
-from tensorflow.keras import Input, Model
-from tensorflow.keras.layers import Dense
+from tensorflow.random import set_seed
+import tensorflow as tf
+#from tensorflow.keras import Input, Model
+#from tensorflow.keras.layers import Dense
 from psyke.schema import DiscreteFeature, Value
 from psyke.utils import get_default_random_seed
 from sklearn.datasets import fetch_california_housing, load_iris

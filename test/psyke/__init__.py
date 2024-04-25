@@ -9,7 +9,7 @@ from test import get_dataset, get_extractor, get_schema, get_model
 from test.resources.tests import test_cases
 from tuprolog.theory import Theory, mutable_theory
 from tuprolog.theory.parsing import parse_theory
-from typing import Iterable, Callable
+from typing import Callable
 import ast
 import numpy as np
 from psyke import get_default_random_seed
