@@ -60,8 +60,8 @@ class ExACT(HyperCubeClustering, ABC):
     def fit(self, dataframe: pd.DataFrame):
         np.random.seed(self.seed)
         self._predictor.fit(dataframe.iloc[:, :-1], dataframe.iloc[:, -1])
-        self._hypercubes = \
-            self._iterate(Node(dataframe, HyperCube.create_surrounding_cube(dataframe, True, self._output)))
+        self._surrounding = HyperCube.create_surrounding_cube(dataframe, True, self._output)
+        self._hypercubes = self._iterate(Node(dataframe, self._surrounding))
 
     def get_hypercubes(self) -> Iterable[HyperCube]:
         return list(self._hypercubes)

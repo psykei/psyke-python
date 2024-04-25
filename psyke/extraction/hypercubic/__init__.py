@@ -22,7 +22,6 @@ class HyperCubeExtractor(HyperCubePredictor, PedagogicalExtractor, ABC):
     def __init__(self, predictor, output, discretization=None, normalization=None):
         HyperCubePredictor.__init__(self, output=output, normalization=normalization)
         PedagogicalExtractor.__init__(self, predictor, discretization=discretization, normalization=normalization)
-        self._surrounding = None
         self._default_surrounding_cube = False
 
     def _default_cube(self) -> HyperCube | RegressionCube | ClassificationCube:
@@ -171,9 +170,9 @@ class HyperCubeExtractor(HyperCubePredictor, PedagogicalExtractor, ABC):
         # self.__drop(dataframe)
         for cube in self._hypercubes:
             for dimension in cube.dimensions:
-                if cube[dimension][0] == self._surrounding[dimension][0]:
+                if abs(cube[dimension][0] - self._surrounding[dimension][0]) < HyperCube.EPSILON * 2:
                     cube.set_infinite(dimension, '-')
-                if cube[dimension][1] == self._surrounding[dimension][1]:
+                if abs(cube[dimension][1] - self._surrounding[dimension][1]) < HyperCube.EPSILON * 2:
                     cube.set_infinite(dimension, '+')
 
         if self._default_surrounding_cube:
