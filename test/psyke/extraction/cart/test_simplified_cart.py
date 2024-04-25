@@ -14,6 +14,9 @@ import unittest
 
 
 # TODO: should be refactored using the a .csv file
+from test.psyke import get_substitutions
+
+
 @parameterized_class([{"dataset": "iris", "predictor": "DTC", "task": "extraction"},
                       {"dataset": "house", "predictor": "DTR", "task": "hypercubic"}])
 class TestSimplifiedCart(unittest.TestCase):
@@ -30,16 +33,10 @@ class TestSimplifiedCart(unittest.TestCase):
         simplified_theory = simplified_extractor.extract(train)
 
         index = test.shape[1] - 1
-        is_classification = isinstance(test.iloc[0, -1], str)
-        cast: Callable = lambda x: (str(x) if is_classification else float(x.value))
-
-        solver = prolog_solver(static_kb=mutable_theory(theory).assertZ(get_in_rule()).assertZ(get_not_in_rule()))
-        substitutions = [solver.solveOnce(data_to_struct(data)) for _, data in test.iterrows()]
+        cast, substitutions = get_substitutions(test, test, theory)
         expected = [cast(query.solved_query.get_arg_at(index)) for query in substitutions]
 
-        simplified_solver = \
-            prolog_solver(static_kb=mutable_theory(simplified_theory).assertZ(get_in_rule()).assertZ(get_not_in_rule()))
-        simplified_substitutions = [simplified_solver.solveOnce(data_to_struct(data)) for _, data in test.iterrows()]
+        cast, simplified_substitutions = get_substitutions(test, test, simplified_theory)
         simplified_expected = [cast(query.solved_query.get_arg_at(index)) for query in simplified_substitutions]
 
         if isinstance(test.iloc[0, -1], str):

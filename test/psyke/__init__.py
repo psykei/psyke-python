@@ -39,7 +39,7 @@ def initialize(file: str) -> list[dict[str:Theory]]:
         if 'disc' in row.keys() and bool(row['disc']):
             schema = get_schema(training_set)
             params['discretization'] = schema
-            training_set = get_discrete_dataset(training_set.iloc[:, :-1], schema)\
+            training_set = get_discrete_dataset(training_set.iloc[:, :-1], schema) \
                 .join(training_set.iloc[:, -1].reset_index(drop=True))
             test_set_for_predictor = get_discrete_dataset(test_set.iloc[:, :-1], schema) \
                 .join(test_set.iloc[:, -1].reset_index(drop=True))
@@ -61,7 +61,7 @@ def initialize(file: str) -> list[dict[str:Theory]]:
             if strategy == "F":
                 params['grid'] = Grid(int(row['grid']), FixedStrategy(n))
             else:
-                ranked = FeatureRanker(training_set.columns[:-1])\
+                ranked = FeatureRanker(training_set.columns[:-1]) \
                     .fit(params['predictor'], training_set.iloc[:, :-1]).rankings()
                 params['grid'] = Grid(int(row['grid']), AdaptiveStrategy(ranked, n))
 
@@ -71,11 +71,9 @@ def initialize(file: str) -> list[dict[str:Theory]]:
         # Compute predictions from rules
         index = test_set.shape[1] - 1
         ordered_test_set = test_set.copy()
-        ordered_test_set.iloc[:, :-1] = ordered_test_set.iloc[:, :-1].reindex(sorted(ordered_test_set.columns[:-1]), axis=1)
-        is_classification = isinstance(test_set.iloc[0, -1], str)
-        cast: Callable = lambda x: (str(x) if is_classification else float(x.value))
-        solver = prolog_solver(static_kb=mutable_theory(theory).assertZ(get_in_rule()).assertZ(get_not_in_rule()))
-        substitutions = [solver.solveOnce(data_to_struct(data)) for _, data in ordered_test_set.iterrows()]
+        ordered_test_set.iloc[:, :-1] = ordered_test_set.iloc[:, :-1].reindex(sorted(ordered_test_set.columns[:-1]),
+                                                                              axis=1)
+        cast, substitutions = get_substitutions(test_set, ordered_test_set, theory)
         expected = [cast(query.solved_query.get_arg_at(index)) for query in substitutions if query.is_yes]
         predictions = [prediction for prediction in extractor.predict(test_set_for_predictor.iloc[:, :-1])
                        if prediction is not None]
@@ -89,6 +87,13 @@ def initialize(file: str) -> list[dict[str:Theory]]:
             'expected_theory': parse_theory(row['theory'] + '.') if row['theory'] != '' else None,
             'discretization': schema
         }
+
+
+def get_substitutions(test_set, ordered_test_set, theory):
+    cast: Callable = lambda x: (str(x) if isinstance(test_set.iloc[0, -1], str) else float(x.value))
+    solver = prolog_solver(static_kb=mutable_theory(theory).assertZ(get_in_rule()).assertZ(get_not_in_rule()))
+    substitutions = [solver.solveOnce(data_to_struct(data)) for _, data in ordered_test_set.iterrows()]
+    return cast, substitutions
 
 
 class Predictor:
@@ -126,7 +131,7 @@ class Predictor:
             else:
                 tensor_type = np.str
             pred_onx = self._model.run([label_name], {input_name: array.astype(tensor_type)})[0]
-            return [prediction for plist in pred_onx for prediction in plist] if isinstance(pred_onx[0], list)\
+            return [prediction for plist in pred_onx for prediction in plist] if isinstance(pred_onx[0], list) \
                 else [prediction for prediction in pred_onx]
         else:
             return self._model.predict(dataset)
