@@ -45,17 +45,17 @@ def get_extractor(extractor_type: str, parameters: dict):
 
 def get_model(model_type: str, parameters: dict):
     if model_type.lower() == 'rfr':
-        return RandomForestRegressor(**parameters, random_state=np.random.seed(get_default_random_seed()))
+        return RandomForestRegressor(**parameters, random_state=np.random.seed(get_default_random_seed())), False
     elif model_type.lower() == 'knnc':
-        return KNeighborsClassifier(**parameters)  # It's deterministic, don't have a random_state
+        return KNeighborsClassifier(**parameters), False  # It's deterministic, don't have a random_state
     elif model_type.lower() == 'dtc':
-        return DecisionTreeClassifier(max_leaf_nodes=3, random_state=np.random.seed(get_default_random_seed()))
+        return DecisionTreeClassifier(max_leaf_nodes=3, random_state=np.random.seed(get_default_random_seed())), False
     elif model_type.lower() == 'dtr':
-        return DecisionTreeRegressor(max_depth=3, random_state=np.random.seed(get_default_random_seed()))
+        return DecisionTreeRegressor(max_depth=3, random_state=np.random.seed(get_default_random_seed())), False
     elif model_type.lower() == 'nn':
-        return get_simple_neural_network(**parameters, random_state=np.random.seed(get_default_random_seed()))
+        return get_simple_neural_network(**parameters, random_state=np.random.seed(get_default_random_seed())), False
     else:
-        return Predictor.load_from_onnx(str(get_predictor_path(model_type)))
+        return Predictor.load_from_onnx(str(get_predictor_path(model_type))), True
 
 
 def get_simple_neural_network(input: int = 4, output: int = 3, layers: int = 3, neurons: int = 32,
