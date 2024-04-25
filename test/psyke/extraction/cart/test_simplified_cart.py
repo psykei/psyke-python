@@ -25,7 +25,7 @@ class TestSimplifiedCart(unittest.TestCase):
         dataset = get_dataset(self.dataset)
         dataset = dataset.reindex(sorted(dataset.columns[:-1]) + [dataset.columns[-1]], axis=1)
         train, test = train_test_split(dataset, test_size=0.5)
-        tree = get_model(self.predictor, {})
+        tree, _ = get_model(self.predictor, {})
         tree.fit(train.iloc[:, :-1], train.iloc[:, -1])
         extractor = Extractor.cart(tree, simplify=False)
         theory = extractor.extract(train)
