@@ -33,4 +33,5 @@ class CReEPy(HyperCubeExtractor):
 
         self.clustering.fit(dataframe)
         self._hypercubes = self.clustering.get_hypercubes()
+        self._surrounding = self._hypercubes[-1]
         return self._create_theory(dataframe)

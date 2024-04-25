@@ -8,7 +8,7 @@ import pandas as pd
 from numpy import ndarray
 
 from psyke.extraction.hypercubic.utils import Dimension, Dimensions, MinUpdate, ZippedDimension, Limit, Expansion
-from psyke.schema import Between
+from psyke.schema import Between, GreaterThan, LessThan
 from psyke.utils import get_default_precision, get_int_precision, Target, get_default_random_seed
 from psyke.utils.logic import create_term, to_rounded_real, linear_function_creator
 from sklearn.linear_model import LinearRegression
@@ -83,6 +83,7 @@ class HyperCube:
         self._error = 0.0
         self._barycenter = Point([], [])
         self._default = False
+        self._infinite_dimensions = {}
 
     def __contains__(self, obj: dict[str, float] | HyperCube) -> bool:
         """
@@ -92,12 +93,26 @@ class HyperCube:
         :return: true if the object is inside the hypercube, false otherwise
         """
         if isinstance(obj, HyperCube):
-            return all([(self.get_first(k) <= obj.get_first(k) <= obj.get_second(k) <= self.get_second(k))
-                        for k in obj.dimensions])
+            for k in obj.dimensions:
+                if k not in self._infinite_dimensions:
+                    if not (self.get_first(k) <= obj.get_first(k) <= obj.get_second(k) < self.get_second(k)):
+                        return False
+                elif '+' in self._infinite_dimensions[k] and self.get_first(k) > obj.get_first(k):
+                    return False
+                elif '-' in self._infinite_dimensions[k] and obj.get_second(k) >= self.get_second(k):
+                    return False
         elif isinstance(obj, dict):
-            return all([(self.get_first(k) <= v < self.get_second(k)) for k, v in obj.items()])
+            for k, v in obj.items():
+                if k not in self._infinite_dimensions:
+                    if not (self.get_first(k) <= v < self.get_second(k)):
+                        return False
+                elif '+' in self._infinite_dimensions[k] and self.get_first(k) > v:
+                    return False
+                elif '-' in self._infinite_dimensions[k] and v >= self.get_second(k):
+                    return False
         else:
             raise TypeError("Invalid type for obj parameter")
+        return True
 
     def __eq__(self, other: HyperCube) -> bool:
         return all([(abs(dimension.this_dimension[0] - dimension.other_dimension[0]) < HyperCube.EPSILON)
@@ -124,13 +139,15 @@ class HyperCube:
     def set_default(self):
         self._default = True
 
+    def set_infinite(self, dimension: str, direction: str):
+        if dimension in self._infinite_dimensions:
+            self._infinite_dimensions[dimension].append(direction)
+        else:
+            self._infinite_dimensions[dimension] = [direction]
+
     @property
     def dimensions(self) -> Dimensions:
         return self._dimensions
-
-    @property
-    def finite_dimensions(self) -> Dimensions:
-        return {k: v for k, v in self._dimensions.items() if np.isfinite(v[0]) and np.isfinite(v[1])}
 
     @property
     def limit_count(self) -> int:
@@ -215,10 +232,18 @@ class HyperCube:
     def count(self, dataset: pd.DataFrame) -> int:
         return self.filter_dataframe(dataset.iloc[:, :-1]).shape[0]
 
+    def _interval_to_value(self, dimension, unscale):
+        if dimension not in self._infinite_dimensions:
+            return Between(unscale(self[dimension][0], dimension), unscale(self[dimension][1], dimension))
+        if '+' in self._infinite_dimensions[dimension]:
+            return GreaterThan(unscale(self[dimension][0], dimension))
+        if '-' in self._infinite_dimensions[dimension]:
+            return LessThan(unscale(self[dimension][1], dimension))
+
     def body(self, variables: dict[str, Var], ignore: list[str], unscale=None, normalization=None) -> Iterable[Struct]:
-        dimensions = dict(self.dimensions)
-        return [create_term(variables[name], Between(unscale(values[0], name), unscale(values[1], name)))
-                for name, values in dimensions.items() if name not in ignore and not self.is_default]
+        values = [(dim, self._interval_to_value(dim, unscale)) for dim in self.dimensions if dim not in ignore]
+        return [create_term(variables[name], value) for name, value in values
+                if not self.is_default and value is not None]
 
     @staticmethod
     def create_surrounding_cube(dataset: pd.DataFrame, closed: bool = False,
@@ -281,12 +306,10 @@ class HyperCube:
         return self[feature][1]
 
     def has_volume(self) -> bool:
-        return all([dimension[1] - dimension[0] > HyperCube.EPSILON for dimension in self._dimensions.values()
-                    if np.isfinite(dimension[0]) and np.isfinite(dimension[1])])
+        return all([dimension[1] - dimension[0] > HyperCube.EPSILON for dimension in self._dimensions.values()])
 
     def volume(self) -> float:
-        return reduce(lambda a, b: a * b, [dimension[1] - dimension[0] for dimension in self._dimensions.values()
-                                           if np.isfinite(dimension[0]) and np.isfinite(dimension[1])], 1)
+        return reduce(lambda a, b: a * b, [dimension[1] - dimension[0] for dimension in self._dimensions.values()], 1)
 
     def diagonal(self) -> float:
         return reduce(
@@ -472,13 +495,27 @@ class ClosedCube(HyperCube):
        :param obj: an N-dimensional object (point or hypercube)
        :return: true if the object is inside the hypercube, false otherwise
         """
-        if isinstance(obj, ClosedCube):
-            return all([(self.get_first(k) <= obj.get_first(k) <= obj.get_second(k) <= self.get_second(k))
-                        for k in obj.dimensions])
+        if isinstance(obj, HyperCube):
+            for k in obj.dimensions:
+                if k not in self._infinite_dimensions:
+                    if not (self.get_first(k) <= obj.get_first(k) <= obj.get_second(k) <= self.get_second(k)):
+                        return False
+                elif '+' in self._infinite_dimensions[k] and self.get_first(k) > obj.get_first(k):
+                    return False
+                elif '-' in self._infinite_dimensions[k] and obj.get_second(k) > self.get_second(k):
+                    return False
         elif isinstance(obj, dict):
-            return all([(self.get_first(k) <= v <= self.get_second(k)) for k, v in obj.items()])
+            for k, v in obj.items():
+                if k not in self._infinite_dimensions:
+                    if not (self.get_first(k) <= v <= self.get_second(k)):
+                        return False
+                elif '+' in self._infinite_dimensions[k] and self.get_first(k) > v:
+                    return False
+                elif '-' in self._infinite_dimensions[k] and v > self.get_second(k):
+                    return False
         else:
             raise TypeError("Invalid type for obj parameter")
+        return True
 
     def filter_indices(self, dataset: pd.DataFrame) -> ndarray:
         v = np.array([v for _, v in self._dimensions.items()])

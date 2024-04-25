@@ -168,7 +168,14 @@ class HyperCubeExtractor(HyperCubePredictor, PedagogicalExtractor, ABC):
         self._hypercubes = [cube for cube in self._hypercubes if cube.count(dataframe) > 1]
 
     def _create_theory(self, dataframe: pd.DataFrame) -> Theory:
-        self.__drop(dataframe)
+        # self.__drop(dataframe)
+        for cube in self._hypercubes:
+            for dimension in cube.dimensions:
+                if cube[dimension][0] == self._surrounding[dimension][0]:
+                    cube.set_infinite(dimension, '-')
+                if cube[dimension][1] == self._surrounding[dimension][1]:
+                    cube.set_infinite(dimension, '+')
+
         if self._default_surrounding_cube:
             self._hypercubes[-1].set_default()
 
