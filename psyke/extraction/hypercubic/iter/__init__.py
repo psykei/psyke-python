@@ -29,7 +29,7 @@ class ITER(HyperCubeExtractor):
         self.fill_gaps = fill_gaps
         self._output = Target.CLASSIFICATION if isinstance(predictor, ClassifierMixin) else \
             output if output is not None else Target.CONSTANT
-        np.random.seed(seed)
+        self.seed = seed
 
     def _best_cube(self, dataframe: pd.DataFrame, cube: GenericCube, cubes: Iterable[Expansion]) -> Expansion | None:
         expansions = []
@@ -139,6 +139,7 @@ class ITER(HyperCubeExtractor):
 
     def _iterate(self, dataframe: pd.DataFrame, hypercubes: Iterable[GenericCube], min_updates: Iterable[MinUpdate],
                  left_iteration: int) -> int:
+        np.random.seed(self.seed)
         iterations = 0
         to_expand = [cube for cube in hypercubes if cube.limit_count < (len(dataframe.columns) - 1) * 2]
         while (len(to_expand) > 0) and (iterations < left_iteration):
