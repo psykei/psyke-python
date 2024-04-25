@@ -97,6 +97,8 @@ class HyperCube:
                 if k not in self._infinite_dimensions:
                     if not (self.get_first(k) <= obj.get_first(k) <= obj.get_second(k) < self.get_second(k)):
                         return False
+                elif len(self._infinite_dimensions[k]) == 2:
+                    continue
                 elif '+' in self._infinite_dimensions[k] and self.get_first(k) > obj.get_first(k):
                     return False
                 elif '-' in self._infinite_dimensions[k] and obj.get_second(k) >= self.get_second(k):
@@ -106,6 +108,8 @@ class HyperCube:
                 if k not in self._infinite_dimensions:
                     if not (self.get_first(k) <= v < self.get_second(k)):
                         return False
+                elif len(self._infinite_dimensions[k]) == 2:
+                    continue
                 elif '+' in self._infinite_dimensions[k] and self.get_first(k) > v:
                     return False
                 elif '-' in self._infinite_dimensions[k] and v >= self.get_second(k):
@@ -235,6 +239,8 @@ class HyperCube:
     def _interval_to_value(self, dimension, unscale):
         if dimension not in self._infinite_dimensions:
             return Between(unscale(self[dimension][0], dimension), unscale(self[dimension][1], dimension))
+        if len(self._infinite_dimensions[dimension]) == 2:
+            return
         if '+' in self._infinite_dimensions[dimension]:
             return GreaterThan(unscale(self[dimension][0], dimension))
         if '-' in self._infinite_dimensions[dimension]:
@@ -500,6 +506,8 @@ class ClosedCube(HyperCube):
                 if k not in self._infinite_dimensions:
                     if not (self.get_first(k) <= obj.get_first(k) <= obj.get_second(k) <= self.get_second(k)):
                         return False
+                elif len(self._infinite_dimensions[k]) == 2:
+                    continue
                 elif '+' in self._infinite_dimensions[k] and self.get_first(k) > obj.get_first(k):
                     return False
                 elif '-' in self._infinite_dimensions[k] and obj.get_second(k) > self.get_second(k):
@@ -509,6 +517,8 @@ class ClosedCube(HyperCube):
                 if k not in self._infinite_dimensions:
                     if not (self.get_first(k) <= v <= self.get_second(k)):
                         return False
+                elif len(self._infinite_dimensions[k]) == 2:
+                    continue
                 elif '+' in self._infinite_dimensions[k] and self.get_first(k) > v:
                     return False
                 elif '-' in self._infinite_dimensions[k] and v > self.get_second(k):
