@@ -10,7 +10,6 @@ from psyke.utils.dataframe import get_discrete_dataset
 from psyke.utils.logic import data_to_struct, get_in_rule, get_not_in_rule
 from psyke.extraction.hypercubic.strategy import AdaptiveStrategy, FixedStrategy
 from test import get_dataset, get_extractor, get_schema, get_model
-from test.resources.predictors import get_predictor_path
 from test.resources.tests import test_cases
 from tuprolog.theory import Theory, mutable_theory
 from tuprolog.theory.parsing import parse_theory
@@ -50,9 +49,7 @@ def initialize(file: str) -> list[dict[str:Theory]]:
         #if row['predictor'].lower() not in ['dtc', 'dtr']:
         #    params['predictor'] = Predictor.load_from_onnx(str(get_predictor_path(row['predictor'])))
         #else:
-        predictor = get_model(row['predictor'], {})
-        predictor.fit(training_set.iloc[:, :-1], training_set.iloc[:, -1])
-        params['predictor'] = predictor
+        params['predictor'] = get_model(row['predictor'], {}).fit(training_set.iloc[:, :-1], training_set.iloc[:, -1])
 
         # Handle GridEx tests
         # TODO: this is algorithm specific therefore it should be handled inside the algorithm itself.

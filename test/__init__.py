@@ -12,7 +12,8 @@ from psyke.utils import get_default_random_seed
 from sklearn.datasets import fetch_california_housing, load_iris
 from psyke import Extractor
 from psyke.utils.dataframe import get_discrete_features_supervised
-from test.resources.predictors import PATH
+from test.psyke import Predictor
+from test.resources.predictors import PATH, get_predictor_path
 
 REQUIRED_PREDICTORS: str = PATH / '.required.csv'
 LE = '=<'
@@ -48,7 +49,7 @@ def get_model(model_type: str, parameters: dict):
     elif model_type.lower() == 'nn':
         return get_simple_neural_network(**parameters, random_state=np.random.seed(get_default_random_seed()))
     else:
-        raise NotImplementedError(model_type + ' not handled yet.')
+        return Predictor.load_from_onnx(str(get_predictor_path(model_type)))
 
 
 def get_simple_neural_network(input: int = 4, output: int = 3, layers: int = 3, neurons: int = 32,
