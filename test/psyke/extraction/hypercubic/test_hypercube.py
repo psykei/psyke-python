@@ -8,8 +8,8 @@ from psyke.extraction.hypercubic.hypercube import FeatureNotFoundException, Clos
 from psyke.extraction.hypercubic.utils import MinUpdate, Expansion, ZippedDimension
 from psyke.utils import get_int_precision
 from sklearn.neighbors import KNeighborsRegressor
-from test.psyke import Predictor
 from psyke.extraction.hypercubic import HyperCube
+from test import Predictor
 from test.resources.datasets import get_dataset_path
 
 
