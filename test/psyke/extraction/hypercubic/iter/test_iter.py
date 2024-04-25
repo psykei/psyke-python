@@ -11,14 +11,10 @@ class TestIter(unittest.TestCase):
     def test_extract(self):
         logger.info(self.expected_theory)
         logger.info(self.extracted_theory)
-        print(self.expected_theory)
-        print(self.extracted_theory)
         self.assertTrue(self.expected_theory.equals(self.extracted_theory, False))
 
     def test_predict(self):
         if isinstance(self.extracted_test_y_from_theory[0], str):
-            print(self.extracted_test_y_from_theory)
-            print(self.extracted_test_y_from_extractor)
             self.assertTrue(all(self.extracted_test_y_from_theory == self.extracted_test_y_from_extractor))
         else:
             self.assertTrue(max(abs(self.extracted_test_y_from_theory - self.extracted_test_y_from_extractor)) <
