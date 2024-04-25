@@ -50,9 +50,9 @@ def initialize(file: str) -> list[dict[str:Theory]]:
         #if row['predictor'].lower() not in ['dtc', 'dtr']:
         #    params['predictor'] = Predictor.load_from_onnx(str(get_predictor_path(row['predictor'])))
         #else:
-        #    tree = get_model(row['predictor'], {})
-        #    tree.fit(training_set.iloc[:, :-1], training_set.iloc[:, -1])
-        #    params['predictor'] = tree
+        predictor = get_model(row['predictor'], {})
+        predictor.fit(training_set.iloc[:, :-1], training_set.iloc[:, -1])
+        params['predictor'] = predictor
 
         # Handle GridEx tests
         # TODO: this is algorithm specific therefore it should be handled inside the algorithm itself.
