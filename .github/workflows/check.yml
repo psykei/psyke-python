@@ -67,10 +67,12 @@ jobs:
         os:
           - ubuntu-latest
           - windows-latest
-          # - macos-latest
+          - macos-latest
           - macos-13
         python-version:
           - '3.9.12'
+          - '3.10.11'
+          - '3.11.8'
           # - '3.9.13'
     runs-on: ${{ matrix.os }}
     name: Run tests on Python ${{ matrix.python-version }}, on ${{ matrix.os }}
