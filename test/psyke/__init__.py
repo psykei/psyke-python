@@ -1,9 +1,5 @@
 from __future__ import annotations
-from onnxconverter_common import DataType, FloatTensorType, Int64TensorType, StringTensorType
-from skl2onnx import convert_sklearn
 from sklearn.model_selection import train_test_split
-from tensorflow.keras import Model
-from tensorflow.python.saved_model.save import save
 from tuprolog.solve.prolog import prolog_solver
 from psyke.extraction.hypercubic import Grid, FeatureRanker
 from psyke.utils.dataframe import get_discrete_dataset
@@ -16,9 +12,6 @@ from tuprolog.theory.parsing import parse_theory
 from typing import Iterable, Callable
 import ast
 import numpy as np
-import onnxruntime as rt
-import os
-import pandas as pd
 from psyke import get_default_random_seed
 
 
@@ -91,61 +84,3 @@ def get_substitutions(test_set, ordered_test_set, theory):
     solver = prolog_solver(static_kb=mutable_theory(theory).assertZ(get_in_rule()).assertZ(get_not_in_rule()))
     substitutions = [solver.solveOnce(data_to_struct(data)) for _, data in ordered_test_set.iterrows()]
     return cast, substitutions
-
-
-class Predictor:
-
-    def __init__(self, model, from_file_onnx=False):
-        self._model = model
-        self._from_file_onnx = from_file_onnx
-
-    @staticmethod
-    def load_from_onnx(file: str) -> Predictor:
-        return Predictor(rt.InferenceSession(file), True)
-
-    def save_to_onnx(self, file, initial_types: list[tuple[str, DataType]]):
-        file = str(file) + '.onnx'
-        if not self._from_file_onnx:
-            if os.path.exists(file):
-                os.remove(file)
-            if isinstance(self._model, Model):
-                save(self._model, "tmp_model")
-                os.system("python -m tf2onnx.convert --saved-model tmp_model --output " + file)
-            else:
-                onnx_predictor = convert_sklearn(self._model, initial_types=initial_types)
-                with open(file, 'wb') as f:
-                    f.write(onnx_predictor.SerializeToString())
-
-    def predict(self, dataset: pd.DataFrame | np.ndarray) -> Iterable:
-        array = dataset.to_numpy() if isinstance(dataset, pd.DataFrame) else dataset
-        if self._from_file_onnx:
-            input_name = self._model.get_inputs()[0].name
-            label_name = self._model.get_outputs()[0].name
-            if array.dtype == 'float64':
-                tensor_type = np.float32
-            elif array.dtype == 'int64' or array.dtype == 'int32':
-                tensor_type = np.int64
-            else:
-                tensor_type = np.str
-            pred_onx = self._model.run([label_name], {input_name: array.astype(tensor_type)})[0]
-            return [prediction for plist in pred_onx for prediction in plist] if isinstance(pred_onx[0], list) \
-                else [prediction for prediction in pred_onx]
-        else:
-            return self._model.predict(dataset)
-
-    # TODO: to be improved, make it more flexible
-    @staticmethod
-    def get_initial_types(dataset: pd.DataFrame | np.ndarray) -> list[tuple[str, DataType]]:
-        array = dataset.to_numpy() if isinstance(dataset, pd.DataFrame) else dataset
-        name = ''
-        for column in dataset.columns:
-            name += column + ', '
-        name = name[:-2]
-        shape = [None, array.shape[1]]
-        if array.dtype == 'float64':
-            types = FloatTensorType(shape)
-        elif array.dtype == 'int64':
-            types = Int64TensorType(shape)
-        else:
-            types = StringTensorType(shape)
-        return [(name, types)]
