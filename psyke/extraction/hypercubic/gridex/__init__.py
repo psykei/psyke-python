@@ -1,5 +1,4 @@
 from __future__ import annotations
-import random as rnd
 from itertools import product
 from typing import Iterable
 import numpy as np
@@ -23,7 +22,7 @@ class GridEx(HyperCubeExtractor):
         self.grid = grid
         self.min_examples = min_examples
         self.threshold = threshold
-        self._generator = rnd.Random(seed)
+        np.random.seed(seed)
 
     def _extract(self, dataframe: pd.DataFrame) -> Theory:
         self._hypercubes = []
@@ -52,7 +51,7 @@ class GridEx(HyperCubeExtractor):
                 cube.update_dimension(f, p[i])
             n = cube.count(dataframe)
             if n > 0 or keep_empty:
-                fake = pd.concat([fake, cube.create_samples(self.min_examples - n, self._generator)])
+                fake = pd.concat([fake, cube.create_samples(self.min_examples - n)])
                 cube.update(fake, self.predictor)
                 to_split.append(cube)
         return to_split, fake

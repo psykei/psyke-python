@@ -1,5 +1,4 @@
 from __future__ import annotations
-from random import Random
 from typing import Iterable
 import numpy as np
 import pandas as pd
@@ -30,14 +29,13 @@ class ITER(HyperCubeExtractor):
         self.fill_gaps = fill_gaps
         self._output = Target.CLASSIFICATION if isinstance(predictor, ClassifierMixin) else \
             output if output is not None else Target.CONSTANT
-        self.__generator = Random(seed)
+        np.random.seed(seed)
 
     def _best_cube(self, dataframe: pd.DataFrame, cube: GenericCube, cubes: Iterable[Expansion]) -> Expansion | None:
         expansions = []
         for limit in cubes:
             count = limit.cube.count(dataframe)
-            dataframe = pd.concat([dataframe, limit.cube.create_samples(self.min_examples - count,
-                                                                        generator=self.__generator)])
+            dataframe = pd.concat([dataframe, limit.cube.create_samples(self.min_examples - count)])
             limit.cube.update(dataframe, self.predictor)
             expansions.append(Expansion(
                 limit.cube, limit.feature, limit.direction,

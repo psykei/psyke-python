@@ -215,8 +215,8 @@ class HyperCube:
             return '*'
         raise Exception('Too many limits for this feature')
 
-    def create_samples(self, n: int = 1, generator: Random = Random(get_default_random_seed())) -> pd.DataFrame:
-        return pd.DataFrame([self._create_tuple(generator) for _ in range(n)])
+    def create_samples(self, n: int = 1) -> pd.DataFrame:
+        return pd.DataFrame([self._create_tuple() for _ in range(n)])
 
     @staticmethod
     def check_overlap(to_check: Iterable[HyperCube], hypercubes: Iterable[HyperCube]) -> bool:
@@ -271,8 +271,8 @@ class HyperCube:
             return RegressionCube(dimensions)
         return HyperCube(dimensions)
 
-    def _create_tuple(self, generator: Random) -> dict:
-        return {k: generator.uniform(self[k][0], self[k][1]) for k in self._dimensions.keys()}
+    def _create_tuple(self) -> dict:
+        return {k: np.random.uniform(self[k][0], self[k][1]) for k in self._dimensions.keys()}
 
     @staticmethod
     def cube_from_point(point: dict[str, float], output=None) -> GenericCube:
