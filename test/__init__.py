@@ -72,7 +72,7 @@ def get_dataset(name: str):
         return normalized_x.join(normalized_y)
     elif name.lower() == 'iris':
         x, y = load_iris(return_X_y=True, as_frame=True)
-        y = pd.DataFrame(y).replace({"target": {0: 'setosa', 1: 'virginica', 2: 'versicolor'}})
+        y = pd.DataFrame(y).replace({"target": {0: 'setosa', 1: 'versicolor', 2: 'virginica'}})
         result = x.join(y)
         result.columns = ['SepalLength', 'SepalWidth', 'PetalLength', 'PetalWidth', 'iris']
         return result
