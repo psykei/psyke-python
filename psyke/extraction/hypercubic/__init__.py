@@ -8,7 +8,6 @@ from sklearn.feature_selection import SelectKBest, f_regression, f_classif
 from sklearn.linear_model import LinearRegression
 from tuprolog.core import Var, Struct, clause
 from tuprolog.theory import Theory, mutable_theory
-from psyke import logger
 from psyke.extraction import PedagogicalExtractor
 from psyke.extraction.hypercubic.hypercube import HyperCube, RegressionCube, ClassificationCube, ClosedCube, Point, \
     GenericCube
@@ -23,7 +22,6 @@ class HyperCubeExtractor(HyperCubePredictor, PedagogicalExtractor, ABC):
     def __init__(self, predictor, output, discretization=None, normalization=None):
         HyperCubePredictor.__init__(self, output=output, normalization=normalization)
         PedagogicalExtractor.__init__(self, predictor, discretization=discretization, normalization=normalization)
-        self._surrounding = None
         self._default_surrounding_cube = False
 
     def _default_cube(self) -> HyperCube | RegressionCube | ClassificationCube:
@@ -72,7 +70,7 @@ class HyperCubeExtractor(HyperCubePredictor, PedagogicalExtractor, ABC):
             output += "The extracted knowledge is not exhaustive; impossible to predict this instance"
         else:
             prediction = self._predict_from_cubes(data)
-            output += f"The output is {prediction}\n"
+            output += f"The output is {prediction}"
 
         point = Point(list(data.keys()), list(data.values()))
         cubes = self._hypercubes if cube is None else [c for c in self._hypercubes if cube.output != c.output]
@@ -82,7 +80,7 @@ class HyperCubeExtractor(HyperCubePredictor, PedagogicalExtractor, ABC):
         for _, _, _, c in cubes:
             if c.output not in outputs:
                 outputs.append(c.output)
-                output += f"The output may be {c.output} if"
+                output += f"\nThe output may be {c.output} if"
 
                 for d in point.dimensions.keys():
                     lower, upper = c[d]
@@ -98,12 +96,10 @@ class HyperCubeExtractor(HyperCubePredictor, PedagogicalExtractor, ABC):
         return prediction, different_prediction_reasons
 
     def __get_local_conditions(self, data: dict[str, float], cube: GenericCube) -> dict[list[Value]]:
-        conditions = {d: [] for d in cube.dimensions}
-        for d in cube.finite_dimensions:
-            conditions[d].append(Between(*cube.dimensions[d]))
+        conditions = {d: [Between(*cube.dimensions[d])] for d in cube.dimensions}
         subcubes = cube.subcubes(self._hypercubes)
         for c in [c for c in subcubes if sum(c in sc and c != sc for sc in subcubes) == 0]:
-            for d in [d for d in c.finite_dimensions if d in data]:
+            for d in [d for d in c.dimensions if d in data]:
                 if c.dimensions[d][0] > data[d] or c.dimensions[d][1] < data[d]:
                     conditions[d].append(Outside(*c.dimensions[d]))
         return conditions
@@ -171,14 +167,19 @@ class HyperCubeExtractor(HyperCubePredictor, PedagogicalExtractor, ABC):
         self._hypercubes = [cube for cube in self._hypercubes if cube.count(dataframe) > 1]
 
     def _create_theory(self, dataframe: pd.DataFrame) -> Theory:
-        self.__drop(dataframe)
+        # self.__drop(dataframe)
+        for cube in self._hypercubes:
+            for dimension in cube.dimensions:
+                if abs(cube[dimension][0] - self._surrounding[dimension][0]) < HyperCube.EPSILON * 2:
+                    cube.set_infinite(dimension, '-')
+                if abs(cube[dimension][1] - self._surrounding[dimension][1]) < HyperCube.EPSILON * 2:
+                    cube.set_infinite(dimension, '+')
+
         if self._default_surrounding_cube:
             self._hypercubes[-1].set_default()
 
         new_theory = mutable_theory()
         for cube in self._hypercubes:
-            logger.info(cube.output)
-            logger.info(cube.dimensions)
             variables = create_variable_list([], dataframe)
             variables[dataframe.columns[-1]] = to_var(dataframe.columns[-1])
             head = HyperCubeExtractor._create_head(dataframe, list(variables.values()),

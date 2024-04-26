@@ -8,8 +8,8 @@ from psyke.extraction.hypercubic.hypercube import FeatureNotFoundException, Clos
 from psyke.extraction.hypercubic.utils import MinUpdate, Expansion, ZippedDimension
 from psyke.utils import get_int_precision
 from sklearn.neighbors import KNeighborsRegressor
-from test.psyke import Predictor
 from psyke.extraction.hypercubic import HyperCube
+from test import Predictor
 from test.resources.datasets import get_dataset_path
 
 
@@ -246,7 +246,7 @@ class TestHypercube(AbstractTestHypercube):
 
     def test_zip_dimensions(self):
         cube = HyperCube({'X': self.y, 'Y': self.x})
-        expected = [ZippedDimension(d, self.cube[d], cube[d]) for d in set(self.dimensions)]
+        expected = [ZippedDimension(d, self.cube[d], cube[d]) for d in self.dimensions]
         self.assertEqual(self.cube._zip_dimensions(cube), expected)
 
     def test_fit_dimension(self):

@@ -59,6 +59,7 @@ class DiViNE(HyperCubeExtractor):
         return idx[np.argmin(distance)][-1]
 
     def _extract(self, dataframe: pd.DataFrame) -> Theory:
+        self._surrounding = HyperCube.create_surrounding_cube(dataframe, output=Target.CLASSIFICATION)
         np.random.seed(self.seed)
         data = self.__clean(dataframe)
 

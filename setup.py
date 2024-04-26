@@ -81,7 +81,6 @@ class CreateTestPredictors(distutils.cmd.Command):
         pass
 
     def run(self):
-        from test.psyke import Predictor
         from psyke.utils import get_default_random_seed
         from psyke.utils.dataframe import get_discrete_dataset
         from sklearn.model_selection import train_test_split
@@ -90,6 +89,7 @@ class CreateTestPredictors(distutils.cmd.Command):
         import ast
         import pandas as pd
         from tensorflow.keras import Model
+        from test import Predictor
 
         # Read the required predictors to run the tests:
         #   model | model_options | dataset
@@ -105,7 +105,7 @@ class CreateTestPredictors(distutils.cmd.Command):
                 if row['bins'] > 0:
                     schema = get_schema(dataset)  # int(row['bins'])
                     dataset = get_discrete_dataset(dataset.iloc[:, :-1], schema).join(dataset.iloc[:, -1])
-                model = get_model(row['model'], options)
+                model, _ = get_model(row['model'], options)
                 training_set, test_set = train_test_split(dataset, test_size=0.5,
                                                           random_state=get_default_random_seed())
                 if isinstance(model, Model):

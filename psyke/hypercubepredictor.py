@@ -78,14 +78,11 @@ class HyperCubePredictor(EvaluableModel):
     def _find_cube(self, data: dict[str, float]) -> GenericCube | None:
         for dimension in self._dimensions_to_ignore:
             del data[dimension]
-        found = None
         for cube in self._hypercubes:
             if data in cube:
-                found = cube.copy()
-                break
-        if found is None and self._hypercubes[-1].is_default:
-            found = self._hypercubes[-1].copy()
-        return found
+                return cube.copy()
+        if self._hypercubes[-1].is_default:
+            return self._hypercubes[-1].copy()
 
     @property
     def n_rules(self):

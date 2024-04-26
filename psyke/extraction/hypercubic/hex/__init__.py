@@ -58,9 +58,10 @@ class HEx(GridEx):
                 self.cube.update(dataframe[self.indices(dataframe) & ~idx], predictor)
             return cleaned
 
-        def linearize(self, dataframe):
-            children = [c.linearize(dataframe) for c in self.permanent_children(dataframe)]
-            return [cc for c in children for cc in c if c != []] + list(self.permanent_children(dataframe))
+        def linearize(self, dataframe, depth=1):
+            children = [c.linearize(dataframe, depth + 1) for c in self.permanent_children(dataframe)]
+            return [(cc, dd) for c in children for cc, dd in c if c != []] + \
+                   [(c, depth) for c in self.permanent_children(dataframe)]
 
     def __init__(self, predictor, grid: Grid, min_examples: int, threshold: float, output: Target = Target.CONSTANT,
                  discretization=None, normalization=None, seed: int = get_default_random_seed()):
@@ -72,10 +73,10 @@ class HEx(GridEx):
             return parent_cube.output != new_cube.output
         return parent_cube.error - new_cube.error > self.threshold * .6
 
-    def _iterate(self, surrounding: HyperCube, dataframe: pd.DataFrame):
+    def _iterate(self, dataframe: pd.DataFrame):
         fake = dataframe.copy()
-        surrounding.update(dataframe, self.predictor)
-        root = HEx.Node(surrounding, threshold=self.threshold)
+        self._surrounding.update(dataframe, self.predictor)
+        root = HEx.Node(self._surrounding, threshold=self.threshold)
         current = [root]
 
         for iteration in self.grid.iterate():
@@ -83,7 +84,7 @@ class HEx(GridEx):
             for node in current:
                 if node.cube.diversity < self.threshold:
                     continue
-                children, fake = self._cubes_to_split(node.cube, surrounding, iteration, dataframe, fake, True)
+                children, fake = self._cubes_to_split(node.cube, iteration, dataframe, fake, True)
                 node.children = [HEx.Node(c, node, threshold=self.threshold) for c in children]
                 cleaned = node.update(fake, self.predictor, False)
                 node.children = [HEx.Node(c, node, threshold=self.threshold) for c in self._merge(
@@ -92,9 +93,12 @@ class HEx(GridEx):
 
             current = next_iteration.copy()
         _ = root.update(fake, self.predictor, True)
-        self._hypercubes = [c.cube for c in root.linearize(fake)]
+        self._hypercubes = []
+        linearized = root.linearize(fake)
+        for depth in sorted(np.unique([d for (_, d) in linearized]), reverse=True):
+            self._hypercubes += self._merge([c.cube for (c, d) in linearized if d == depth], fake)
 
         if len(self._hypercubes) == 0:
-            self._hypercubes = [surrounding]
+            self._hypercubes = [self._surrounding]
         elif not min(np.any([c.filter_indices(dataframe.iloc[:, :-1]) for c in self._hypercubes], axis=0)):
-            self._hypercubes = self._hypercubes + [surrounding]
+            self._hypercubes = self._hypercubes + [self._surrounding]
