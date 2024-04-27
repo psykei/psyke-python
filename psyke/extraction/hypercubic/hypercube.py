@@ -13,7 +13,6 @@ from psyke.utils import get_default_precision, get_int_precision, Target, get_de
 from psyke.utils.logic import create_term, to_rounded_real, linear_function_creator
 from sklearn.linear_model import LinearRegression
 from tuprolog.core import Var, Struct
-from random import Random
 import numpy as np
 
 
@@ -149,6 +148,9 @@ class HyperCube:
         else:
             self._infinite_dimensions[dimension] = [direction]
 
+    def copy_infinite_dimensions(self, dimensions: dict[str, str]):
+        self._infinite_dimensions = dimensions.copy()
+
     @property
     def dimensions(self) -> Dimensions:
         return self._dimensions
@@ -231,12 +233,14 @@ class HyperCube:
         return False
 
     def copy(self) -> HyperCube:
-        return HyperCube(self.dimensions.copy(), self._limits.copy(), self.output)
+        new_cube = HyperCube(self.dimensions.copy(), self._limits.copy(), self.output)
+        new_cube.copy_infinite_dimensions(self._infinite_dimensions)
+        return new_cube
 
     def count(self, dataset: pd.DataFrame) -> int:
         return self.filter_dataframe(dataset.iloc[:, :-1]).shape[0]
 
-    def _interval_to_value(self, dimension, unscale):
+    def interval_to_value(self, dimension, unscale=None):
         if dimension not in self._infinite_dimensions:
             return Between(unscale(self[dimension][0], dimension), unscale(self[dimension][1], dimension))
         if len(self._infinite_dimensions[dimension]) == 2:
@@ -247,7 +251,7 @@ class HyperCube:
             return LessThan(unscale(self[dimension][1], dimension))
 
     def body(self, variables: dict[str, Var], ignore: list[str], unscale=None, normalization=None) -> Iterable[Struct]:
-        values = [(dim, self._interval_to_value(dim, unscale)) for dim in self.dimensions if dim not in ignore]
+        values = [(dim, self.interval_to_value(dim, unscale)) for dim in self.dimensions if dim not in ignore]
         return [create_term(variables[name], value) for name, value in values
                 if not self.is_default and value is not None]
 
@@ -439,8 +443,8 @@ class HyperCube:
 
 
 class RegressionCube(HyperCube):
-    def __init__(self, dimension: dict[str, tuple] = None, output=None):
-        super().__init__(dimension=dimension, output=LinearRegression() if output is None else output)
+    def __init__(self, dimension: dict[str, tuple] = None, limits: set[Limit] = None, output=None):
+        super().__init__(dimension=dimension, limits=limits, output=LinearRegression() if output is None else output)
 
     def update(self, dataset: pd.DataFrame, predictor) -> None:
         filtered = self.filter_dataframe(dataset.iloc[:, :-1])
@@ -458,7 +462,9 @@ class RegressionCube(HyperCube):
             output.intercept_ = self.output.intercept_
         except AttributeError:
             pass
-        return RegressionCube(self.dimensions.copy(), output=output)
+        new_cube = RegressionCube(self.dimensions.copy(), self._limits.copy(), output)
+        new_cube.copy_infinite_dimensions(self._infinite_dimensions)
+        return new_cube
 
     def body(self, variables: dict[str, Var], ignore: list[str], unscale=None, normalization=None) -> Iterable[Struct]:
         intercept = self.output.intercept_ if normalization is None else unscale(sum(
@@ -487,12 +493,15 @@ class ClassificationCube(HyperCube):
             self._barycenter = Point(means.index.values, means.values)
 
     def copy(self) -> ClassificationCube:
-        return ClassificationCube(self.dimensions.copy(), self._limits.copy(), self._output)
+        new_cube = ClassificationCube(self.dimensions.copy(), self._limits.copy(), self.output)
+        new_cube.copy_infinite_dimensions(self._infinite_dimensions)
+        return new_cube
 
 
 class ClosedCube(HyperCube):
-    def __init__(self, dimension: dict[str, tuple] = None, output: str | LinearRegression | float = 0.0):
-        super().__init__(dimension=dimension, output=output)
+    def __init__(self, dimension: dict[str, tuple] = None, limits: set[Limit] = None,
+                 output: str | LinearRegression | float = 0.0):
+        super().__init__(dimension=dimension, limits=limits, output=output)
 
     def __contains__(self, obj: dict[str, float] | ClosedCube) -> bool:
         """
@@ -533,12 +542,14 @@ class ClosedCube(HyperCube):
         return np.all((v[:, 0] <= ds) & (ds <= v[:, 1]), axis=1)
 
     def copy(self) -> ClosedCube:
-        return ClosedCube(self.dimensions.copy(), output=self._output)
+        new_cube = ClosedCube(self.dimensions.copy(), self._limits.copy(), self.output)
+        new_cube.copy_infinite_dimensions(self._infinite_dimensions)
+        return new_cube
 
 
 class ClosedRegressionCube(ClosedCube, RegressionCube):
-    def __init__(self, dimension: dict[str, tuple] = None, output=None):
-        super().__init__(dimension=dimension, output=LinearRegression() if output is None else output)
+    def __init__(self, dimension: dict[str, tuple] = None, limits: set[Limit] = None, output=None):
+        super().__init__(dimension=dimension, limits=limits, output=LinearRegression() if output is None else output)
 
     def copy(self) -> ClosedRegressionCube:
         output = LinearRegression()
@@ -547,15 +558,19 @@ class ClosedRegressionCube(ClosedCube, RegressionCube):
             output.intercept_ = self.output.intercept_
         except AttributeError:
             pass
-        return ClosedRegressionCube(self.dimensions.copy(), output=output)
+        new_cube = ClosedRegressionCube(self.dimensions.copy(), self._limits.copy(), output)
+        new_cube.copy_infinite_dimensions(self._infinite_dimensions)
+        return new_cube
 
 
 class ClosedClassificationCube(ClosedCube, ClassificationCube):
-    def __init__(self, dimension: dict[str, tuple] = None, output: str = None):
-        super().__init__(dimension=dimension, output=output)
+    def __init__(self, dimension: dict[str, tuple] = None, limits: set[Limit] = None, output: str = None):
+        super().__init__(dimension=dimension, limits=limits, output=output)
 
     def copy(self) -> ClosedClassificationCube:
-        return ClosedClassificationCube(self.dimensions.copy(), output=self._output)
+        new_cube = ClosedClassificationCube(self.dimensions.copy(), self._limits.copy(), self.output)
+        new_cube.copy_infinite_dimensions(self._infinite_dimensions)
+        return new_cube
 
 
 GenericCube = Union[HyperCube, ClassificationCube, RegressionCube,

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import math
 from abc import ABC
 import numpy as np
 import pandas as pd
@@ -96,12 +97,21 @@ class HyperCubeExtractor(HyperCubePredictor, PedagogicalExtractor, ABC):
         return prediction, different_prediction_reasons
 
     def __get_local_conditions(self, data: dict[str, float], cube: GenericCube) -> dict[list[Value]]:
-        conditions = {d: [Between(*cube.dimensions[d])] for d in cube.dimensions}
+        conditions = {d: [cube.interval_to_value(d, self.unscale)] for d in data.keys()}
         subcubes = cube.subcubes(self._hypercubes)
-        for c in [c for c in subcubes if sum(c in sc and c != sc for sc in subcubes) == 0]:
-            for d in [d for d in c.dimensions if d in data]:
-                if c.dimensions[d][0] > data[d] or c.dimensions[d][1] < data[d]:
-                    conditions[d].append(Outside(*c.dimensions[d]))
+        subsubcubes = [c for cube_list in [c.subcubes(self._hypercubes) for c in subcubes] for c in cube_list]
+        for c in [c for c in subcubes if c not in subsubcubes]:
+            for d in conditions:
+                condition = c.interval_to_value(d, self.unscale)
+                if condition is None:
+                    continue
+                elif conditions[d][-1] is None:
+                    conditions[d][-1] = -condition
+                elif (-condition).is_in(data[d]):
+                    try:
+                        conditions[d][-1] *= -condition
+                    except Exception:
+                        conditions[d].append(-condition)
         return conditions
 
     def predict_why(self, data: dict[str, float]):
@@ -112,50 +122,17 @@ class HyperCubeExtractor(HyperCubePredictor, PedagogicalExtractor, ABC):
             output = self._predict_from_cubes(data)
             print(f"The output is {output} because")
             conditions = self.__get_local_conditions(data, cube)
-            for d in data.keys():
-                simplified = HyperCubeExtractor.__simplify(conditions[d])
-                for i, condition in enumerate(simplified):
-                    if i == 0:
+            for d in conditions:
+                for i, condition in enumerate(conditions[d]):
+                    if condition is None:
+                        continue
+                    elif i == 0:
                         print('    ', d, 'is', end=' ')
                     else:
                         print('and', end=' ')
-                    if isinstance(condition, Outside):
-                        print('not', end=' ')
-                    print('between', round(condition.lower, 1), 'and', round(condition.upper, 1), end=' ')
-                    if i + 1 == len(simplified):
+                    print(condition.print(), end='')
+                    if i + 1 == len(conditions[d]):
                         print()
-
-    @staticmethod
-    def __simplify(conditions):
-        simplified = []
-        for condition in conditions:
-            to_add = True
-            for i, simple in enumerate(simplified):
-                if isinstance(condition, Outside) and isinstance(simple, Outside):
-                    if simple.lower <= condition.lower <= simple.upper or \
-                            simple.lower <= condition.upper <= simple.upper or \
-                            condition.lower <= simple.lower <= simple.upper <= condition.upper:
-                        simplified[i].upper = max(condition.upper, simple.upper)
-                        simplified[i].lower = min(condition.lower, simple.lower)
-                        to_add = False
-                        break
-                elif isinstance(condition, Outside) and isinstance(simple, Between):
-                    if simple.lower >= condition.upper or simple.upper <= condition.lower:
-                        to_add = False
-                        break
-                    elif condition.lower <= simple.lower <= condition.upper <= simple.upper:
-                        simplified[i].lower = condition.upper
-                        to_add = False
-                        break
-                    elif simple.lower <= condition.lower <= simple.upper <= condition.upper:
-                        simplified[i].upper = condition.lower
-                        to_add = False
-                        break
-                    elif condition.lower <= simple.lower <= simple.upper <= condition.upper:
-                        raise ValueError
-            if to_add:
-                simplified.append(condition)
-        return simplified
 
     @staticmethod
     def _create_head(dataframe: pd.DataFrame, variables: list[Var], output: float | LinearRegression) -> Struct:

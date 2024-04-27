@@ -85,12 +85,26 @@ class Value:
         else:
             return False
 
+    def __neg__(self) -> Value:
+        if isinstance(self, Constant):
+            return self
+        elif isinstance(self, GreaterThan):
+            return LessThan(self.value, self.standard)
+        elif isinstance(self, LessThan):
+            return GreaterThan(self.value, self.standard)
+        elif isinstance(self, Between):
+            return Outside(self.lower, self.upper, self.standard)
+        elif isinstance(self, Outside):
+            return Between(self.lower, self.upper, self.standard)
+        else:
+            raise TypeError
+
     # TODO: handle convention (low priority).
     def __mul__(self, other) -> Value:
 
         def intersection_with_constant(first_value: Constant, second_value: Value) -> Value:
             if isinstance(first_value, Constant):
-                if second_value.is_in(first_value.value):
+                if first_value in second_value:
                     return first_value
                 else:
                     raise _EMPTY_INTERSECTION_EXCEPTION(first_value, second_value)
@@ -100,42 +114,45 @@ class Value:
         def intersection_with_outside(first_value: Outside, second_value: Value) -> Value:
             if isinstance(first_value, Outside):
                 if isinstance(second_value, LessThan):
-                    if second_value.value <= first_value.lower:
-                        return second_value
-                    elif first_value.is_in(second_value.value):
+                    if second_value.value > first_value.upper:
+                        # LessThan(first_value.lower) + Between(first_value.lower, second_value.value)
+                        raise _NOT_IMPLEMENTED_INTERSECTION(first_value, second_value)
+                    elif second_value.value > first_value.lower:
                         return LessThan(first_value.lower)
                     else:
-                        raise _NOT_IMPLEMENTED_INTERSECTION(first_value, second_value)
+                        return second_value
                 elif isinstance(second_value, GreaterThan):
-                    if second_value.value >= first_value.lower:
-                        return GreaterThan(first_value.upper)
-                    elif first_value.is_in(second_value.value):
-                        return second_value
-                    else:
+                    if second_value.value < first_value.lower:
+                        # Between(second_value.value, first_value.lower) + GreaterThan(first_value.upper)
                         raise _NOT_IMPLEMENTED_INTERSECTION(first_value, second_value)
-                elif isinstance(second_value, Constant):
-                    if not first_value.is_in(second_value.value):
-                        return second_value
+                    elif second_value.value < first_value.upper:
+                        return GreaterThan(first_value.upper)
                     else:
-                        raise _EMPTY_INTERSECTION_EXCEPTION(first_value, second_value)
+                        return second_value
                 elif isinstance(second_value, Between):
-                    if second_value in first_value:
+                    if second_value.upper <= first_value.lower or second_value.lower >= first_value.upper:
                         return second_value
                     elif second_value.lower <= first_value.lower <= second_value.upper <= first_value.upper:
                         return Between(second_value.lower, first_value.lower)
                     elif first_value.lower <= second_value.lower <= first_value.upper <= second_value.upper:
                         return Between(first_value.upper, second_value.upper)
-                    else:
+                    elif second_value.lower <= first_value.lower <= first_value.upper <= second_value.upper:
                         raise _NOT_IMPLEMENTED_INTERSECTION(first_value, second_value)
+                    else:
+                        raise _EMPTY_INTERSECTION_EXCEPTION(first_value, second_value)
                 elif isinstance(second_value, Outside):
-                    if second_value.lower <= first_value.lower and second_value.upper >= first_value.upper:
+                    if second_value.lower <= first_value.lower <= first_value.upper <= second_value.upper:
                         return second_value
-                    elif first_value.lower <= second_value.lower and first_value.upper >= second_value.upper:
+                    elif first_value.lower <= second_value.lower <= second_value.upper <= first_value.upper:
                         return first_value
+                    elif second_value.lower <= first_value.lower <= second_value.upper <= first_value.upper:
+                        return Outside(second_value.lower, first_value.upper)
+                    elif first_value.lower <= second_value.lower <= first_value.upper <= second_value.upper:
+                        return Outside(first_value.lower, second_value.upper)
                     else:
                         raise _EMPTY_INTERSECTION_EXCEPTION(first_value, second_value)
                 elif isinstance(second_value, Constant):
-                    intersection_with_constant(second_value, first_value)
+                    return intersection_with_constant(second_value, first_value)
                 else:
                     raise _INTERSECTION_WITH_WRONG_TYPE(first_value, second_value)
             else:
@@ -173,7 +190,7 @@ class Value:
                     else:
                         raise _EMPTY_INTERSECTION_EXCEPTION(first_value, second_value)
                 elif isinstance(second_value, Constant):
-                    intersection_with_constant(second_value, first_value)
+                    return intersection_with_constant(second_value, first_value)
                 elif isinstance(second_value, Outside):
                     return intersection_with_outside(second_value, first_value)
                 else:
@@ -264,6 +281,9 @@ class LessThan(Interval):
     def value(self) -> float:
         return self.upper
 
+    def print(self) -> str:
+        return f"below {round(self.upper, 1)}"
+
     def __str__(self):
         return f"]-∞, {self.upper:.2f}" + ("]" if self.standard else "[")
 
@@ -286,6 +306,9 @@ class GreaterThan(Interval):
     def value(self) -> float:
         return self.lower
 
+    def print(self) -> str:
+        return f"above {round(self.lower, 1)}"
+
     def __str__(self):
         return ("]" if self.standard else "[") + f"{self.lower:.2f}, ∞["
 
@@ -304,6 +327,9 @@ class Between(Interval):
     def is_in(self, other: float) -> bool:
         return self.lower <= other < self.upper if self.standard else self.lower < other <= self.upper
 
+    def print(self) -> str:
+        return f"between {round(self.lower, 1)} and {round(self.upper, 1)}"
+
     def __str__(self):
         return ("[" if self.standard else "]") + f"{self.lower:.2f}, {self.upper:.2f}" + ("[" if self.standard else "]")
 
@@ -318,6 +344,9 @@ class Outside(Interval):
 
     def is_in(self, other: float) -> bool:
         return other < self.lower or self.upper <= other if self.standard else other <= self.lower or self.upper < other
+
+    def print(self) -> str:
+        return f"not between {round(self.lower, 1)} and {round(self.upper, 1)}"
 
     def __str__(self):
         return f"]-∞, {self.lower:.2f}" + ("[" if self.standard else "]") + ' U '\
@@ -335,6 +364,9 @@ class Constant(Value):
 
     def is_in(self, other: float) -> bool:
         return math.isclose(other, self.value)
+
+    def print(self) -> str:
+        return f"equal {round(self.value, 1)}"
 
     def __str__(self):
         return "{" + str(self.value) + "}"
