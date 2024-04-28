@@ -250,6 +250,9 @@ class Value:
         else:
             raise _INTERSECTION_WITH_WRONG_TYPE(self, other)
 
+    def print(self) -> str:
+        pass
+
 
 class Interval(Value):
 
