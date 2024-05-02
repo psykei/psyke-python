@@ -175,8 +175,12 @@ class HyperCube:
     def barycenter(self) -> Point:
         return self._barycenter
 
-    def subcubes(self, cubes: Iterable[GenericCube]) -> Iterable[GenericCube]:
-        return [c for c in cubes if c in self and c != self]
+    def subcubes(self, cubes: Iterable[GenericCube], only_largest: bool = True) -> Iterable[GenericCube]:
+        subcubes = [c for c in cubes if c in self and c.output != self.output]
+        if only_largest:
+            subsubcubes = [c for cube_list in [c.subcubes(cubes) for c in subcubes] for c in cube_list]
+            subcubes = [c for c in subcubes if c not in subsubcubes]
+        return subcubes
 
     def _fit_dimension(self, dimension: dict[str, tuple[float, float]]) -> dict[str, tuple[float, float]]:
         new_dimension: dict[str, tuple[float, float]] = {}

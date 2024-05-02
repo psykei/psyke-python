@@ -25,7 +25,7 @@ class CReEPy(HyperCubeExtractor):
         self.clustering = clustering(depth, error_threshold, self._output, gauss_components, discretization,
                                      normalization, seed)
         self._default_surrounding_cube = True
-        self._dimensions_to_ignore = [dimension for dimension, relevance in ranks if relevance < ignore_threshold]
+        self._dimensions_to_ignore = set([dimension for dimension, relevance in ranks if relevance < ignore_threshold])
 
     def _extract(self, dataframe: pd.DataFrame) -> Theory:
         if not isinstance(self.clustering, HyperCubeClustering):

@@ -44,8 +44,8 @@ class HyperCubeExtractor(HyperCubePredictor, PedagogicalExtractor, ABC):
         return theory
 
     def pairwise_fairness(self, data: dict[str, float], neighbor: dict[str, float]):
-        cube1 = self._find_cube(data.copy())
-        cube2 = self._find_cube(neighbor.copy())
+        cube1 = self._find_cube(data)
+        cube2 = self._find_cube(neighbor)
         different_prediction_reasons = []
 
         if cube1.output == cube2.output:
@@ -63,76 +63,83 @@ class HyperCubeExtractor(HyperCubePredictor, PedagogicalExtractor, ABC):
                     different_prediction_reasons.append(d)
         return different_prediction_reasons
 
-    def predict_counter(self, data: dict[str, float], verbose=True):
+    def predict_counter(self, data: dict[str, float], verbose=True, only_first=True):
         output = ""
         prediction = None
-        cube = self._find_cube(data.copy())
+        cube = self._find_cube(data)
         if cube is None:
             output += "The extracted knowledge is not exhaustive; impossible to predict this instance"
         else:
             prediction = self._predict_from_cubes(data)
-            output += f"The output is {prediction}"
+            output += f"The output is {prediction}\n"
 
         point = Point(list(data.keys()), list(data.values()))
         cubes = self._hypercubes if cube is None else [c for c in self._hypercubes if cube.output != c.output]
         cubes = sorted([(cube.surface_distance(point), cube.volume(), i, cube) for i, cube in enumerate(cubes)])
-        outputs = []
-        different_prediction_reasons = []
+
+        counter_conditions = []
+
         for _, _, _, c in cubes:
-            if c.output not in outputs:
-                outputs.append(c.output)
-                output += f"\nThe output may be {c.output} if"
+            if not only_first or c.output not in [o for o, _ in counter_conditions]:
+                counter_conditions.append((c.output, {c: [val for val in v if val is not None and not val.is_in(
+                    self.unscale(data[c], c))] for c, v in self.__get_conditions(data, c).items()}))
 
-                for d in point.dimensions.keys():
-                    lower, upper = c[d]
-                    p = point[d]
-                    if p < lower:
-                        output += f"\n     {d} increases above {round(lower, 1)}"
-                        different_prediction_reasons.append((d, '>=', lower))
-                    elif p > upper:
-                        output += f"\n     {d} decreses below {round(upper, 1)}"
-                        different_prediction_reasons.append((d, '<=', upper))
         if verbose:
+            for o, conditions in counter_conditions:
+                output += f"The output may be {o} if\n" + HyperCubeExtractor.__conditions_to_string(conditions)
             print(output)
-        return prediction, different_prediction_reasons
 
-    def __get_local_conditions(self, data: dict[str, float], cube: GenericCube) -> dict[list[Value]]:
-        conditions = {d: [cube.interval_to_value(d, self.unscale)] for d in data.keys()}
-        subcubes = cube.subcubes(self._hypercubes)
-        subsubcubes = [c for cube_list in [c.subcubes(self._hypercubes) for c in subcubes] for c in cube_list]
-        for c in [c for c in subcubes if c not in subsubcubes]:
+        return prediction, counter_conditions
+
+    @staticmethod
+    def __conditions_to_string(conditions: dict[str, list[Value]]) -> str:
+        output = ""
+        for d in conditions:
+            for i, condition in enumerate(conditions[d]):
+                if i == 0:
+                    output += f'     {d} is '
+                else:
+                    output += ' and '
+                output += condition.print()
+                if i + 1 == len(conditions[d]):
+                    output += '\n'
+        return output
+
+    def __get_conditions(self, data: dict[str, float], cube: GenericCube) -> dict[str, list[Value]]:
+        conditions = {d: [cube.interval_to_value(d, self.unscale)] for d in data.keys()
+                      if d not in self._dimensions_to_ignore}
+        for c in cube.subcubes(self._hypercubes):
             for d in conditions:
                 condition = c.interval_to_value(d, self.unscale)
                 if condition is None:
                     continue
                 elif conditions[d][-1] is None:
                     conditions[d][-1] = -condition
-                elif (-condition).is_in(data[d]):
+                else:
                     try:
                         conditions[d][-1] *= -condition
                     except Exception:
                         conditions[d].append(-condition)
         return conditions
 
-    def predict_why(self, data: dict[str, float]):
-        cube = self._find_cube(data.copy())
+    def predict_why(self, data: dict[str, float], verbose=True):
+        cube = self._find_cube(data)
+        output = ""
         if cube is None:
-            print("The extracted knowledge is not exhaustive; impossible to predict this instance")
-        else:
-            output = self._predict_from_cubes(data)
-            print(f"The output is {output} because")
-            conditions = self.__get_local_conditions(data, cube)
-            for d in conditions:
-                for i, condition in enumerate(conditions[d]):
-                    if condition is None:
-                        continue
-                    elif i == 0:
-                        print('    ', d, 'is', end=' ')
-                    else:
-                        print('and', end=' ')
-                    print(condition.print(), end='')
-                    if i + 1 == len(conditions[d]):
-                        print()
+            output += "The extracted knowledge is not exhaustive; impossible to predict this instance\n"
+            if verbose:
+                print(output)
+            return None, {}
+        prediction = self._predict_from_cubes(data)
+        output += f"The output is {prediction} because\n"
+        conditions = {c: [val for val in v if val is not None and val.is_in(self.unscale(data[c], c))]
+                      for c, v in self.__get_conditions(data, cube).items()}
+
+        if verbose:
+            output += HyperCubeExtractor.__conditions_to_string(conditions)
+            print(output)
+
+        return prediction, conditions
 
     @staticmethod
     def _create_head(dataframe: pd.DataFrame, variables: list[Var], output: float | LinearRegression) -> Struct:

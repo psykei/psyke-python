@@ -250,6 +250,9 @@ class Value:
         else:
             raise _INTERSECTION_WITH_WRONG_TYPE(self, other)
 
+    def print(self) -> str:
+        pass
+
 
 class Interval(Value):
 
@@ -265,7 +268,7 @@ class Interval(Value):
     def __repr__(self):
         return f"Interval({self.lower:.2f}, {self.upper:.2f})"
 
-    def __eq__(self, other: Between) -> bool:
+    def __eq__(self, other: Interval) -> bool:
         return (self.upper == other.upper) and (self.lower == other.lower) and (self.standard == other.standard)
 
 
@@ -291,7 +294,8 @@ class LessThan(Interval):
         return f"LessThan({self.upper:.2f})"
 
     def __eq__(self, other: LessThan) -> bool:
-        return (self.upper == other.upper) and (self.value == other.value) and (self.standard == other.standard)
+        return isinstance(other, LessThan) and (self.upper == other.upper) and \
+               (self.value == other.value) and (self.standard == other.standard)
 
 
 class GreaterThan(Interval):
@@ -316,7 +320,8 @@ class GreaterThan(Interval):
         return f"GreaterThan({self.lower:.2f})"
 
     def __eq__(self, other: GreaterThan) -> bool:
-        return (self.lower == other.lower) and (self.value == other.value) and (self.standard == other.standard)
+        return isinstance(other, GreaterThan) and (self.lower == other.lower) and \
+               (self.value == other.value) and (self.standard == other.standard)
 
 
 class Between(Interval):
