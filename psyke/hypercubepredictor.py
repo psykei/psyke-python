@@ -76,8 +76,10 @@ class HyperCubePredictor(EvaluableModel):
             return round(HyperCubePredictor._get_cube_output(cube, data), get_int_precision())
 
     def _find_cube(self, data: dict[str, float]) -> GenericCube | None:
+        data = data.copy()
         for dimension in self._dimensions_to_ignore:
-            del data[dimension]
+            if dimension in data:
+                del data[dimension]
         for cube in self._hypercubes:
             if data in cube:
                 return cube.copy()

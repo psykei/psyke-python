@@ -44,8 +44,8 @@ class HyperCubeExtractor(HyperCubePredictor, PedagogicalExtractor, ABC):
         return theory
 
     def pairwise_fairness(self, data: dict[str, float], neighbor: dict[str, float]):
-        cube1 = self._find_cube(data.copy())
-        cube2 = self._find_cube(neighbor.copy())
+        cube1 = self._find_cube(data)
+        cube2 = self._find_cube(neighbor)
         different_prediction_reasons = []
 
         if cube1.output == cube2.output:
@@ -63,10 +63,10 @@ class HyperCubeExtractor(HyperCubePredictor, PedagogicalExtractor, ABC):
                     different_prediction_reasons.append(d)
         return different_prediction_reasons
 
-    def predict_counter(self, data: dict[str, float], verbose=True):
+    def predict_counter(self, data: dict[str, float], verbose=True, only_first=True):
         output = ""
         prediction = None
-        cube = self._find_cube(data.copy())
+        cube = self._find_cube(data)
         if cube is None:
             output += "The extracted knowledge is not exhaustive; impossible to predict this instance"
         else:
@@ -76,17 +76,16 @@ class HyperCubeExtractor(HyperCubePredictor, PedagogicalExtractor, ABC):
         point = Point(list(data.keys()), list(data.values()))
         cubes = self._hypercubes if cube is None else [c for c in self._hypercubes if cube.output != c.output]
         cubes = sorted([(cube.surface_distance(point), cube.volume(), i, cube) for i, cube in enumerate(cubes)])
-        outputs = []
 
-        counter_conditions = {}
+        counter_conditions = []
 
-        for c in [c for _, _, _, c in cubes if c.output not in outputs]:
-            outputs.append(c.output)
-            counter_conditions[c.output] = {c: [val for val in v if val is not None and not val.is_in(data[c])]
-                                            for c, v in self.__get_conditions(data, c).items()}
+        for _, _, _, c in cubes:
+            if not only_first or c.output not in [o for o, _ in counter_conditions]:
+                counter_conditions.append((c.output, {c: [val for val in v if val is not None and not val.is_in(
+                    self.unscale(data[c], c))] for c, v in self.__get_conditions(data, c).items()}))
 
         if verbose:
-            for o, conditions in counter_conditions.items():
+            for o, conditions in counter_conditions:
                 output += f"The output may be {o} if\n" + HyperCubeExtractor.__conditions_to_string(conditions)
             print(output)
 
@@ -107,7 +106,8 @@ class HyperCubeExtractor(HyperCubePredictor, PedagogicalExtractor, ABC):
         return output
 
     def __get_conditions(self, data: dict[str, float], cube: GenericCube) -> dict[str, list[Value]]:
-        conditions = {d: [cube.interval_to_value(d, self.unscale)] for d in data.keys()}
+        conditions = {d: [cube.interval_to_value(d, self.unscale)] for d in data.keys()
+                      if d not in self._dimensions_to_ignore}
         for c in cube.subcubes(self._hypercubes):
             for d in conditions:
                 condition = c.interval_to_value(d, self.unscale)
@@ -123,7 +123,7 @@ class HyperCubeExtractor(HyperCubePredictor, PedagogicalExtractor, ABC):
         return conditions
 
     def predict_why(self, data: dict[str, float], verbose=True):
-        cube = self._find_cube(data.copy())
+        cube = self._find_cube(data)
         output = ""
         if cube is None:
             output += "The extracted knowledge is not exhaustive; impossible to predict this instance\n"
@@ -132,7 +132,7 @@ class HyperCubeExtractor(HyperCubePredictor, PedagogicalExtractor, ABC):
             return None, {}
         prediction = self._predict_from_cubes(data)
         output += f"The output is {prediction} because\n"
-        conditions = {c: [val for val in v if val is not None and val.is_in(data[c])]
+        conditions = {c: [val for val in v if val is not None and val.is_in(self.unscale(data[c], c))]
                       for c, v in self.__get_conditions(data, cube).items()}
 
         if verbose:

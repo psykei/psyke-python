@@ -61,7 +61,7 @@ class EvaluableModel(object):
         raise NotImplementedError('predict')
 
     def __convert(self, ys: Iterable) -> Iterable:
-        if self.normalization is not None:
+        if self.normalization is not None and not isinstance([p for p in ys if p is not None][0], str):
             m, s = self.normalization[list(self.normalization.keys())[-1]]
             ys = [prediction if prediction is None else prediction * s + m for prediction in ys]
         return ys
@@ -73,7 +73,7 @@ class EvaluableModel(object):
         raise NotImplementedError('brute_predict')
 
     def unscale(self, values, name):
-        if self.normalization is None or isinstance(values, LinearRegression):
+        if self.normalization is None or name not in self.normalization or isinstance(values, LinearRegression):
             return values
         if isinstance(values, Iterable):
             values = [None if value is None else
@@ -161,17 +161,20 @@ class Extractor(EvaluableModel, ABC):
         """
         raise NotImplementedError('extract')
 
-    def predict_why(self, data: dict[str, float]):
+    def predict_why(self, data: dict[str, float], verbose=True):
         """
         Provides a prediction and the corresponding explanation.
         :param data: is the instance to predict.
+        :param verbose: if the explanation has to be printed.
         """
         raise NotImplementedError('predict_why')
 
-    def predict_counter(self, data: dict[str, float]):
+    def predict_counter(self, data: dict[str, float], verbose=True, only_first=True):
         """
         Provides a prediction and counterfactual explanations.
         :param data: is the instance to predict.
+        :param verbose: if the counterfactual explanation has to be printed.
+        :param only_first: if only the closest counterfactual explanation is provided for each distinct class.
         """
         raise NotImplementedError('predict_counter')
 
