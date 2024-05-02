@@ -4,7 +4,7 @@ from typing import Callable
 from psyke.utils import get_int_precision
 
 _EMPTY_INTERSECTION_EXCEPTION: Callable = lambda x, y: \
-    Exception("Empty intersection between two Value: " + str(x) + ' and ' + str(y))
+    Exception(f"Empty intersection between two Value: {str(x)} and {str(y)}")
 
 _NOT_IMPLEMENTED_INTERSECTION: Callable = lambda x, y: \
     Exception("Not implemented intersection between: " + str(x) + ' and ' + str(y))
