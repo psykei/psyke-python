@@ -52,7 +52,7 @@ class Cart(PedagogicalExtractor):
         nodes = [node for node in self._cart_predictor]
         nodes = Cart._simplify_nodes(nodes) if self._simplify else nodes
         for (constraints, prediction) in nodes:
-            if self.normalization is not None:
+            if self.normalization is not None and data.columns[-1] in self.normalization:
                 m, s = self.normalization[data.columns[-1]]
                 prediction = prediction * s + m
             variables = create_variable_list(self.discretization, data)

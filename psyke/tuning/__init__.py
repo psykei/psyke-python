@@ -84,4 +84,6 @@ class IterativeOptimizer(Optimizer, ABC):
     def _check_iteration_improvement(self, best, current):
         improvement = \
             self._iteration_improvement([best[0], best[1]], [current[0], current[1]]) if best is not None else np.inf
+        if isinstance(improvement, complex):
+            improvement = 1.0
         return current, improvement < 1.2

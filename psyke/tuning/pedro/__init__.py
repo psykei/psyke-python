@@ -98,21 +98,25 @@ class PEDRO(SKEOptimizer, IterativeOptimizer):
         return False
 
     def search(self):
-        base_strategy = FixedStrategy(2)
-        strategies = [base_strategy, FixedStrategy(3)]
-
-        base_partitions = base_strategy.partition_number(self.dataframe.columns[:-1])
+        base_partitions = FixedStrategy(2).partition_number(self.dataframe.columns[:-1]) * 3
+        if base_partitions <= 50:
+            strategies = [FixedStrategy(2)]
+            if FixedStrategy(3).partition_number(self.dataframe.columns[:-1]) <= base_partitions:
+                strategies.append(FixedStrategy(3))
+        else:
+            strategies = []
+            base_partitions = 50
 
         for n in [2, 3, 5, 10]:
             for th in [0.99, 0.75, 0.67, 0.5, 0.3]:
                 strategy = AdaptiveStrategy(self.ranked, [(th, n)])
-                if strategy.partition_number(self.dataframe.columns[:-1]) < base_partitions * 3 and \
+                if strategy.partition_number(self.dataframe.columns[:-1]) < base_partitions and \
                         not self.__contains(strategies, strategy):
                     strategies.append(strategy)
 
         for (a, b) in [(0.33, 0.67), (0.25, 0.75), (0.1, 0.9)]:
             strategy = AdaptiveStrategy(self.ranked, [(a, 2), (b, 3)])
-            if strategy.partition_number(self.dataframe.columns[:-1]) < base_partitions * 3 and \
+            if strategy.partition_number(self.dataframe.columns[:-1]) < base_partitions and \
                     not self.__contains(strategies, strategy):
                 strategies.append(strategy)
 
@@ -125,7 +129,7 @@ class PEDRO(SKEOptimizer, IterativeOptimizer):
         for strategy in strategies:
             params += self._search_depth(strategy,
                                          strategy.partition_number(self.dataframe.columns[:-1]) > avg,
-                                         base_partitions * 3)
+                                         base_partitions)
         self.params = params
 
     def _print_params(self, name, params):
