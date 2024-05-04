@@ -9,8 +9,14 @@ _EMPTY_INTERSECTION_EXCEPTION: Callable = lambda x, y: \
 _NOT_IMPLEMENTED_INTERSECTION: Callable = lambda x, y: \
     Exception("Not implemented intersection between: " + str(x) + ' and ' + str(y))
 
-_INTERSECTION_WITH_WRONG_TYPE: Callable = lambda x, y: \
+_OPERATION_WITH_WRONG_TYPE: Callable = lambda x, y: \
     Exception("Calling method with wrong type argument: " + str(x) + ' and ' + str(y))
+
+_EMPTY_UNION_EXCEPTION: Callable = lambda x, y: \
+    Exception(f"Empty union between two Value: {str(x)} and {str(y)}")
+
+_NOT_IMPLEMENTED_UNION: Callable = lambda x, y: \
+    Exception("Not implemented union between: " + str(x) + ' and ' + str(y))
 
 PRECISION = get_int_precision()
 STRING_PRECISION = str(PRECISION)
@@ -109,7 +115,7 @@ class Value:
                 else:
                     raise _EMPTY_INTERSECTION_EXCEPTION(first_value, second_value)
             else:
-                raise _INTERSECTION_WITH_WRONG_TYPE(first_value, second_value)
+                raise _OPERATION_WITH_WRONG_TYPE(first_value, second_value)
 
         def intersection_with_outside(first_value: Outside, second_value: Value) -> Value:
             if isinstance(first_value, Outside):
@@ -154,9 +160,9 @@ class Value:
                 elif isinstance(second_value, Constant):
                     return intersection_with_constant(second_value, first_value)
                 else:
-                    raise _INTERSECTION_WITH_WRONG_TYPE(first_value, second_value)
+                    raise _OPERATION_WITH_WRONG_TYPE(first_value, second_value)
             else:
-                raise _INTERSECTION_WITH_WRONG_TYPE(first_value, second_value)
+                raise _OPERATION_WITH_WRONG_TYPE(first_value, second_value)
 
         def intersection_with_between(first_value: Between, second_value: Value) -> Value:
             if isinstance(first_value, Between):
@@ -194,9 +200,9 @@ class Value:
                 elif isinstance(second_value, Outside):
                     return intersection_with_outside(second_value, first_value)
                 else:
-                    raise _INTERSECTION_WITH_WRONG_TYPE(first_value, second_value)
+                    raise _OPERATION_WITH_WRONG_TYPE(first_value, second_value)
             else:
-                raise _INTERSECTION_WITH_WRONG_TYPE(first_value, second_value)
+                raise _OPERATION_WITH_WRONG_TYPE(first_value, second_value)
 
         def intersection_with_less_than(first_value: LessThan, second_value: Value) -> Value:
             if isinstance(first_value, LessThan):
@@ -214,9 +220,9 @@ class Value:
                 elif isinstance(second_value, Between):
                     return intersection_with_between(second_value, first_value)
                 else:
-                    raise _INTERSECTION_WITH_WRONG_TYPE(first_value, second_value)
+                    raise _OPERATION_WITH_WRONG_TYPE(first_value, second_value)
             else:
-                raise _INTERSECTION_WITH_WRONG_TYPE(first_value, second_value)
+                raise _OPERATION_WITH_WRONG_TYPE(first_value, second_value)
 
         def intersection_with_greater_than(first_value: GreaterThan, second_value: Value) -> Value:
             if isinstance(first_value, GreaterThan):
@@ -231,9 +237,9 @@ class Value:
                 elif isinstance(second_value, LessThan):
                     return intersection_with_less_than(second_value, first_value)
                 else:
-                    raise _INTERSECTION_WITH_WRONG_TYPE(first_value, second_value)
+                    raise _OPERATION_WITH_WRONG_TYPE(first_value, second_value)
             else:
-                raise _INTERSECTION_WITH_WRONG_TYPE(first_value, second_value)
+                raise _OPERATION_WITH_WRONG_TYPE(first_value, second_value)
 
         if other is None:
             return self
@@ -248,7 +254,151 @@ class Value:
         elif isinstance(self, GreaterThan):
             return intersection_with_greater_than(self, other)
         else:
-            raise _INTERSECTION_WITH_WRONG_TYPE(self, other)
+            raise _OPERATION_WITH_WRONG_TYPE(self, other)
+
+    def __add__(self, other) -> Value:
+
+        def union_with_constant(first_value: Constant, second_value: Value) -> Value:
+            if isinstance(first_value, Constant):
+                if first_value in second_value:
+                    return second_value
+                else:
+                    raise _NOT_IMPLEMENTED_UNION(first_value, second_value)
+            else:
+                raise _OPERATION_WITH_WRONG_TYPE(first_value, second_value)
+
+        def union_with_outside(first_value: Outside, second_value: Value) -> Value:
+            if isinstance(first_value, Outside):
+                if isinstance(second_value, LessThan):
+                    if second_value.value > first_value.upper:
+                        return Between(-math.inf, math.inf)
+                    elif second_value.value > first_value.lower:
+                        return Outside(second_value.value, first_value.upper)
+                    else:
+                        return first_value
+                elif isinstance(second_value, GreaterThan):
+                    if second_value.value < first_value.lower:
+                        return Between(-math.inf, math.inf)
+                    elif second_value.value < first_value.upper:
+                        return Outside(first_value.lower, second_value.value)
+                    else:
+                        return first_value
+                elif isinstance(second_value, Between):
+                    if second_value.upper <= first_value.lower or second_value.lower >= first_value.upper:
+                        return first_value
+                    elif second_value.lower <= first_value.lower <= second_value.upper <= first_value.upper:
+                        return Outside(second_value.upper, first_value.lower)
+                    elif first_value.lower <= second_value.lower <= first_value.upper <= second_value.upper:
+                        return Outside(first_value.upper, second_value.lower)
+                    elif second_value.lower <= first_value.lower <= first_value.upper <= second_value.upper:
+                        return Between(-math.inf, math.inf)
+                    else:
+                        raise _NOT_IMPLEMENTED_UNION(first_value, second_value)
+                elif isinstance(second_value, Outside):
+                    if second_value.lower <= first_value.lower <= first_value.upper <= second_value.upper:
+                        return first_value
+                    elif first_value.lower <= second_value.lower <= second_value.upper <= first_value.upper:
+                        return second_value
+                    elif second_value.lower <= first_value.lower <= second_value.upper <= first_value.upper:
+                        return Outside(first_value.lower, second_value.upper)
+                    elif first_value.lower <= second_value.lower <= first_value.upper <= second_value.upper:
+                        return Outside(second_value.lower, first_value.upper)
+                    else:
+                        return Between(-math.inf, math.inf)
+                elif isinstance(second_value, Constant):
+                    return union_with_constant(second_value, first_value)
+                else:
+                    raise _OPERATION_WITH_WRONG_TYPE(first_value, second_value)
+            else:
+                raise _OPERATION_WITH_WRONG_TYPE(first_value, second_value)
+
+        def union_with_between(first_value: Between, second_value: Value) -> Value:
+            if isinstance(first_value, Between):
+                if isinstance(second_value, LessThan):
+                    if second_value.value <= first_value.lower:
+                        raise _NOT_IMPLEMENTED_UNION(first_value, second_value)
+                    elif first_value.lower <= second_value.value <= first_value.upper:
+                        return LessThan(first_value.upper)
+                    else:
+                        return second_value
+                elif isinstance(second_value, GreaterThan):
+                    if second_value.value <= first_value.lower:
+                        return second_value
+                    elif first_value.lower <= second_value.value <= first_value.upper:
+                        return GreaterThan(first_value.lower)
+                    else:
+                        raise _NOT_IMPLEMENTED_UNION(first_value, second_value)
+                elif isinstance(second_value, Between):
+                    if second_value in first_value:
+                        return first_value
+                    elif first_value in second_value:
+                        return second_value
+                    elif first_value.lower <= second_value.lower <= first_value.upper:
+                        return Between(first_value.lower, second_value.upper)
+                    elif second_value.lower <= first_value.lower <= second_value.upper <= first_value.upper:
+                        return Between(second_value.lower, first_value.upper)
+                    else:
+                        raise _NOT_IMPLEMENTED_UNION(first_value, second_value)
+                elif isinstance(second_value, Constant):
+                    return union_with_constant(second_value, first_value)
+                elif isinstance(second_value, Outside):
+                    return union_with_outside(second_value, first_value)
+                else:
+                    raise _OPERATION_WITH_WRONG_TYPE(first_value, second_value)
+            else:
+                raise _OPERATION_WITH_WRONG_TYPE(first_value, second_value)
+
+        def union_with_less_than(first_value: LessThan, second_value: Value) -> Value:
+            if isinstance(first_value, LessThan):
+                if isinstance(second_value, LessThan):
+                    return second_value if first_value in second_value else first_value
+                elif isinstance(second_value, GreaterThan):
+                    if second_value.value <= first_value.value:
+                        return Between(-math.inf, math.inf)
+                    else:
+                        return Outside(first_value.value, second_value.value)
+                elif isinstance(second_value, Constant):
+                    return union_with_constant(second_value, first_value)
+                elif isinstance(second_value, Outside):
+                    return union_with_outside(second_value, first_value)
+                elif isinstance(second_value, Between):
+                    return union_with_between(second_value, first_value)
+                else:
+                    raise _OPERATION_WITH_WRONG_TYPE(first_value, second_value)
+            else:
+                raise _OPERATION_WITH_WRONG_TYPE(first_value, second_value)
+
+        def union_with_greater_than(first_value: GreaterThan, second_value: Value) -> Value:
+            if isinstance(first_value, GreaterThan):
+                if isinstance(second_value, GreaterThan):
+                    return second_value if first_value in second_value else first_value
+                elif isinstance(second_value, Constant):
+                    return union_with_constant(second_value, first_value)
+                elif isinstance(second_value, Outside):
+                    return union_with_outside(second_value, first_value)
+                elif isinstance(second_value, Between):
+                    return union_with_between(second_value, first_value)
+                elif isinstance(second_value, LessThan):
+                    return union_with_less_than(second_value, first_value)
+                else:
+                    raise _OPERATION_WITH_WRONG_TYPE(first_value, second_value)
+            else:
+                raise _OPERATION_WITH_WRONG_TYPE(first_value, second_value)
+
+        if other is None:
+            return self
+        elif isinstance(self, Constant):
+            return union_with_constant(self, other)
+        elif isinstance(self, Outside):
+            return union_with_outside(self, other)
+        elif isinstance(self, Between):
+            return union_with_between(self, other)
+        elif isinstance(self, LessThan):
+            return union_with_less_than(self, other)
+        elif isinstance(self, GreaterThan):
+            return union_with_greater_than(self, other)
+        else:
+            raise _OPERATION_WITH_WRONG_TYPE(self, other)
 
     def print(self) -> str:
         pass

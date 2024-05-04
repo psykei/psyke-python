@@ -16,8 +16,9 @@ class ITER(HyperCubeExtractor):
     """
 
     def __init__(self, predictor, min_update, n_points, max_iterations, min_examples, threshold, fill_gaps,
-                 normalization, output: Target = Target.CONSTANT, seed=get_default_random_seed()):
-        super().__init__(predictor, output, normalization)
+                 ignore_dimensions: Iterable, normalization, output: Target = Target.CONSTANT,
+                 seed=get_default_random_seed()):
+        super().__init__(predictor, output, normalization=normalization)
         if output is Target.REGRESSION:
             raise NotImplementedError
         self.predictor = predictor
@@ -30,6 +31,7 @@ class ITER(HyperCubeExtractor):
         self._output = Target.CLASSIFICATION if isinstance(predictor, ClassifierMixin) else \
             output if output is not None else Target.CONSTANT
         self.seed = seed
+        self.ignore_dimensions = ignore_dimensions if ignore_dimensions is not None else []
 
     def _best_cube(self, dataframe: pd.DataFrame, cube: GenericCube, cubes: Iterable[Expansion]) -> Expansion | None:
         expansions = []
@@ -74,6 +76,8 @@ class ITER(HyperCubeExtractor):
                            hypercubes: Iterable[GenericCube]) -> Iterable[Expansion]:
         tmp_cubes = []
         for feature in self._surrounding.dimensions.keys():
+            if feature in self.ignore_dimensions:
+                continue
             limit = cube.check_limits(feature)
             if limit == '*':
                 continue
@@ -132,6 +136,8 @@ class ITER(HyperCubeExtractor):
             hypercubes = self._generate_starting_points(dataframe)
             for hypercube in hypercubes:
                 hypercube.expand_all(min_updates, self._surrounding)
+                for d in self.ignore_dimensions:
+                    hypercube[d] = self._surrounding[d]
             self.n_points = self.n_points - 1
             if not HyperCube.check_overlap(hypercubes, hypercubes):
                 break

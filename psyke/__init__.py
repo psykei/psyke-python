@@ -289,14 +289,15 @@ class Extractor(EvaluableModel, ABC):
 
     @staticmethod
     def iter(predictor, min_update: float = 0.1, n_points: int = 1, max_iterations: int = 600, min_examples: int = 250,
-             threshold: float = 0.1, fill_gaps: bool = True, normalization: dict[str, tuple[float, float]] = None,
-             output=None, seed: int = get_default_random_seed()) -> Extractor:
+             threshold: float = 0.1, fill_gaps: bool = True, ignore_dimensions=None,
+             normalization: dict[str, tuple[float, float]] = None, output=None,
+             seed: int = get_default_random_seed()) -> Extractor:
         """
         Creates a new ITER extractor.
         """
         from psyke.extraction.hypercubic.iter import ITER
         return ITER(predictor, min_update, n_points, max_iterations, min_examples, threshold, fill_gaps,
-                    normalization, output, seed)
+                    ignore_dimensions, normalization, output, seed)
 
     @staticmethod
     def gridex(predictor, grid, min_examples: int = 250, threshold: float = 0.1, output: Target = Target.CONSTANT,

@@ -98,14 +98,15 @@ class PEDRO(SKEOptimizer, IterativeOptimizer):
         return False
 
     def search(self):
+        max_partitions = 200
         base_partitions = FixedStrategy(2).partition_number(self.dataframe.columns[:-1]) * 3
-        if base_partitions <= 50:
+        if base_partitions <= max_partitions:
             strategies = [FixedStrategy(2)]
-            if FixedStrategy(3).partition_number(self.dataframe.columns[:-1]) <= base_partitions:
+            if FixedStrategy(3).partition_number(self.dataframe.columns[:-1]) <= max_partitions:
                 strategies.append(FixedStrategy(3))
         else:
             strategies = []
-            base_partitions = 50
+            base_partitions = max_partitions
 
         for n in [2, 3, 5, 10]:
             for th in [0.99, 0.75, 0.67, 0.5, 0.3]:
