@@ -14,7 +14,7 @@ _EMPTY_INTERSECTION_EXCEPTION: Callable = lambda x, y: \
     SchemaException(f"Empty intersection between two Value: {str(x)} and {str(y)}")
 
 _NOT_IMPLEMENTED_INTERSECTION: Callable = lambda x, y: \
-    SchemaException("Not implemented intersection between: " + str(x) + ' and ' + str(y))
+    SchemaException(f"Not implemented intersection between: {str(x)} and {str(y)}")
 
 _OPERATION_WITH_WRONG_TYPE: Callable = lambda x, y: \
     SchemaException("Calling method with wrong type argument: " + str(x) + ' and ' + str(y))
