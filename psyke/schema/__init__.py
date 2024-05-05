@@ -3,20 +3,27 @@ import math
 from typing import Callable
 from psyke.utils import get_int_precision
 
+
+class SchemaException(Exception):
+
+    def __init__(self, message: str):
+        super().__init__(message)
+
+
 _EMPTY_INTERSECTION_EXCEPTION: Callable = lambda x, y: \
-    Exception(f"Empty intersection between two Value: {str(x)} and {str(y)}")
+    SchemaException(f"Empty intersection between two Value: {str(x)} and {str(y)}")
 
 _NOT_IMPLEMENTED_INTERSECTION: Callable = lambda x, y: \
-    Exception("Not implemented intersection between: " + str(x) + ' and ' + str(y))
+    SchemaException("Not implemented intersection between: " + str(x) + ' and ' + str(y))
 
 _OPERATION_WITH_WRONG_TYPE: Callable = lambda x, y: \
-    Exception("Calling method with wrong type argument: " + str(x) + ' and ' + str(y))
+    SchemaException("Calling method with wrong type argument: " + str(x) + ' and ' + str(y))
 
 _EMPTY_UNION_EXCEPTION: Callable = lambda x, y: \
-    Exception(f"Empty union between two Value: {str(x)} and {str(y)}")
+    SchemaException(f"Empty union between two Value: {str(x)} and {str(y)}")
 
 _NOT_IMPLEMENTED_UNION: Callable = lambda x, y: \
-    Exception("Not implemented union between: " + str(x) + ' and ' + str(y))
+    SchemaException("Not implemented union between: " + str(x) + ' and ' + str(y))
 
 PRECISION = get_int_precision()
 STRING_PRECISION = str(PRECISION)

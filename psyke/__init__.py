@@ -256,14 +256,14 @@ class Extractor(EvaluableModel, ABC):
                           [Extractor.ClassificationScore.F1])[Extractor.ClassificationScore.F1][-1]
 
     @staticmethod
-    def cart(predictor, max_depth: int = 3, max_leaves: int = 3,
+    def cart(predictor, max_depth: int = 3, max_leaves: int = 3, max_features=None,
              discretization: Iterable[DiscreteFeature] = None, normalization=None, simplify: bool = True) -> Extractor:
         """
         Creates a new Cart extractor.
         """
         from psyke.extraction.cart import Cart
-        return Cart(predictor, max_depth, max_leaves, discretization=discretization, normalization=normalization,
-                    simplify=simplify)
+        return Cart(predictor, max_depth, max_leaves, max_features,
+                    discretization=discretization, normalization=normalization, simplify=simplify)
 
     @staticmethod
     def divine(predictor, k: int = 5, patience: int = 15, close_to_center: bool = True,

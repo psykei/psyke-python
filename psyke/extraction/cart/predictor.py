@@ -2,9 +2,9 @@ from collections import Iterable
 from typing import Union, Any
 import numpy as np
 from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
-from psyke.schema import Value, LessThan, GreaterThan
+from psyke.schema import Value, LessThan, GreaterThan, SchemaException
 
-LeafConstraints = list[tuple[str, Value, bool]]
+LeafConstraints = dict[str, list[Value]]
 LeafSequence = Iterable[tuple[LeafConstraints, Any]]
 
 
@@ -25,8 +25,17 @@ class CartPredictor:
         if self.normalization is not None:
             thresholds = [threshold * self.normalization[feature][1] + self.normalization[feature][0]
                           for feature, threshold in zip(features, thresholds)]
-        return [(feature, LessThan(threshold) if condition else GreaterThan(threshold), condition)
-                for feature, condition, threshold in zip(features, conditions, thresholds)]
+        cond_dict = {}
+        for feature, condition, threshold in zip(features, conditions, thresholds):
+            cond = LessThan(threshold) if condition else GreaterThan(threshold)
+            if feature in cond_dict:
+                try:
+                    cond_dict[feature][-1] *= cond
+                except SchemaException:
+                    cond_dict[feature].append(cond)
+            else:
+                cond_dict[feature] = [cond]
+        return cond_dict
 
     def __get_leaves(self) -> Iterable[int]:
         return [i for i, (left_child, right_child) in enumerate(zip(
@@ -39,7 +48,8 @@ class CartPredictor:
         else:
             return self._predictor.tree_.value[node]
 
-    def __path(self, node: int, path=[]) -> Iterable[(int, bool)]:
+    def __path(self, node: int, path=None) -> Iterable[(int, bool)]:
+        path = [] if path is None else path
         if node == 0:
             return path
         father = list(self._left_children if node in self._left_children else self._right_children).index(node)
