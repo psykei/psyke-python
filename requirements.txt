@@ -11,6 +11,6 @@ parameterized==0.9.0
 protobuf==4.25.3
 setuptools==70.2.0
 kneed==0.8.5
-sympy==1.12.1
+sympy==1.13.0
 matplotlib==3.9.1
 joblib==1.4.2
