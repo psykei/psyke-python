@@ -12,5 +12,5 @@ protobuf==4.25.4
 setuptools==72.1.0
 kneed==0.8.5
 sympy==1.13.2
-matplotlib==3.9.1.post1
+matplotlib==3.9.2
 joblib==1.4.2
