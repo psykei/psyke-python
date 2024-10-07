@@ -1,6 +1,6 @@
 build==1.2.2.post1
 twine==5.1.1
-numpy==1.26.4
+numpy==2.1.2
 pandas==2.2.3
 scikit-learn==1.5.2
 2ppy==0.4.0
