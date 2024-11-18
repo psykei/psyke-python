@@ -3,7 +3,7 @@ twine==5.1.1
 numpy==1.26.4
 pandas==2.2.3
 scikit-learn==1.5.2
-2ppy==0.4.0
+2ppy==0.4.1
 skl2onnx==1.17.0
 onnxruntime==1.19.2
 tensorflow==2.16.2
