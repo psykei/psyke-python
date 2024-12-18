@@ -4,7 +4,7 @@ numpy==1.26.4
 pandas==2.2.3
 scikit-learn==1.6.0
 2ppy==0.4.1
-skl2onnx==1.17.0
+skl2onnx==1.18.0
 onnxruntime==1.19.2
 tensorflow==2.16.2
 parameterized==0.9.0
