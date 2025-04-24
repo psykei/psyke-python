@@ -472,11 +472,13 @@ class RegressionCube(HyperCube):
 
     def body(self, variables: dict[str, Var], ignore: list[str], unscale=None, normalization=None) -> Iterable[Struct]:
         intercept = self.output.intercept_ if normalization is None else unscale(sum(
-            [-self.output.coef_[i] * normalization[name][0] / normalization[name][1] for i, name in
+            [-self.output.coef_.flatten()[i] * normalization[name][0] / normalization[name][1] for i, name in
              enumerate(self.dimensions.keys())], self.output.intercept_), list(normalization.keys())[-1])
+        if isinstance(intercept, list):
+            intercept = intercept[0]
         coefs = self.output.coef_ if normalization is None else [
-            self.output.coef_[i] / normalization[name][1] * normalization[list(normalization.keys())[-1]][1] for
-            i, name in enumerate(self.dimensions.keys())
+            self.output.coef_.flatten()[i] / normalization[name][1] * normalization[list(normalization.keys())[-1]][1]
+            for i, name in enumerate(self.dimensions.keys())
         ]
         return list(super().body(variables, ignore, unscale, normalization)) + [linear_function_creator(
             list(variables.values()), [to_rounded_real(v) for v in coefs], to_rounded_real(intercept)
