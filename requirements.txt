@@ -13,4 +13,4 @@ setuptools==79.0.1
 kneed==0.8.5
 sympy==1.13.3
 matplotlib==3.9.4
-joblib==1.4.2
+joblib==1.5.0
