@@ -73,10 +73,10 @@ class Trepan(PedagogicalExtractor):
                     splits.add(split)
         return splits
 
-    def _create_theory(self, name: str, sort: bool = True) -> MutableTheory:
+    def _create_theory(self, name: str) -> MutableTheory:
         theory = mutable_theory()
         for node in self._root:
-            variables = create_variable_list(self.discretization, sort=sort)
+            variables = create_variable_list(self.discretization)
             theory.assertZ(
                 clause(
                     create_head(name, list(variables.values()), str(node.dominant)),

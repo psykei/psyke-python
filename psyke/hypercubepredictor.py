@@ -45,9 +45,9 @@ class HyperCubePredictor(EvaluableModel):
         idx = tree.query([list(row.values())], k=1)[1][0][0]
         return HyperCubePredictor._get_cube_output(cubes[idx], row)
 
-    def _brute_predict_surface(self, row: dict[str, float]) -> GenericCube:
+    def _brute_predict_surface(self, row: pd.Series) -> GenericCube:
         return min([(
-            cube.surface_distance(Point(list(row.keys()), list(row.values()))), cube.volume(), cube
+            cube.surface_distance(Point(list(row.keys()), list(row.values))), cube.volume(), cube
         ) for cube in self._hypercubes])[-1]
 
     def _create_brute_tree(self, criterion: str = 'center', n: int = 2) -> (BallTree, list[GenericCube]):
@@ -76,6 +76,8 @@ class HyperCubePredictor(EvaluableModel):
             return round(HyperCubePredictor._get_cube_output(cube, data), get_int_precision())
 
     def _find_cube(self, data: dict[str, float]) -> GenericCube | None:
+        if not self._hypercubes:
+            return None
         data = data.copy()
         for dimension in self._dimensions_to_ignore:
             if dimension in data:

@@ -63,10 +63,8 @@ def initialize(file: str) -> list[dict[str:Theory]]:
 
         # Compute predictions from rules
         index = test_set.shape[1] - 1
-        ordered_test_set = test_set.copy()
-        ordered_test_set.iloc[:, :-1] = ordered_test_set.iloc[:, :-1].reindex(sorted(ordered_test_set.columns[:-1]),
-                                                                              axis=1)
-        cast, substitutions = get_substitutions(test_set, ordered_test_set, theory)
+
+        cast, substitutions = get_substitutions(test_set, theory)
         expected = [cast(query.solved_query.get_arg_at(index)) for query in substitutions if query.is_yes]
         predictions = [prediction for prediction in extractor.predict(test_set_for_predictor.iloc[:, :-1])
                        if prediction is not None]
@@ -82,8 +80,8 @@ def initialize(file: str) -> list[dict[str:Theory]]:
         }
 
 
-def get_substitutions(test_set, ordered_test_set, theory):
+def get_substitutions(test_set, theory):
     cast: Callable = lambda x: (str(x) if isinstance(test_set.iloc[0, -1], str) else float(x.value))
     solver = prolog_solver(static_kb=mutable_theory(theory).assertZ(get_in_rule()).assertZ(get_not_in_rule()))
-    substitutions = [solver.solveOnce(data_to_struct(data)) for _, data in ordered_test_set.iterrows()]
+    substitutions = [solver.solveOnce(data_to_struct(data)) for _, data in test_set.iterrows()]
     return cast, substitutions

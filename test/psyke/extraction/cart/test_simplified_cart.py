@@ -33,10 +33,10 @@ class TestSimplifiedCart(unittest.TestCase):
         simplified_theory = simplified_extractor.extract(train)
 
         index = test.shape[1] - 1
-        cast, substitutions = get_substitutions(test, test, theory)
+        cast, substitutions = get_substitutions(test, theory)
         expected = [cast(query.solved_query.get_arg_at(index)) for query in substitutions]
 
-        cast, simplified_substitutions = get_substitutions(test, test, simplified_theory)
+        cast, simplified_substitutions = get_substitutions(test, simplified_theory)
         simplified_expected = [cast(query.solved_query.get_arg_at(index)) for query in simplified_substitutions]
 
         if isinstance(test.iloc[0, -1], str):
