@@ -215,7 +215,7 @@ setup(
     },
     cmdclass={
         'get_project_version': GetVersionCommand,
-        # 'create_test_predictors': CreateTestPredictors,
+        'create_test_predictors': CreateTestPredictors,
         'create_theory_plot': CreateTheoryPlot
     },
 )
