@@ -10,7 +10,6 @@ class TestReal(unittest.TestCase):
     def test_extract(self):
         logger.info(self.expected_theory)
         logger.info(self.extracted_theory)
-        print(self.extracted_theory)
         self.assertTrue(self.expected_theory.equals(self.extracted_theory, False))
 
     def test_predict(self):

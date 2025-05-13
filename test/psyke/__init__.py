@@ -65,15 +65,17 @@ def initialize(file: str) -> list[dict[str:Theory]]:
         index = test_set.shape[1] - 1
 
         cast, substitutions = get_substitutions(test_set, theory)
-        expected = [cast(query.solved_query.get_arg_at(index)) for query in substitutions if query.is_yes]
-        predictions = [prediction for prediction in extractor.predict(test_set_for_predictor.iloc[:, :-1])
-                       if prediction is not None]
+        expected = [cast(query.solved_query.get_arg_at(index)) for query in substitutions] # if query.is_yes]
+        preds = extractor.predict(test_set_for_predictor.iloc[:, :-1])
+        #               if prediction is not None]
+        #predictions = [prediction for prediction in extractor.predict(test_set_for_predictor.iloc[:, :-1])
+        #               if prediction is not None]
 
         yield {
             'extractor': extractor,
             'extracted_theory': theory,
-            'extracted_test_y_from_theory': np.array(expected),
-            'extracted_test_y_from_extractor': np.array(predictions),
+            'extracted_test_y_from_theory': np.array([expected[i] for i, p in enumerate(preds) if p is not None]),
+            'extracted_test_y_from_extractor': np.array([preds[i] for i, p in enumerate(preds) if p is not None]),
             'test_set': test_set,
             'expected_theory': parse_theory(row['theory'] + '.') if row['theory'] != '' else None,
             'discretization': schema
