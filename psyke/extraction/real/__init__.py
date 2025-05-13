@@ -15,7 +15,6 @@ class REAL(PedagogicalExtractor):
     """
     Explanator implementing Rule Extraction As Learning (REAL) algorithm, doi:10.1016/B978-1-55860-335-6.50013-1.
     The algorithm is sensible to features' order in the provided dataset during extraction.
-    To make it reproducible the features are internally sorted (alphabetically).
     """
 
     def __init__(self, predictor, discretization: Iterable[DiscreteFeature]):
@@ -41,8 +40,8 @@ class REAL(PedagogicalExtractor):
 
     def _create_clause(self, dataset: pd.DataFrame, variables: dict[str, Var], key: int, rule: Rule) -> Clause:
         head = create_head(dataset.columns[-1],
-                           sorted(list(variables.values())),
-                           str(sorted(list(set(dataset.iloc[:, -1])))[key]))
+                           list(variables.values()),
+                           list(set(dataset.iloc[:, -1]))[key])
         return clause(head, self._create_body(variables, rule))
 
     def _create_new_rule(self, sample: pd.Series) -> Rule:
@@ -101,7 +100,7 @@ class REAL(PedagogicalExtractor):
         true_predicates, false_predicates = [], []
         for feature, value in sample.items():
             true_predicates.append(str(feature)) if value == 1 else false_predicates.append(str(feature))
-        return Rule(sorted(true_predicates), sorted(false_predicates))
+        return Rule(true_predicates, false_predicates)
 
     def _subset(self, samples: pd.DataFrame, predicate: str) -> (pd.DataFrame, bool):
         samples_0 = samples.copy()
@@ -112,9 +111,7 @@ class REAL(PedagogicalExtractor):
         return samples_all, len(set(self.predictor.predict(samples_all))) == 1
 
     def _extract(self, dataframe: pd.DataFrame) -> Theory:
-        # Order the dataset by column to preserve reproducibility.
-        dataframe = dataframe.sort_values(by=list(dataframe.columns.values), ascending=False)
-        self._output_mapping = {value: index for index, value in enumerate(sorted(set(dataframe.iloc[:, -1])))}
+        self._output_mapping = {value: index for index, value in enumerate(list(set(dataframe.iloc[:, -1])))}
         self._ruleset = self._get_or_set(HashableDataFrame(dataframe))
         return self._create_theory(dataframe, self._ruleset)
 
