@@ -205,8 +205,8 @@ setup(
     include_package_data=True,
     python_requires='>=3.9.0, <3.10',
     install_requires=REQUIREMENTS,  # Optional
-    zip_safe = False,
-    platforms = "Independant",
+    zip_safe=False,
+    platforms="Independant",
     project_urls={  # Optional
         'Bug Reports': 'https://github.com/psykei/psyke-python/issues',
         # 'Funding': 'https://donate.pypi.org',
@@ -215,7 +215,7 @@ setup(
     },
     cmdclass={
         'get_project_version': GetVersionCommand,
-        'create_test_predictors': CreateTestPredictors,
+        # 'create_test_predictors': CreateTestPredictors,
         'create_theory_plot': CreateTheoryPlot
     },
 )
