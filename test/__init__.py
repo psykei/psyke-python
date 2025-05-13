@@ -10,7 +10,7 @@ from keras.src.layers import Dense
 #from tensorflow.python.saved_model.save import save
 from tensorflow.saved_model import save
 from onnxconverter_common import FloatTensorType, Int64TensorType, StringTensorType, DataType
-from skl2onnx import convert_sklearn
+#from skl2onnx import convert_sklearn
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
@@ -114,18 +114,18 @@ class Predictor:
     def load_from_onnx(file: str) -> Predictor:
         return Predictor(onnxruntime.InferenceSession(file), True)
 
-    def save_to_onnx(self, file, initial_types: list[tuple[str, DataType]]):
-        file = str(file) + '.onnx'
-        if not self._from_file_onnx:
-            if os.path.exists(file):
-                os.remove(file)
-            if isinstance(self._model, Model):
-                save(self._model, "tmp_model")
-                os.system("python -m tf2onnx.convert --saved-model tmp_model --output " + file)
-            else:
-                onnx_predictor = convert_sklearn(self._model, initial_types=initial_types)
-                with open(file, 'wb') as f:
-                    f.write(onnx_predictor.SerializeToString())
+    #def save_to_onnx(self, file, initial_types: list[tuple[str, DataType]]):
+    #    file = str(file) + '.onnx'
+    #    if not self._from_file_onnx:
+    #        if os.path.exists(file):
+    #            os.remove(file)
+    #        if isinstance(self._model, Model):
+    #            save(self._model, "tmp_model")
+    #            os.system("python -m tf2onnx.convert --saved-model tmp_model --output " + file)
+    #        else:
+    #            onnx_predictor = convert_sklearn(self._model, initial_types=initial_types)
+    #            with open(file, 'wb') as f:
+    #                f.write(onnx_predictor.SerializeToString())
 
     def predict(self, dataset: pd.DataFrame | np.ndarray) -> Iterable:
         array = dataset.to_numpy() if isinstance(dataset, pd.DataFrame) else dataset
