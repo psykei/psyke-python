@@ -69,11 +69,6 @@ def initialize(file: str) -> list[dict[str:Theory]]:
         predictions = [prediction for prediction in extractor.predict(test_set_for_predictor.iloc[:, :-1])
                        if prediction is not None]
 
-        if row['extractor_type'] == 'REAL':
-            print(substitutions)
-            print(expected)
-            print(extractor.predict(test_set_for_predictor.iloc[:, :-1]))
-
         yield {
             'extractor': extractor,
             'extracted_theory': theory,
