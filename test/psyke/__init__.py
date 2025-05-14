@@ -20,10 +20,6 @@ def initialize(file: str) -> list[dict[str:Theory]]:
         params = dict() if row['extractor_params'] == '' else ast.literal_eval(row['extractor_params'])
         dataset = get_dataset(row['dataset'])
 
-        # Dataset's columns are sorted due to alphabetically sorted extracted rules.
-        # columns = sorted(dataset.columns[:-1]) + [dataset.columns[-1]]
-        # dataset = dataset.reindex(columns, axis=1)
-
         training_set, test_set = train_test_split(dataset, test_size=0.05 if row['dataset'].lower() == 'house' else 0.5,
                                                   random_state=get_default_random_seed())
 
