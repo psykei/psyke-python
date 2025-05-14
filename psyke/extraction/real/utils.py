@@ -49,5 +49,5 @@ class IndexedRuleSet(dict[int, list[Rule]]):
         ]
 
     @staticmethod
-    def create_indexed_ruleset(dataset: pd.DataFrame) -> IndexedRuleSet:
-        return IndexedRuleSet({index: [] for index, _ in enumerate(set(dataset.iloc[:, -1]))})
+    def create_indexed_ruleset(indices: Iterable) -> IndexedRuleSet:
+        return IndexedRuleSet({i: [] for i in indices})

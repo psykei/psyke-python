@@ -20,7 +20,6 @@ class REAL(PedagogicalExtractor):
     def __init__(self, predictor, discretization: Iterable[DiscreteFeature]):
         super().__init__(predictor, discretization)
         self._ruleset: IndexedRuleSet = IndexedRuleSet()
-        self._output_mapping = {}
 
     @property
     def n_rules(self):
@@ -39,9 +38,7 @@ class REAL(PedagogicalExtractor):
         return result
 
     def _create_clause(self, dataset: pd.DataFrame, variables: dict[str, Var], key: int, rule: Rule) -> Clause:
-        head = create_head(dataset.columns[-1],
-                           list(variables.values()),
-                           list(set(dataset.iloc[:, -1]))[key])
+        head = create_head(dataset.columns[-1], list(variables.values()), key)
         return clause(head, self._create_body(variables, rule))
 
     def _create_new_rule(self, sample: pd.Series) -> Rule:
@@ -49,17 +46,17 @@ class REAL(PedagogicalExtractor):
         return self._generalise(rule, sample)
 
     def _create_ruleset(self, dataset: pd.DataFrame) -> IndexedRuleSet:
-        ruleset = IndexedRuleSet.create_indexed_ruleset(dataset)
-        for index, sample in dataset.iloc[:, :-1].iterrows():
+        ruleset = IndexedRuleSet.create_indexed_ruleset(sorted(set(dataset.iloc[:, -1])))
+        for _, sample in dataset.iloc[:, :-1].iterrows():
             prediction = list(self.predictor.predict(sample.to_frame().transpose()))[0]
-            rules = ruleset.get(self._output_mapping[prediction])
+            rules = ruleset.get(prediction)
             if not self._covers(sample, rules):
                 rules.append(self._create_new_rule(sample))
         return ruleset.optimize()
 
-    def _create_theory(self, dataset: pd.DataFrame, ruleset: IndexedRuleSet) -> MutableTheory:
+    def _create_theory(self, dataset: pd.DataFrame) -> MutableTheory:
         theory = mutable_theory()
-        for key, rule in ruleset.flatten():
+        for key, rule in self._ruleset.flatten():
             variables = create_variable_list(self.discretization)
             theory.assertZ(self._create_clause(dataset, variables, key, rule))
         return theory
@@ -92,8 +89,7 @@ class REAL(PedagogicalExtractor):
 
     def _internal_predict(self, sample: pd.Series):
         x = [index for index, rule in self._ruleset.flatten() if REAL._rule_from_example(sample) in rule]
-        reverse_mapping = dict((v, k) for k, v in self._output_mapping.items())
-        return reverse_mapping[x[0]] if len(x) > 0 else None
+        return x[0] if x else None
 
     @staticmethod
     def _rule_from_example(sample: pd.Series) -> Rule:
@@ -111,9 +107,8 @@ class REAL(PedagogicalExtractor):
         return samples_all, len(set(self.predictor.predict(samples_all))) == 1
 
     def _extract(self, dataframe: pd.DataFrame) -> Theory:
-        self._output_mapping = {value: index for index, value in enumerate(list(set(dataframe.iloc[:, -1])))}
         self._ruleset = self._get_or_set(HashableDataFrame(dataframe))
-        return self._create_theory(dataframe, self._ruleset)
+        return self._create_theory(dataframe)
 
     def _predict(self, dataframe) -> Iterable:
         return np.array([self._internal_predict(data.transpose()) for _, data in dataframe.iterrows()])
