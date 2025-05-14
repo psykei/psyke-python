@@ -29,7 +29,7 @@ class REAL(PedagogicalExtractor):
         new_rule = self._rule_from_example(sample)
         return any([new_rule in rule for rule in rules])
 
-    def _create_body(self, variables: dict[str, Var], rule: Rule) -> list[Struct]:
+    def _body(self, variables: dict[str, Var], rule: Rule) -> list[Struct]:
         result = []
         for predicates, truth_value in zip(rule.to_lists(), [True, False]):
             for predicate in predicates:
@@ -38,8 +38,7 @@ class REAL(PedagogicalExtractor):
         return result
 
     def _create_clause(self, dataset: pd.DataFrame, variables: dict[str, Var], key: int, rule: Rule) -> Clause:
-        head = create_head(dataset.columns[-1], list(variables.values()), key)
-        return clause(head, self._create_body(variables, rule))
+        return clause(create_head(dataset.columns[-1], list(variables.values()), key), self._body(variables, rule))
 
     def _create_new_rule(self, sample: pd.Series) -> Rule:
         rule = self._rule_from_example(sample)
