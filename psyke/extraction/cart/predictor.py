@@ -1,4 +1,8 @@
-from collections import Iterable
+try:
+    from collections.abc import Iterable
+except ImportError:
+    # Python 3.9 compatibility
+    from collections import Iterable
 from typing import Union, Any
 import numpy as np
 from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
