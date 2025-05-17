@@ -5,15 +5,19 @@ from enum import Enum
 
 import numpy as np
 import pandas as pd
+from matplotlib import pyplot as plt
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score, f1_score, accuracy_score, \
     adjusted_rand_score, adjusted_mutual_info_score, v_measure_score, fowlkes_mallows_score
+from tuprolog.solve.prolog import prolog_solver
 
 from psyke.schema import DiscreteFeature
 from psyke.utils import get_default_random_seed, Target, get_int_precision
-from tuprolog.theory import Theory
+from tuprolog.theory import Theory, mutable_theory
 from typing import Iterable
 import logging
+
+from psyke.utils.logic import get_in_rule, data_to_struct, get_not_in_rule
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger('psyke')
@@ -52,7 +56,7 @@ class EvaluableModel(object):
         """
         Predicts the output values of every sample in dataset.
 
-        :param dataframe: is the set of instances to predict.
+        :param dataframe: the set of instances to predict.
         :return: a list of predictions.
         """
         return self.__convert(self._predict(dataframe))
@@ -85,7 +89,7 @@ class EvaluableModel(object):
     def score(self, dataframe: pd.DataFrame, predictor=None, fidelity: bool = False, completeness: bool = True,
               brute: bool = False, criterion: str = 'corners', n: int = 2,
               task: EvaluableModel.Task = Task.CLASSIFICATION,
-              scoring_function: Iterable[EvaluableModel.Score] = [ClassificationScore.ACCURACY]):
+              scoring_function: Iterable[EvaluableModel.Score] = (ClassificationScore.ACCURACY, )):
         extracted = np.array(
             self.predict(dataframe.iloc[:, :-1]) if not brute else
             self.brute_predict(dataframe.iloc[:, :-1], criterion, n)
@@ -151,42 +155,113 @@ class Extractor(EvaluableModel, ABC):
     def __init__(self, predictor, discretization: Iterable[DiscreteFeature] = None, normalization=None):
         super().__init__(discretization, normalization)
         self.predictor = predictor
+        self.theory = None
 
     def extract(self, dataframe: pd.DataFrame) -> Theory:
         """
         Extracts rules from the underlying predictor.
 
-        :param dataframe: is the set of instances to be used for the extraction.
+        :param dataframe: the set of instances to be used for the extraction.
         :return: the theory created from the extracted rules.
         """
         raise NotImplementedError('extract')
 
-    def predict_why(self, data: dict[str, float], verbose=True):
+    def predict_why(self, data: dict[str, float], verbose: bool = True):
         """
         Provides a prediction and the corresponding explanation.
-        :param data: is the instance to predict.
-        :param verbose: if the explanation has to be printed.
+        :param data: the instance to predict.
+        :param verbose: if True the explanation is printed.
         """
         raise NotImplementedError('predict_why')
 
-    def predict_counter(self, data: dict[str, float], verbose=True, only_first=True):
+    def predict_counter(self, data: dict[str, float], verbose: bool = True, only_first: bool = True):
         """
         Provides a prediction and counterfactual explanations.
-        :param data: is the instance to predict.
-        :param verbose: if the counterfactual explanation has to be printed.
-        :param only_first: if only the closest counterfactual explanation is provided for each distinct class.
+        :param data: the instance to predict.
+        :param verbose: if True the counterfactual explanation is printed.
+        :param only_first: if True only the closest counterfactual explanation is provided for each distinct class.
         """
         raise NotImplementedError('predict_counter')
+
+    def plot_fairness(self, dataframe: pd.DataFrame, groups: dict[str, list], colormap='seismic_r', filename=None,
+                      figsize=(5, 4)):
+        """
+        Provides a visual estimation of the fairness exhibited by an extractor with respect to the specified groups.
+        :param dataframe: the set of instances to be used for the estimation.
+        :param groups: the set of relevant groups to consider.
+        :param colormap: the colormap to use for the plot.
+        :param filename: if not None, name used to save the plot.
+        :param figsize: size of the plot.
+        """
+        counts = {group: len(dataframe[idx_g]) for group, idx_g in groups.items()}
+        output = {'labels': []}
+        for group in groups:
+            output[group] = []
+        for i, clause in enumerate(self.theory.clauses):
+            if len(dataframe) == 0:
+                break
+            solver = prolog_solver(static_kb=mutable_theory(clause).assertZ(get_in_rule()).assertZ(get_not_in_rule()))
+            idx = np.array([query.is_yes for query in
+                            [solver.solveOnce(data_to_struct(data)) for _, data in dataframe.iterrows()]])
+            # print(f'Rule {i + 1}. Outcome {clause.head.args[-1]}. Affecting', end='')
+            output['labels'].append(str(clause.head.args[-1]))
+            for group, idx_g in groups.items():
+                # print(f' {len(dataframe[idx & idx_g]) / counts[group]:.2f}%{group}', end='')
+                output[group].append(len(dataframe[idx & idx_g]) / counts[group])
+            dataframe = dataframe[~idx]
+            groups = {group: indices[~idx] for group, indices in groups.items()}
+            # print(f'. Left {len(dataframe)} instances')
+
+        binary = len(set(output['labels'])) == 2
+        labels = sorted(set(output['labels']))
+        data = np.vstack([output[group] for group in groups]).T * 100
+        if binary:
+            data[np.array(output['labels']) == labels[0]] *= -1
+
+        plt.figure(figsize=figsize)
+        plt.imshow(data, cmap=colormap, vmin=-100 if binary else 0, vmax=100)
+
+        plt.gca().set_xticks(range(len(groups)), labels=groups.keys())
+        plt.gca().set_yticks(range(len(output['labels'])),
+                             labels=[f'Rule {i + 1}\n{l}' for i, l in enumerate(output['labels'])])
+
+        plt.xlabel('Groups')
+        plt.ylabel('Rules')
+        plt.title("Rule set impact on groups")
+
+        for i in range(len(output['labels'])):
+            for j in range(len(groups)):
+                plt.gca().text(j, i, f'{abs(int(data[i, j]))}%', ha="center", va="center", color="k")
+
+        plt.gca().set_xticks([i + .5 for i in range(len(groups))], minor=True)
+        plt.gca().set_yticks([i + .5 for i in range(len(output['labels']))], minor=True)
+        plt.gca().grid(which='minor', color='k', linestyle='-', linewidth=.8)
+        plt.gca().tick_params(which='minor', bottom=False, left=False)
+        cbarticks = np.linspace(-100 if binary else 0, 100, 9 if binary else 11, dtype=int)
+        cbar = plt.colorbar(fraction=0.046, label='Affected samples (%)', ticks=cbarticks)
+        if binary:
+            ticklabels = [str(-i) if i < 0 else str(i) for i in cbarticks]
+            ticklabels[0] += f' {labels[0]}'
+            ticklabels[-1] += f' {labels[-1]}'
+            cbar.ax.set_yticklabels(ticklabels)
+
+        plt.tight_layout()
+        if filename is not None:
+            plt.savefig(filename, dpi=500)
+        plt.show()
+
+    def make_fair(self, features: Iterable[str]):
+        raise NotImplementedError(f'Fairness for {type(self).__name__} is not supported at the moment')
 
     def mae(self, dataframe: pd.DataFrame, predictor=None, brute: bool = False, criterion: str = 'center',
             n: int = 3) -> float:
         """
         Calculates the predictions' MAE w.r.t. the instances given as input.
 
-        :param dataframe: is the set of instances to be used to calculate the mean absolute error.
+        :param dataframe: the set of instances to be used to calculate the mean absolute error.
         :param predictor: if provided, its predictions on the dataframe are taken instead of the dataframe instances.
         :param brute: if True, a brute prediction is executed.
-        :param criterion: creterion for brute prediction.
+        :param criterion: criterion for brute prediction.
         :param n: number of points for brute prediction with 'perimeter' criterion.
         :return: the mean absolute error (MAE) of the predictions.
         """
@@ -198,10 +273,10 @@ class Extractor(EvaluableModel, ABC):
         """
         Calculates the predictions' MSE w.r.t. the instances given as input.
 
-        :param dataframe: is the set of instances to be used to calculate the mean squared error.
+        :param dataframe: the set of instances to be used to calculate the mean squared error.
         :param predictor: if provided, its predictions on the dataframe are taken instead of the dataframe instances.
         :param brute: if True, a brute prediction is executed.
-        :param criterion: creterion for brute prediction.
+        :param criterion: criterion for brute prediction.
         :param n: number of points for brute prediction with 'perimeter' criterion.
         :return: the mean squared error (MSE) of the predictions.
         """
@@ -213,10 +288,10 @@ class Extractor(EvaluableModel, ABC):
         """
         Calculates the predictions' R2 score w.r.t. the instances given as input.
 
-        :param dataframe: is the set of instances to be used to calculate the R2 score.
+        :param dataframe: the set of instances to be used to calculate the R2 score.
         :param predictor: if provided, its predictions on the dataframe are taken instead of the dataframe instances.
         :param brute: if True, a brute prediction is executed.
-        :param criterion: creterion for brute prediction.
+        :param criterion: criterion for brute prediction.
         :param n: number of points for brute prediction with 'perimeter' criterion.
         :return: the R2 score of the predictions.
         """
@@ -224,14 +299,14 @@ class Extractor(EvaluableModel, ABC):
                           Extractor.Task.REGRESSION, [Extractor.RegressionScore.R2])[Extractor.RegressionScore.R2][-1]
 
     def accuracy(self, dataframe: pd.DataFrame, predictor=None, brute: bool = False, criterion: str = 'center',
-            n: int = 3) -> float:
+                 n: int = 3) -> float:
         """
         Calculates the predictions' accuracy classification score w.r.t. the instances given as input.
 
-        :param dataframe: is the set of instances to be used to calculate the accuracy classification score.
+        :param dataframe: the set of instances to be used to calculate the accuracy classification score.
         :param predictor: if provided, its predictions on the dataframe are taken instead of the dataframe instances.
         :param brute: if True, a brute prediction is executed.
-        :param criterion: creterion for brute prediction.
+        :param criterion: criterion for brute prediction.
         :param n: number of points for brute prediction with 'perimeter' criterion.
         :return: the accuracy classification score of the predictions.
         """
@@ -244,10 +319,10 @@ class Extractor(EvaluableModel, ABC):
         """
         Calculates the predictions' F1 score w.r.t. the instances given as input.
 
-        :param dataframe: is the set of instances to be used to calculate the F1 score.
+        :param dataframe: the set of instances to be used to calculate the F1 score.
         :param predictor: if provided, its predictions on the dataframe are taken instead of the dataframe instances.
         :param brute: if True, a brute prediction is executed.
-        :param criterion: creterion for brute prediction.
+        :param criterion: criterion for brute prediction.
         :param n: number of points for brute prediction with 'perimeter' criterion.
         :return: the F1 score of the predictions.
         """
@@ -331,7 +406,7 @@ class Extractor(EvaluableModel, ABC):
 
     @staticmethod
     def creepy(predictor, clustering, depth: int, error_threshold: float, output: Target = Target.CONSTANT,
-               gauss_components: int = 2, ranks: [(str, float)] = [], ignore_threshold: float = 0.0,
+               gauss_components: int = 2, ranks: Iterable[(str, float)] = tuple(), ignore_threshold: float = 0.0,
                discretization=None, normalization: dict[str, tuple[float, float]] = None,
                seed: int = get_default_random_seed()) -> Extractor:
         """

@@ -117,3 +117,6 @@ class GridEx(HyperCubeExtractor):
                 to_split = [cube for cube in to_split if cube not in best[0]] + [best[1]]
                 not_in_cache = [best[1]]
         return to_split
+
+    def make_fair(self, features: Iterable[str]):
+        self.grid.make_fair(features)

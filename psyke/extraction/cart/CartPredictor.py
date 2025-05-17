@@ -1,11 +1,14 @@
 from collections import Iterable
 from typing import Union, Any
 import numpy as np
+import pandas as pd
 from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
-from psyke.schema import Value, LessThan, GreaterThan, SchemaException
+from tuprolog.core import clause, Var, Struct
+from tuprolog.theory import Theory, mutable_theory
 
-LeafConstraints = dict[str, list[Value]]
-LeafSequence = Iterable[tuple[LeafConstraints, Any]]
+from psyke.extraction.cart import LeafConstraints, LeafSequence
+from psyke.schema import LessThan, GreaterThan, SchemaException, DiscreteFeature
+from psyke.utils.logic import create_variable_list, create_head, create_term
 
 
 class CartPredictor:
@@ -14,8 +17,9 @@ class CartPredictor:
     """
 
     def __init__(self, predictor: Union[DecisionTreeClassifier, DecisionTreeRegressor] = DecisionTreeClassifier(),
-                 normalization=None):
+                 discretization=None, normalization=None):
         self._predictor = predictor
+        self.discretization = discretization
         self.normalization = normalization
 
     def __get_constraints(self, nodes: Iterable[(int, bool)]) -> LeafConstraints:
@@ -61,6 +65,47 @@ class CartPredictor:
 
     def predict(self, data) -> Iterable:
         return self._predictor.predict(data)
+
+    @staticmethod
+    def _simplify_nodes(nodes: list) -> Iterable:
+        simplified = [nodes.pop(0)]
+        while len(nodes) > 0:
+            first_node = nodes[0][0]
+            for k, conditions in first_node.items():
+                for condition in conditions:
+                    if all(k in node[0] and condition in node[0][k] for node in nodes):
+                        [node[0][k].remove(condition) for node in nodes]
+            simplified.append(nodes.pop(0))
+        return [({k: v for k, v in rule.items() if v != []}, prediction) for rule, prediction in simplified]
+
+    def _create_body(self, variables: dict[str, Var], conditions: LeafConstraints) -> Iterable[Struct]:
+        results = []
+        for feature_name, cond_list in conditions.items():
+            for condition in cond_list:
+                feature: DiscreteFeature = [d for d in self.discretization if feature_name in d.admissible_values][0] \
+                    if self.discretization else None
+                results.append(create_term(variables[feature_name], condition) if feature is None else
+                               create_term(variables[feature.name],
+                                           feature.admissible_values[feature_name],
+                                           isinstance(condition, GreaterThan)))
+        return results
+
+    def create_theory(self, data: pd.DataFrame, simplify: True) -> Theory:
+        new_theory = mutable_theory()
+        nodes = [node for node in self]
+        nodes = self._simplify_nodes(nodes) if simplify else nodes
+        for (constraints, prediction) in nodes:
+            if self.normalization is not None and data.columns[-1] in self.normalization:
+                m, s = self.normalization[data.columns[-1]]
+                prediction = prediction * s + m
+            variables = create_variable_list(self.discretization, data)
+            new_theory.assertZ(
+                clause(
+                    create_head(data.columns[-1], list(variables.values()), prediction),
+                    self._create_body(variables, constraints)
+                )
+            )
+        return new_theory
 
     @property
     def predictor(self) -> Union[DecisionTreeClassifier, DecisionTreeRegressor]:

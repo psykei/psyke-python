@@ -23,6 +23,7 @@ class ITER(HyperCubeExtractor):
             raise NotImplementedError
         self.predictor = predictor
         self.min_update = min_update
+        self._init_points = n_points
         self.n_points = n_points
         self.max_iterations = max_iterations
         self.min_examples = min_examples
@@ -32,6 +33,10 @@ class ITER(HyperCubeExtractor):
             output if output is not None else Target.CONSTANT
         self.seed = seed
         self.ignore_dimensions = ignore_dimensions if ignore_dimensions is not None else []
+
+    def make_fair(self, features: Iterable[str]):
+        self.n_points = self._init_points
+        self.ignore_dimensions += list(features)
 
     def _best_cube(self, dataframe: pd.DataFrame, cube: GenericCube, cubes: Iterable[Expansion]) -> Expansion | None:
         expansions = []

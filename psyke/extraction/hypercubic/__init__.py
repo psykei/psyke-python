@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-import math
 from abc import ABC
+from collections import Iterable
+
 import numpy as np
 import pandas as pd
 from sklearn.base import ClassifierMixin
@@ -13,7 +14,7 @@ from psyke.extraction import PedagogicalExtractor
 from psyke.extraction.hypercubic.hypercube import HyperCube, RegressionCube, ClassificationCube, ClosedCube, Point, \
     GenericCube
 from psyke.hypercubepredictor import HyperCubePredictor
-from psyke.schema import Between, Outside, Value
+from psyke.schema import Value
 from psyke.utils.logic import create_variable_list, create_head, to_var, Simplifier
 from psyke.utils import Target
 from psyke.extraction.hypercubic.strategy import Strategy, FixedStrategy
@@ -209,9 +210,15 @@ class FeatureRanker:
 
 
 class Grid:
-    def __init__(self, iterations: int = 1, strategy: Strategy | list[Strategy] = FixedStrategy()):
+    def __init__(self, iterations: int = 1, strategy: Strategy | Iterable[Strategy] = FixedStrategy()):
         self.iterations = iterations
         self.strategy = strategy
+
+    def make_fair(self, features: Iterable[str]):
+        if isinstance(self.strategy, Strategy):
+            self.strategy.make_fair(features)
+        elif isinstance(self.strategy, Iterable):
+            [strategy.make_fair(features) for strategy in self.strategy]
 
     def get(self, feature: str, depth: int) -> int:
         if isinstance(self.strategy, list):

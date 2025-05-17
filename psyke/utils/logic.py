@@ -126,7 +126,7 @@ def to_var(name: str) -> Var:
 def create_variable_list(features: list[DiscreteFeature], dataset: pd.DataFrame = None) -> dict[str, Var]:
     dataset = dataset.columns[:-1] if dataset is not None else None
     values = {feature.name: to_var(feature.name) for feature in features} \
-        if len(features) > 0 else {name: to_var(name) for name in dataset}
+        if features else {name: to_var(name) for name in dataset}
     return values
 
 

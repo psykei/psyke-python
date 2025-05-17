@@ -17,7 +17,7 @@ class CReEPy(HyperCubeExtractor):
     """
 
     def __init__(self, predictor, clustering=Clustering.exact, depth: int = 3, error_threshold: float = 0.1,
-                 output: Target = Target.CONSTANT, gauss_components: int = 5, ranks: list[(str, float)] = [],
+                 output: Target = Target.CONSTANT, gauss_components: int = 5, ranks: Iterable[(str, float)] = tuple(),
                  ignore_threshold: float = 0.0, discretization=None, normalization=None,
                  seed: int = get_default_random_seed()):
         super().__init__(predictor, Target.CLASSIFICATION if isinstance(predictor, ClassifierMixin) else output,
