@@ -15,10 +15,16 @@ class Trepan(PedagogicalExtractor):
     def __init__(self, predictor, discretization: Iterable[DiscreteFeature], min_examples: int = 0, max_depth: int = 3,
                  split_logic: SplitLogic = SplitLogic.DEFAULT):
         super().__init__(predictor, discretization)
+        self._ignore_feature = []
         self.min_examples = min_examples
         self.max_depth = max_depth
         self.split_logic = split_logic
         self._root: Node
+
+    def make_fair(self, features: Iterable[str]):
+        self._ignore_feature = [list(i.admissible_values.keys()) for i in self.discretization if i.name in features] \
+            if self.discretization else [features]
+        self._ignore_feature = [feature for features in self._ignore_feature for feature in features]
 
     @property
     def n_rules(self):
@@ -29,7 +35,7 @@ class Trepan(PedagogicalExtractor):
             raise NotImplementedError()
         if node.n_classes == 1:
             return None
-        splits = Trepan._create_splits(node, names)
+        splits = self._create_splits(node, names)
         return None if len(splits) == 0 or splits[0].children[0].depth > self.max_depth else splits[0].children
 
     def _compact(self):
@@ -55,22 +61,20 @@ class Trepan(PedagogicalExtractor):
     def _create_split(node: Node, column: str) -> Union[Split, None]:
         true_examples = Trepan._create_samples(node, column, 1.0)
         false_examples = Trepan._create_samples(node, column, 0.0)
-        true_constrains = list(node.constraints) + [(column, 1.0)]
-        false_constrains = list(node.constraints) + [(column, 0.0)]
-        true_node = Node(true_examples, node.n_examples, true_constrains, depth=node.depth + 1)\
+        true_constraints = list(node.constraints) + [(column, 1.0)]
+        false_constraints = list(node.constraints) + [(column, 0.0)]
+        true_node = Node(true_examples, node.n_examples, true_constraints, depth=node.depth + 1) \
             if true_examples.shape[0] > 0 else None
-        false_node = Node(false_examples, node.n_examples, false_constrains, depth=node.depth + 1)\
+        false_node = Node(false_examples, node.n_examples, false_constraints, depth=node.depth + 1) \
             if false_examples.shape[0] > 0 else None
         return None if true_node is None or false_node is None else Split(node, (true_node, false_node))
 
-    @staticmethod
-    def _create_splits(node: Node, names: Iterable[str]) -> SortedList[Split]:
-        splits, constrains = Trepan._init_splits(node)
-        for column in names:
-            if column not in constrains:
-                split = Trepan._create_split(node, column)
-                if split is not None:
-                    splits.add(split)
+    def _create_splits(self, node: Node, names: Iterable[str]) -> SortedList[Split]:
+        splits, constraints = Trepan._init_splits(node)
+        for column in [column for column in names if column not in list(constraints) + self._ignore_feature]:
+            split = Trepan._create_split(node, column)
+            if split is not None:
+                splits.add(split)
         return splits
 
     def _create_theory(self, name: str) -> MutableTheory:
