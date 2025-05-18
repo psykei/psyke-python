@@ -1,15 +1,9 @@
 import copy
-from collections import Iterable
 from typing import Union, Any
-import pandas as pd
-from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
-from tuprolog.core import clause, Var, Struct
-from tuprolog.theory import Theory, mutable_theory
 
 from psyke.extraction.cart import FairTreeClassifier, FairTreeRegressor, LeafSequence, LeafConstraints
 from psyke.extraction.cart.CartPredictor import CartPredictor
-from psyke.schema import LessThan, GreaterThan, SchemaException, DiscreteFeature, Value
-from psyke.utils.logic import create_variable_list, create_head, create_term
+from psyke.schema import LessThan, GreaterThan, SchemaException, Value
 
 
 class FairTreePredictor(CartPredictor):
@@ -17,7 +11,7 @@ class FairTreePredictor(CartPredictor):
     A wrapper for fair decision and regression trees of psyke.
     """
 
-    def __init__(self, predictor: Union[FairTreeClassifier, FairTreeRegressor] = DecisionTreeClassifier(),
+    def __init__(self, predictor: Union[FairTreeClassifier, FairTreeRegressor] = FairTreeClassifier(),
                  discretization=None, normalization=None):
         super().__init__(predictor, discretization, normalization)
 

@@ -19,6 +19,7 @@ class REAL(PedagogicalExtractor):
 
     def __init__(self, predictor, discretization: Iterable[DiscreteFeature]):
         super().__init__(predictor, discretization)
+        self._ignore_feature = []
         self._ruleset: IndexedRuleSet = IndexedRuleSet()
 
     @property
@@ -87,13 +88,20 @@ class REAL(PedagogicalExtractor):
         return self._create_ruleset(dataset)
 
     def _internal_predict(self, sample: pd.Series):
-        x = [index for index, rule in self._ruleset.flatten() if REAL._rule_from_example(sample) in rule]
+        x = [index for index, rule in self._ruleset.flatten() if self._rule_from_example(sample) in rule]
         return x[0] if x else None
 
-    @staticmethod
-    def _rule_from_example(sample: pd.Series) -> Rule:
+    def make_fair(self, features: Iterable[str]):
+        self._ignore_feature = [list(i.admissible_values.keys()) for i in self.discretization if i.name in features] \
+            if self.discretization else [features]
+        self._ignore_feature = [feature for features in self._ignore_feature for feature in features]
+        self._get_or_set.cache_clear()
+
+    def _rule_from_example(self, sample: pd.Series) -> Rule:
         true_predicates, false_predicates = [], []
         for feature, value in sample.items():
+            if feature in self._ignore_feature:
+                continue
             true_predicates.append(str(feature)) if value == 1 else false_predicates.append(str(feature))
         return Rule(true_predicates, false_predicates)
 
