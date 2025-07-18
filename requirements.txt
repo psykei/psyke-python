@@ -2,7 +2,7 @@ build==1.2.2.post1
 twine==6.1.0
 numpy==1.26.4
 pandas==2.3.0
-scikit-learn==1.6.1
+scikit-learn==1.7.1
 2ppy==0.4.1
 skl2onnx==1.18.0
 onnxruntime==1.19.2
