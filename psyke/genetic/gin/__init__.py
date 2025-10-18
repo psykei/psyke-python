@@ -49,17 +49,14 @@ class GIN:
         return regions
 
     def evaluate(self, individual, to_pred=None, true=None):
-        if to_pred is None:
-            to_pred = self.valid[0]
-
-        if true is None:
-            true = self.valid[1]
+        to_pred = self.valid[0] if to_pred is None else to_pred
+        true = self.valid[1] if true is None else true
 
         cuts = [sorted(individual[sum(self.slices[:i]):sum(self.slices[:i + 1])])
                 for i in range(len(self.slices))]
 
         regions = self.region(to_pred, cuts)
-        regionsT = self.region(X, cuts)
+        regionsT = self.region(self.X, cuts)
 
         y_pred = np.zeros(len(to_pred))
         valid_regions = 0
@@ -67,23 +64,19 @@ class GIN:
         for r in range(np.prod([s + 1 for s in self.slices])):
             mask = regions == r
             maskT = regionsT == r
-            if min(mask.sum(), maskT.sum()) < 3:
-                y_pred[mask] = np.mean(self.y)
-                continue
-            y_pred[mask] = LinearRegression().fit(self.poly.fit_transform(self.X)[maskT], self.y[maskT]
-                                                  ).predict(self.poly.fit_transform(to_pred)[mask])
+            y_pred[mask] = None if min(mask.sum(), maskT.sum()) < 3 else LinearRegression().fit(
+                self.poly.fit_transform(self.X)[maskT], self.y[maskT]).predict(self.poly.fit_transform(to_pred)[mask])
             valid_regions += 1
 
         if valid_regions < self.min_rules:
             return -9999,
 
-        return (r2_score(true, y_pred) if self.metric == 'R2'
-                else -mean_absolute_error(true, y_pred),)
+        return (r2_score if self.metric == 'R2' else -mean_absolute_error)(true, y_pred),
 
     def setup(self):
         self.toolbox = base.Toolbox()
         for f in self.features:
-            self.toolbox.register(f, random.uniform, X[f].min(), X[f].max())
+            self.toolbox.register(f, random.uniform, self.X[f].min(), self.X[f].max())
 
         self.toolbox.register("individual", tools.initCycle, creator.Individual,
                               (sum([[getattr(self.toolbox, f) for i in range(s)]
