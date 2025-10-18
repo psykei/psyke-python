@@ -11,7 +11,6 @@ def select_gaussian_mixture(data: pd.DataFrame, max_components) -> tuple[float, 
     try:
         models = [GaussianMixture(n_components=n).fit(data) for n in components if n <= len(data)]
     except ValueError:
-        print(data)
         print(len(data))
     return min([(m.bic(data) / (i + 2), (i + 2), m) for i, m in enumerate(models)])
 

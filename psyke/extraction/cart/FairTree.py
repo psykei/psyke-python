@@ -77,15 +77,16 @@ class FairTree:
         sorted_indices = np.argsort(X)
         X = np.array(X)[sorted_indices]
         y = np.array(y)[sorted_indices]
-        return np.array([(X[i] + X[i - 1]) / 2.0 for i in range(1, len(X)) if y[i] != y[i - 1]])
+        # X = np.array(np.unique(np.unique(list(zip(X, y)), axis=0)[:, 0]), dtype=float)
+        return np.array([(X[:-1][i] + X[1:][i]) / 2.0 for i in range(len(X) - 1) if y[i] != y[i + 1]])
 
     def _best_split(self, X, y):
         best_gain = -float('inf')
         split_idx, split_threshold = None, None
 
         for feature in [feature for feature in X.columns if feature not in self.protected_attr]:
-            # for threshold in np.unique(np.quantile(X[feature], np.linspace(0, 1, num=25))):
-            for threshold in self.generate_thresholds(X[feature], y):
+            # for threshold in self.generate_thresholds(X[feature], y):
+            for threshold in np.unique(np.quantile(X[feature], np.linspace(0, 1, num=25))):
                 left_idxs = X[feature] <= threshold
                 right_idxs = X[feature] > threshold
 

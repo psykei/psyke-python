@@ -65,7 +65,7 @@ class EvaluableModel(object):
         raise NotImplementedError('predict')
 
     def __convert(self, ys: Iterable) -> Iterable:
-        if self.normalization is not None and not isinstance([p for p in ys if p is not None][0], str):
+        if self.normalization is not None and len(ys) > 0 and not isinstance([p for p in ys if p is not None][0], str):
             m, s = self.normalization[list(self.normalization.keys())[-1]]
             ys = [prediction if prediction is None else prediction * s + m for prediction in ys]
         return ys
@@ -231,7 +231,7 @@ class Extractor(EvaluableModel, ABC):
 
         for i in range(len(output['labels'])):
             for j in range(len(groups)):
-                plt.gca().text(j, i, f'{abs(int(data[i, j]))}%', ha="center", va="center", color="k")
+                plt.gca().text(j, i, f'{abs(data[i, j]):.2f}%', ha="center", va="center", color="k")
 
         plt.gca().set_xticks([i + .5 for i in range(len(groups))], minor=True)
         plt.gca().set_yticks([i + .5 for i in range(len(output['labels']))], minor=True)

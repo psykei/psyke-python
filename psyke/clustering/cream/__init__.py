@@ -46,11 +46,7 @@ class CREAM(ExACT):
     def _iterate(self, surrounding: Node) -> Iterable[HyperCube]:
         to_split = [(self.error_threshold * 10, 1, 1, surrounding)]
         while len(to_split) > 0:
-            to_split.sort(reverse=True)
-            (_, depth, _, node) = to_split.pop()
-            data = ExACT._remove_string_label(node.dataframe)
-            gauss_params = select_gaussian_mixture(data, self.gauss_components)
-            gauss_pred = gauss_params[2].predict(data)
+            node, depth, gauss_pred, gauss_params = self._get_gauss_predictions(to_split)
             cubes = self.__eligible_cubes(gauss_pred, node, gauss_params[1])
             if len(cubes) < 1:
                 continue

@@ -260,13 +260,15 @@ class HyperCube:
                 if not self.is_default and value is not None]
 
     @staticmethod
-    def create_surrounding_cube(dataset: pd.DataFrame, closed: bool = False,
-                                output=None) -> GenericCube:
+    def create_surrounding_cube(dataset: pd.DataFrame, closed: bool = False, output=None,
+                                features_to_ignore: Iterable[str] = []) -> GenericCube:
         output = Target.CONSTANT if output is None else output
         dimensions = {
             column: (min(dataset[column]) - HyperCube.EPSILON * 2, max(dataset[column]) + HyperCube.EPSILON * 2)
             for column in dataset.columns[:-1]
         }
+        for column in features_to_ignore:
+            dimensions[column] = (-np.inf, np.inf)
         if closed:
             if output == Target.CONSTANT:
                 return ClosedCube(dimensions)
