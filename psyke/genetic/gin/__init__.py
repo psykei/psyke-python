@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 from deap import base, creator, tools, algorithms
 import random
 from sklearn.linear_model import LinearRegression
@@ -9,7 +10,7 @@ from sklearn.preprocessing import PolynomialFeatures
 class GIN:
 
     def __init__(self, train, valid, features, sigmas, slices, min_rules=1, poly=1,
-                 alpha=0.5, indpb=0.5, tournsize=3, metric='R2'):
+                 alpha=0.5, indpb=0.5, tournsize=3, metric='R2', warm=False):
         self.X, self.y = train
         self.valid = valid
 
@@ -28,7 +29,7 @@ class GIN:
         self.stats = None
         self.hof = None
 
-        self.setup()
+        self.setup(warm)
 
     def describe(self):
         for p in self.poly.powers_:
@@ -64,7 +65,7 @@ class GIN:
         for r in range(np.prod([s + 1 for s in self.slices])):
             mask = regions == r
             maskT = regionsT == r
-            y_pred[mask] = None if min(mask.sum(), maskT.sum()) < 3 else LinearRegression().fit(
+            y_pred[mask] = np.mean(self.y) if min(mask.sum(), maskT.sum()) < 3 else LinearRegression().fit(
                 self.poly.fit_transform(self.X)[maskT], self.y[maskT]).predict(self.poly.fit_transform(to_pred)[mask])
             valid_regions += 1
 
@@ -73,7 +74,11 @@ class GIN:
 
         return (r2_score if self.metric == 'R2' else -mean_absolute_error)(true, y_pred),
 
-    def setup(self):
+    def setup(self, warm=False):
+        if not warm:
+            creator.create("FitnessMax", base.Fitness, weights=(1.0,))
+            creator.create("Individual", list, fitness=creator.FitnessMax)
+
         self.toolbox = base.Toolbox()
         for f in self.features:
             self.toolbox.register(f, random.uniform, self.X[f].min(), self.X[f].max())
@@ -105,3 +110,11 @@ class GIN:
                                           stats=self.stats, halloffame=self.hof, verbose=False)
 
         return tools.selBest(pop, 1)[0], result, log
+
+
+train = pd.DataFrame({'X': np.random.random(1000), 'Y': np.random.random(1000)})
+Z = train.X * 5 + 2 * train.Y
+gr = GIN((train, Z), (train, Z), ['X'], [1], [1])
+gr.run()
+
+#ev, = gr.evaluate(b, self.valid[0], self.valid[1])
