@@ -395,6 +395,16 @@ class Extractor(EvaluableModel, ABC):
         return HEx(predictor, grid, min_examples, threshold, output, discretization, normalization, seed)
 
     @staticmethod
+    def ginger(predictor,
+               normalization: dict[str, tuple[float, float]] = None,
+               seed: int = get_default_random_seed()) -> Extractor:
+        """
+        Creates a new GiNGER extractor.
+        """
+        from psyke.extraction.hypercubic.ginger import GInGER
+        return GInGER(predictor, normalization, seed)
+
+    @staticmethod
     def gridrex(predictor, grid, min_examples: int = 250, threshold: float = 0.1,
                 normalization: dict[str, tuple[float, float]] = None,
                 seed: int = get_default_random_seed()) -> Extractor:
