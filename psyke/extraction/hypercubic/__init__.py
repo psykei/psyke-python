@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from abc import ABC
 from collections import Iterable
+from itertools import combinations
 
 import numpy as np
 import pandas as pd
@@ -35,24 +36,22 @@ class HyperCubeExtractor(HyperCubePredictor, PedagogicalExtractor, ABC):
         return ClassificationCube()
 
     @staticmethod
-    def _find_couples(to_split: Iterable[HyperCube], not_in_cache: Iterable[HyperCube],
+    def _find_couples(to_split: Iterable[HyperCube], not_in_cache: set[HyperCube],
                       adjacent_cache: dict[tuple[HyperCube, HyperCube], str | None]) -> \
             Iterable[tuple[HyperCube, HyperCube, str]]:
-        checked = []
-        eligible = []
-        for cube in to_split:
-            checked.append(cube)
-            for other_cube in [c for c in to_split if c not in checked]:
-                if (cube in not_in_cache) or (other_cube in not_in_cache):
-                    adjacent_cache[(cube, other_cube)] = cube.is_adjacent(other_cube)
-                adjacent_feature = adjacent_cache[(cube, other_cube)]
-                eligible.append((cube, other_cube, adjacent_feature))
-        return [couple for couple in eligible if couple[2] is not None]
 
-    def _evaluate_merge(self, not_in_cache: Iterable[HyperCube],
-                        dataframe: pd.DataFrame, feature: str,
+        for cube1, cube2 in combinations(to_split, 2):
+            key = (cube1, cube2) if id(cube1) < id(cube2) else (cube2, cube1)
+
+            if (cube1 in not_in_cache) or (cube2 in not_in_cache):
+                adjacent_cache[key] = cube1.is_adjacent(cube2)
+            feature = adjacent_cache.get(key)
+            if feature is not None:
+                yield cube1, cube2, feature
+
+    def _evaluate_merge(self, not_in_cache: Iterable[HyperCube], dataframe: pd.DataFrame, feature: str,
                         cube: HyperCube, other_cube: HyperCube,
-                        merge_cache: dict[(HyperCube, HyperCube), HyperCube | None]) -> bool:
+                        merge_cache: dict[tuple[HyperCube, HyperCube], HyperCube | None]) -> bool:
         if (cube in not_in_cache) or (other_cube in not_in_cache):
             merged_cube = cube.merge_along_dimension(other_cube, feature)
             merged_cube.update(dataframe, self.predictor)
@@ -66,7 +65,7 @@ class HyperCubeExtractor(HyperCubePredictor, PedagogicalExtractor, ABC):
         self._hypercubes = [cube[2] for cube in cubes]
 
     def _merge(self, to_split: list[HyperCube], dataframe: pd.DataFrame) -> Iterable[HyperCube]:
-        not_in_cache = list(to_split)
+        not_in_cache = set(to_split)
         adjacent_cache = {}
         merge_cache = {}
         while True:
