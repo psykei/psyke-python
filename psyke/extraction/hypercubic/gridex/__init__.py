@@ -74,49 +74,5 @@ class GridEx(HyperCubeExtractor):
             prev = next_iteration.copy()
         self._hypercubes += [cube for cube in next_iteration]
 
-    @staticmethod
-    def _find_couples(to_split: Iterable[HyperCube], not_in_cache: Iterable[HyperCube],
-                      adjacent_cache: dict[tuple[HyperCube, HyperCube], str | None]) -> \
-            Iterable[tuple[HyperCube, HyperCube, str]]:
-        checked = []
-        eligible = []
-        for cube in to_split:
-            checked.append(cube)
-            for other_cube in [c for c in to_split if c not in checked]:
-                if (cube in not_in_cache) or (other_cube in not_in_cache):
-                    adjacent_cache[(cube, other_cube)] = cube.is_adjacent(other_cube)
-                adjacent_feature = adjacent_cache[(cube, other_cube)]
-                eligible.append((cube, other_cube, adjacent_feature))
-        return [couple for couple in eligible if couple[2] is not None]
-
-    def _evaluate_merge(self, not_in_cache: Iterable[HyperCube],
-                        dataframe: pd.DataFrame, feature: str,
-                        cube: HyperCube, other_cube: HyperCube,
-                        merge_cache: dict[(HyperCube, HyperCube), HyperCube | None]) -> bool:
-        if (cube in not_in_cache) or (other_cube in not_in_cache):
-            merged_cube = cube.merge_along_dimension(other_cube, feature)
-            merged_cube.update(dataframe, self.predictor)
-            merge_cache[(cube, other_cube)] = merged_cube
-        return cube.output == other_cube.output if self._output == Target.CLASSIFICATION else \
-            merge_cache[(cube, other_cube)].diversity < self.threshold
-
-    def _merge(self, to_split: Iterable[HyperCube], dataframe: pd.DataFrame) -> Iterable[HyperCube]:
-        not_in_cache = [cube for cube in to_split]
-        adjacent_cache = {}
-        merge_cache = {}
-        cont = True
-        while cont:
-            to_merge = [([cube, other_cube], merge_cache[(cube, other_cube)]) for cube, other_cube, feature in
-                        GridEx._find_couples(to_split, not_in_cache, adjacent_cache) if
-                        self._evaluate_merge(not_in_cache, dataframe, feature, cube, other_cube, merge_cache)]
-            if len(to_merge) == 0:
-                cont = False
-            else:
-                sorted(to_merge, key=lambda c: c[1].diversity)
-                best = to_merge[0]
-                to_split = [cube for cube in to_split if cube not in best[0]] + [best[1]]
-                not_in_cache = [best[1]]
-        return to_split
-
     def make_fair(self, features: Iterable[str]):
         self.grid.make_fair(features)
