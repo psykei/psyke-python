@@ -143,10 +143,9 @@ class HyperCube:
         self._default = True
 
     def set_infinite(self, dimension: str, direction: str):
-        if dimension in self._infinite_dimensions:
-            self._infinite_dimensions[dimension].append(direction)
-        else:
-            self._infinite_dimensions[dimension] = [direction]
+        if dimension not in self._infinite_dimensions:
+            self._infinite_dimensions[dimension] = set()
+        self._infinite_dimensions[dimension].add(direction)
 
     def copy_infinite_dimensions(self, dimensions: dict[str, str]):
         self._infinite_dimensions = dimensions.copy()

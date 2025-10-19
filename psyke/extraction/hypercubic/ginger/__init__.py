@@ -11,7 +11,7 @@ from psyke.extraction.hypercubic import HyperCubeExtractor, HyperCube, Regressio
 
 from deap import base, creator
 
-from psyke.genetic.gin import GIN
+from psyke.genetic.gin import GIn
 
 
 class GInGER(HyperCubeExtractor):
@@ -20,9 +20,10 @@ class GInGER(HyperCubeExtractor):
     """
 
     def __init__(self, predictor, features, sigmas, max_slices, min_rules=1, max_poly=1, alpha=0.5, indpb=0.5,
-                 tournsize=3, metric='R2', n_gen=50, n_pop=50, valid=None, normalization=None,
+                 tournsize=3, metric='R2', n_gen=50, n_pop=50, threshold=None, valid=None, normalization=None,
                  seed: int = get_default_random_seed()):
         super().__init__(predictor, normalization)
+        self.threshold = threshold
         np.random.seed(seed)
 
         self.features = features
@@ -58,7 +59,7 @@ class GInGER(HyperCubeExtractor):
         best = {}
         for poly in range(self.poly):
             for slices in list(itertools.product(range(1, self.max_slices + 1), repeat=self.max_features)):
-                gr = GIN((dataframe.iloc[:, :-1], dataframe.iloc[:, -1]), self.valid, self.features, self.sigmas,
+                gr = GIn((dataframe.iloc[:, :-1], dataframe.iloc[:, -1]), self.valid, self.features, self.sigmas,
                          slices, min_rules=self.min_rules, poly=poly + 1, alpha=self.alpha,
                          indpb=self.indpb, tournsize=self.tournsize, metric=self.metric, warm=True)
 
@@ -78,12 +79,19 @@ class GInGER(HyperCubeExtractor):
                      [(cut[i], cut[i + 1]) for i in range(len(cut) - 1)] +
                      [(cut[-1], transformed[self.features[i]].max())] for i, cut in enumerate(cuts)]
 
-        hypercubes = [{feat: iv for feat, iv in zip(self.features, combo)} for combo in itertools.product(*intervals)]
-        self._hypercubes = [RegressionCube({feat: h[feat] if feat in self.features else
-                            (transformed[feat].min(), transformed[feat].max()) for feat in transformed.columns[:-1]})
-                            for h in hypercubes]
+        hypercubes = [{f: iv for f, iv in zip(self.features, combo)} for combo in itertools.product(*intervals)]
+        mi_ma = {f: (transformed[f].min(), transformed[f].max()) for f in transformed.columns if f not in self.features}
+        self._hypercubes = [RegressionCube({feat: h[feat] if feat in self.features else mi_ma[feat]
+                                            for feat in transformed.columns[:-1]}) for h in hypercubes]
         self._hypercubes = [c for c in self._hypercubes if c.count(transformed) >= 2]
-        [c.update(transformed) for c in self._hypercubes]
+        for c in self._hypercubes:
+            for feature in transformed.columns:
+                if feature not in self.features:
+                    for direction in ['+', '-']:
+                        c.set_infinite(feature, direction)
+            c.update(transformed)
+        if self.threshold is not None:
+            self._hypercubes = self._merge(self._hypercubes, transformed)
         return self._create_theory(transformed)
 
     def make_fair(self, features: Iterable[str]):

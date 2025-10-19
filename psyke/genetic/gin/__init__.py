@@ -6,7 +6,7 @@ from sklearn.metrics import mean_absolute_error, r2_score
 from sklearn.preprocessing import PolynomialFeatures
 
 
-class GIN:
+class GIn:
 
     def __init__(self, train, valid, features, sigmas, slices, min_rules=1, poly=1,
                  alpha=0.5, indpb=0.5, tournsize=3, metric='R2', warm=False):
@@ -43,11 +43,9 @@ class GIN:
         return regions
 
     def evaluate(self, individual):
-        to_pred = self.X if self.valid is None else self.valid[0]
-        true = self.y if self.valid is None else self.valid[1]
-
-        cuts = [sorted(individual[sum(self.slices[:i]):sum(self.slices[:i + 1])])
-                for i in range(len(self.slices))]
+        to_pred, true = self.valid or (self.X, self.y)
+        boundaries = np.cumsum([0] + list(self.slices))
+        cuts = [sorted(individual[boundaries[i]:boundaries[i + 1]]) for i in range(len(self.slices))]
 
         regions = self.region(to_pred, cuts)
         regionsT = self.region(self.X, cuts)

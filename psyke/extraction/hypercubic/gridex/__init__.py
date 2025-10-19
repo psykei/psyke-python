@@ -59,7 +59,6 @@ class GridEx(HyperCubeExtractor):
     def _iterate(self, dataframe: pd.DataFrame):
         fake = dataframe.copy()
         prev = [self._surrounding]
-        next_iteration = []
 
         for iteration in self.grid.iterate():
             next_iteration = []
@@ -67,12 +66,12 @@ class GridEx(HyperCubeExtractor):
                 if cube.count(dataframe) == 0:
                     continue
                 if cube.diversity < self.threshold:
-                    self._hypercubes += [cube]
+                    self._hypercubes.append(cube)
                     continue
                 to_split, fake = self._cubes_to_split(cube, iteration, dataframe, fake)
-                next_iteration += [c for c in self._merge(to_split, fake)]
-            prev = next_iteration.copy()
-        self._hypercubes += [cube for cube in next_iteration]
+                next_iteration.extend(self._merge(to_split, fake))
+            prev = next_iteration
+        self._hypercubes.extend(prev)
 
     def make_fair(self, features: Iterable[str]):
         self.grid.make_fair(features)
