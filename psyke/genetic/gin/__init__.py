@@ -1,5 +1,4 @@
 import numpy as np
-import pandas as pd
 from deap import base, creator, tools, algorithms
 import random
 from sklearn.linear_model import LinearRegression
@@ -31,12 +30,6 @@ class GIN:
 
         self.setup(warm)
 
-    def describe(self):
-        for p in self.poly.powers_:
-            print(''.join(['' if pp == 0 else f'{n} * ' if pp == 1 else f'{n}**{pp} * '
-                           for pp, n in zip(p, self.poly.feature_names_in_)])[:-2])
-            # print(''.join([f'{n}**{pp} * ' for pp, n in zip(p, self.poly.feature_names_in_)])[:-2])
-
     def region(self, X, cuts):
         indices = [np.searchsorted(np.array(cut), X[f].to_numpy(), side='right')
                    for cut, f in zip(cuts, self.features)]
@@ -49,9 +42,9 @@ class GIN:
 
         return regions
 
-    def evaluate(self, individual, to_pred=None, true=None):
-        to_pred = self.valid[0] if to_pred is None else to_pred
-        true = self.valid[1] if true is None else true
+    def evaluate(self, individual):
+        to_pred = self.X if self.valid is None else self.valid[0]
+        true = self.y if self.valid is None else self.valid[1]
 
         cuts = [sorted(individual[sum(self.slices[:i]):sum(self.slices[:i + 1])])
                 for i in range(len(self.slices))]
@@ -65,8 +58,11 @@ class GIN:
         for r in range(np.prod([s + 1 for s in self.slices])):
             mask = regions == r
             maskT = regionsT == r
-            y_pred[mask] = np.mean(self.y) if min(mask.sum(), maskT.sum()) < 3 else LinearRegression().fit(
-                self.poly.fit_transform(self.X)[maskT], self.y[maskT]).predict(self.poly.fit_transform(to_pred)[mask])
+            if min(mask.sum(), maskT.sum()) < 3:
+                y_pred[mask] = np.mean(self.y)
+                continue
+            y_pred[mask] = LinearRegression().fit(self.poly.fit_transform(self.X)[maskT], self.y[maskT]).predict(
+                self.poly.fit_transform(to_pred)[mask])
             valid_regions += 1
 
         if valid_regions < self.min_rules:
@@ -108,13 +104,5 @@ class GIN:
         pop = self.toolbox.population(n=n_pop)
         result, log = algorithms.eaSimple(pop, self.toolbox, cxpb=cxpb, mutpb=mutpb, ngen=n_gen,
                                           stats=self.stats, halloffame=self.hof, verbose=False)
-
-        return tools.selBest(pop, 1)[0], result, log
-
-
-train = pd.DataFrame({'X': np.random.random(1000), 'Y': np.random.random(1000)})
-Z = train.X * 5 + 2 * train.Y
-gr = GIN((train, Z), (train, Z), ['X'], [1], [1])
-gr.run()
-
-#ev, = gr.evaluate(b, self.valid[0], self.valid[1])
+        best = tools.selBest(pop, 1)[0]
+        return best, self.evaluate(best)[0], result, log

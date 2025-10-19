@@ -435,13 +435,15 @@ class HyperCube:
             self.update_dimension(feature, (lower, upper))
 
     def update(self, dataset: pd.DataFrame, predictor) -> None:
-        filtered = self.filter_dataframe(dataset.iloc[:, :-1])
-        predictions = predictor.predict(filtered)
-        self._output = np.mean(predictions)
-        self._diversity = np.std(predictions)
-        self._error = (abs(predictions - self._output)).mean()
-        means = filtered.describe().loc['mean']
-        self._barycenter = Point(means.index.values, means.values)
+        idx = self.filter_indices(dataset.iloc[:, :-1])
+        filtered = dataset.iloc[idx, :-1]
+        if len(filtered > 0):
+            predictions = dataset.iloc[idx, -1]
+            self._output = np.mean(predictions)
+            self._diversity = np.std(predictions)
+            self._error = (abs(predictions - self._output)).mean()
+            means = filtered.describe().loc['mean']
+            self._barycenter = Point(means.index.values, means.values)
 
     # TODO: why this is not a property?
     def init_diversity(self, std: float) -> None:
@@ -453,9 +455,10 @@ class RegressionCube(HyperCube):
         super().__init__(dimension=dimension, limits=limits, output=LinearRegression() if output is None else output)
 
     def update(self, dataset: pd.DataFrame, predictor) -> None:
-        filtered = self.filter_dataframe(dataset.iloc[:, :-1])
+        idx = self.filter_indices(dataset.iloc[:, :-1])
+        filtered = dataset.iloc[idx, :-1]
         if len(filtered > 0):
-            predictions = predictor.predict(filtered)
+            predictions = dataset.iloc[idx, -1]
             self._output.fit(filtered, predictions)
             self._diversity = self._error = (abs(self._output.predict(filtered) - predictions)).mean()
             means = filtered.describe().loc['mean']
@@ -492,9 +495,10 @@ class ClassificationCube(HyperCube):
         super().__init__(dimension=dimension, limits=limits, output=output)
 
     def update(self, dataset: pd.DataFrame, predictor) -> None:
-        filtered = self.filter_dataframe(dataset.iloc[:, :-1])
+        idx = self.filter_indices(dataset.iloc[:, :-1])
+        filtered = dataset.iloc[idx, :-1]
         if len(filtered > 0):
-            predictions = predictor.predict(filtered)
+            predictions = dataset.iloc[idx, -1]
             self._output = mode(predictions)
             self._diversity = self._error = 1 - sum(p == self.output for p in predictions) / len(predictions)
             means = filtered.describe().loc['mean']
