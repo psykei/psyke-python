@@ -83,7 +83,7 @@ class GInGER(HyperCubeExtractor):
                             (transformed[feat].min(), transformed[feat].max()) for feat in transformed.columns[:-1]})
                             for h in hypercubes]
         self._hypercubes = [c for c in self._hypercubes if c.count(transformed) >= 2]
-        [c.update(transformed, self.predictor) for c in self._hypercubes]
+        [c.update(transformed) for c in self._hypercubes]
         return self._create_theory(transformed)
 
     def make_fair(self, features: Iterable[str]):
