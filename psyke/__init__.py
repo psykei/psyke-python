@@ -65,7 +65,7 @@ class EvaluableModel(object):
         raise NotImplementedError('predict')
 
     def __convert(self, ys: Iterable) -> Iterable:
-        if self.normalization is not None and not isinstance([p for p in ys if p is not None][0], str):
+        if self.normalization is not None and len(ys) > 0 and not isinstance([p for p in ys if p is not None][0], str):
             m, s = self.normalization[list(self.normalization.keys())[-1]]
             ys = [prediction if prediction is None else prediction * s + m for prediction in ys]
         return ys
@@ -231,7 +231,7 @@ class Extractor(EvaluableModel, ABC):
 
         for i in range(len(output['labels'])):
             for j in range(len(groups)):
-                plt.gca().text(j, i, f'{abs(int(data[i, j]))}%', ha="center", va="center", color="k")
+                plt.gca().text(j, i, f'{abs(data[i, j]):.2f}%', ha="center", va="center", color="k")
 
         plt.gca().set_xticks([i + .5 for i in range(len(groups))], minor=True)
         plt.gca().set_yticks([i + .5 for i in range(len(output['labels']))], minor=True)
@@ -393,6 +393,19 @@ class Extractor(EvaluableModel, ABC):
         """
         from psyke.extraction.hypercubic.hex import HEx
         return HEx(predictor, grid, min_examples, threshold, output, discretization, normalization, seed)
+
+    @staticmethod
+    def ginger(predictor, features: Iterable[str], sigmas: Iterable[float], max_slices: int, min_rules: int = 1,
+               max_poly: int = 1, alpha: float = 0.5, indpb: float = 0.5, tournsize: int = 3, metric:str = 'R2',
+               n_gen: int = 50, n_pop: int = 50, threshold=None, valid=None,
+               normalization: dict[str, tuple[float, float]] = None,
+               seed: int = get_default_random_seed()) -> Extractor:
+        """
+        Creates a new GInGER extractor.
+        """
+        from psyke.extraction.hypercubic.ginger import GInGER
+        return GInGER(predictor, features, sigmas, max_slices, min_rules, max_poly, alpha, indpb, tournsize, metric,
+                      n_gen, n_pop, threshold, valid, normalization, seed)
 
     @staticmethod
     def gridrex(predictor, grid, min_examples: int = 250, threshold: float = 0.1,

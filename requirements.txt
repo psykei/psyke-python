@@ -5,7 +5,9 @@ pandas==2.3.2
 scikit-learn==1.6.1
 2ppy==0.4.1
 skl2onnx==1.18.0
+onnx==1.18.0
 onnxruntime==1.19.2
+onnxconverter-common==1.15.0
 tensorflow==2.16.2
 parameterized==0.9.0
 protobuf==4.25.8
