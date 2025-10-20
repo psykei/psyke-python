@@ -54,13 +54,13 @@ class ExACT(HyperCubeClustering, ABC):
         dbscan_pred = DBSCAN(eps=select_dbscan_epsilon(data, clusters)).fit_predict(data.iloc[:, :-1])
         return HyperCube.create_surrounding_cube(
             dataframe.iloc[np.where(dbscan_pred == Counter(dbscan_pred).most_common(1)[0][0])],
-            True, self._output
+            True, self._output, self._protected_features
         )
 
     def fit(self, dataframe: pd.DataFrame):
         np.random.seed(self.seed)
         self._predictor.fit(dataframe.iloc[:, :-1], dataframe.iloc[:, -1])
-        self._surrounding = HyperCube.create_surrounding_cube(dataframe, True, self._output)
+        self._surrounding = HyperCube.create_surrounding_cube(dataframe, True, self._output, self._protected_features)
         self._hypercubes = self._iterate(Node(dataframe, self._surrounding))
 
     def get_hypercubes(self) -> Iterable[HyperCube]:
@@ -79,14 +79,17 @@ class ExACT(HyperCubeClustering, ABC):
             enumerate(dataframe.iloc[:, -1].unique())
         ).items()}}) if isinstance(dataframe.iloc[0, -1], str) else dataframe
 
+    def _get_gauss_predictions(self, to_split):
+        to_split.sort(reverse=True)
+        (_, depth, _, node) = to_split.pop()
+        data = ExACT._remove_string_label(node.dataframe)
+        gauss_params = select_gaussian_mixture(data.drop(self._protected_features, axis=1), self.gauss_components)
+        return node, depth, gauss_params[2].predict(data.drop(self._protected_features, axis=1)), gauss_params
+
     def _iterate(self, surrounding: Node) -> Iterable[HyperCube]:
         to_split = [(self.error_threshold * 10, 1, 1, surrounding)]
         while len(to_split) > 0:
-            to_split.sort(reverse=True)
-            (_, depth, _, node) = to_split.pop()
-            data = ExACT._remove_string_label(node.dataframe)
-            gauss_params = select_gaussian_mixture(data, self.gauss_components)
-            gauss_pred = gauss_params[2].predict(data)
+            node, depth, gauss_pred, gauss_params = self._get_gauss_predictions(to_split)
             cubes, indices = self.__eligible_cubes(gauss_pred, node, gauss_params[1])
             cubes = [(c.volume(), len(idx), i, idx, c) for i, (c, idx) in enumerate(zip(cubes, indices))
                      if (idx is not None) and (not node.cube.equal(c))]

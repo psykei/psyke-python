@@ -1,28 +1,22 @@
 from __future__ import annotations
 
-import os
 from typing import Iterable, Union
 import numpy as np
 import onnxruntime
 import pandas as pd
 from keras import Input, Model
 from keras.src.layers import Dense
-#from tensorflow.python.saved_model.save import save
-from tensorflow.saved_model import save
 from onnxconverter_common import FloatTensorType, Int64TensorType, StringTensorType, DataType
-#from skl2onnx import convert_sklearn
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
 from tensorflow.random import set_seed
-import tensorflow as tf
-#from tensorflow.keras import Input, Model
-#from tensorflow.keras.layers import Dense
 from psyke.schema import DiscreteFeature, Value
 from psyke.utils import get_default_random_seed
-from sklearn.datasets import fetch_california_housing, load_iris
+from sklearn.datasets import load_iris
 from psyke import Extractor
 from psyke.utils.dataframe import get_discrete_features_supervised
+from test.resources.datasets import open_dataset
 from test.resources.predictors import PATH, get_predictor_path
 
 REQUIRED_PREDICTORS: str = PATH / '.required.csv'
@@ -77,7 +71,8 @@ def get_simple_neural_network(input: int = 4, output: int = 3, layers: int = 3, 
 
 def get_dataset(name: str):
     if name.lower() == 'house':
-        x, y = fetch_california_housing(return_X_y=True, as_frame=True)
+        x = pd.read_csv(open_dataset('houseX'), index_col=[0])
+        y = pd.read_csv(open_dataset('housey'), index_col=[0]).MedHouseVal
         normalized_x = _normalize_data(x)
         normalized_y = _normalize_data(y)
         return normalized_x.join(normalized_y)
