@@ -7,20 +7,14 @@ import onnxruntime
 import pandas as pd
 from keras import Input, Model
 from keras.src.layers import Dense
-#from tensorflow.python.saved_model.save import save
-from tensorflow.saved_model import save
 from onnxconverter_common import FloatTensorType, Int64TensorType, StringTensorType, DataType
-#from skl2onnx import convert_sklearn
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
 from tensorflow.random import set_seed
-import tensorflow as tf
-#from tensorflow.keras import Input, Model
-#from tensorflow.keras.layers import Dense
 from psyke.schema import DiscreteFeature, Value
 from psyke.utils import get_default_random_seed
-from sklearn.datasets import fetch_california_housing, load_iris
+from sklearn.datasets import load_iris, fetch_openml
 from psyke import Extractor
 from psyke.utils.dataframe import get_discrete_features_supervised
 from test.resources.predictors import PATH, get_predictor_path
@@ -77,7 +71,8 @@ def get_simple_neural_network(input: int = 4, output: int = 3, layers: int = 3, 
 
 def get_dataset(name: str):
     if name.lower() == 'house':
-        x, y = fetch_california_housing(return_X_y=True, as_frame=True)
+        data = fetch_openml(name="CaliforniaHousing", version=1, as_frame=True)
+        x, y = data.data, data.target
         normalized_x = _normalize_data(x)
         normalized_y = _normalize_data(y)
         return normalized_x.join(normalized_y)
