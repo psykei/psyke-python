@@ -71,7 +71,8 @@ def get_simple_neural_network(input: int = 4, output: int = 3, layers: int = 3, 
 
 def get_dataset(name: str):
     if name.lower() == 'house':
-        x, y = pd.read_csv('datasets/houseX.csv', index_col=[0]), pd.read_csv('datasets/housey.csv', index_col=[0])
+        x = pd.read_csv('resources/datasets/houseX.csv', index_col=[0])
+        y = pd.read_csv('resources/datasets/housey.csv', index_col=[0]).MedHouseVal
         normalized_x = _normalize_data(x)
         normalized_y = _normalize_data(y)
         return normalized_x.join(normalized_y)
