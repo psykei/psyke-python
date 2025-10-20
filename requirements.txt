@@ -16,3 +16,6 @@ kneed==0.8.5
 sympy==1.14.0
 matplotlib==3.9.4
 joblib==1.5.1
+grpcio==1.74.0
+flatbuffers==25.2.10
+typing-extensions==4.14.1
