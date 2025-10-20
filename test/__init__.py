@@ -14,7 +14,7 @@ from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
 from tensorflow.random import set_seed
 from psyke.schema import DiscreteFeature, Value
 from psyke.utils import get_default_random_seed
-from sklearn.datasets import load_iris, fetch_openml
+from sklearn.datasets import load_iris
 from psyke import Extractor
 from psyke.utils.dataframe import get_discrete_features_supervised
 from test.resources.predictors import PATH, get_predictor_path
@@ -71,8 +71,7 @@ def get_simple_neural_network(input: int = 4, output: int = 3, layers: int = 3, 
 
 def get_dataset(name: str):
     if name.lower() == 'house':
-        data = fetch_openml(name="CaliforniaHousing", version=1, as_frame=True)
-        x, y = data.data, data.target
+        x, y = pd.read_csv('datasets/houseX.csv', index_col=[0]), pd.read_csv('datasets/housey.csv', index_col=[0])
         normalized_x = _normalize_data(x)
         normalized_y = _normalize_data(y)
         return normalized_x.join(normalized_y)
