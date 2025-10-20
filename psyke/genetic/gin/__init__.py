@@ -8,8 +8,8 @@ from sklearn.preprocessing import PolynomialFeatures
 
 class GIn:
 
-    def __init__(self, train, valid, features, sigmas, slices, min_rules=1, poly=1,
-                 alpha=0.5, indpb=0.5, tournsize=3, metric='R2', warm=False):
+    def __init__(self, train, valid, features, sigmas, slices, min_rules=1, poly=1, alpha=0.5, indpb=0.5, tournsize=3,
+                 metric='R2', warm=False):
         self.X, self.y = train
         self.valid = valid
 
