@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import os
 from typing import Iterable, Union
 import numpy as np
 import onnxruntime
@@ -17,6 +16,7 @@ from psyke.utils import get_default_random_seed
 from sklearn.datasets import load_iris
 from psyke import Extractor
 from psyke.utils.dataframe import get_discrete_features_supervised
+from test.resources.datasets import open_dataset
 from test.resources.predictors import PATH, get_predictor_path
 
 REQUIRED_PREDICTORS: str = PATH / '.required.csv'
@@ -71,8 +71,8 @@ def get_simple_neural_network(input: int = 4, output: int = 3, layers: int = 3, 
 
 def get_dataset(name: str):
     if name.lower() == 'house':
-        x = pd.read_csv('resources/datasets/houseX.csv', index_col=[0])
-        y = pd.read_csv('resources/datasets/housey.csv', index_col=[0]).MedHouseVal
+        x = pd.read_csv(open_dataset('houseX.csv'), index_col=[0])
+        y = pd.read_csv(open_dataset('housey.csv'), index_col=[0]).MedHouseVal
         normalized_x = _normalize_data(x)
         normalized_y = _normalize_data(y)
         return normalized_x.join(normalized_y)
