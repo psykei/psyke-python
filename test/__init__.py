@@ -51,7 +51,7 @@ def get_model(model_type: str, parameters: dict):
     if model_type.lower() == 'rfr':
         return RandomForestRegressor(**parameters, random_state=np.random.seed(get_default_random_seed())), False
     elif model_type.lower() == 'knnc':
-        return KNeighborsClassifier(**parameters), False  # It's deterministic, don't have a random_state
+        return KNeighborsClassifier(**parameters), False
     elif model_type.lower() == 'dtc':
         return DecisionTreeClassifier(max_depth=3, random_state=np.random.seed(get_default_random_seed())), False
     elif model_type.lower() == 'dtr':
