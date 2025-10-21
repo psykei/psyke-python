@@ -1,17 +1,22 @@
+from statistics import mode
+
 import numpy as np
 from deap import base, creator, tools, algorithms
 import random
 from sklearn.linear_model import LinearRegression
-from sklearn.metrics import mean_absolute_error, r2_score
+from sklearn.metrics import mean_absolute_error, r2_score, mean_squared_error, f1_score, accuracy_score
 from sklearn.preprocessing import PolynomialFeatures
+
+from psyke import Target
 
 
 class GIn:
 
     def __init__(self, train, valid, features, sigmas, slices, min_rules=1, poly=1, alpha=0.5, indpb=0.5, tournsize=3,
-                 metric='R2', warm=False):
+                 metric='R2', output=Target.REGRESSION, warm=False):
         self.X, self.y = train
         self.valid = valid
+        self.output = output
 
         self.features = features
         self.sigmas = sigmas
@@ -42,6 +47,29 @@ class GIn:
 
         return regions
 
+    def __output_estimation(self, mask, to_pred):
+        if self.output == Target.REGRESSION:
+            return LinearRegression().fit(self.poly.fit_transform(self.X)[mask], self.y[mask]).predict(
+                self.poly.fit_transform(to_pred))
+        if self.output == Target.CONSTANT:
+            return np.mean(self.y[mask])
+        if self.output == Target.CLASSIFICATION:
+            return mode(self.y[mask])
+        raise TypeError('Supported outputs are Target.{REGRESSION, CONSTANT, CLASSIFICATION}')
+
+    def __score(self, true, pred):
+        if self.metric == 'R2':
+            return r2_score(true, pred)
+        if self.metric == 'MAE':
+            return -mean_absolute_error(true, pred)
+        if self.metric == 'MSE':
+            return -mean_squared_error(true, pred)
+        if self.metric == 'F1':
+            return f1_score(true, pred, average='weighted')
+        if self.metric == 'ACC':
+            return accuracy_score(true, pred)
+        raise NameError('Supported metrics are R2, MAE, MSE, F1, ACC')
+
     def evaluate(self, individual):
         to_pred, true = self.valid or (self.X, self.y)
         boundaries = np.cumsum([0] + list(self.slices))
@@ -50,6 +78,7 @@ class GIn:
         regions = self.region(to_pred, cuts)
         regionsT = self.region(self.X, cuts)
 
+        # y_pred = np.empty(len(to_pred), dtype=type(self.y.iloc[0]))
         y_pred = np.zeros(len(to_pred))
         valid_regions = 0
 
@@ -57,16 +86,15 @@ class GIn:
             mask = regions == r
             maskT = regionsT == r
             if min(mask.sum(), maskT.sum()) < 3:
-                y_pred[mask] = np.mean(self.y)
+                y_pred[mask] = mode(self.y[mask]) if self.output == Target.CLASSIFICATION else np.mean(self.y[mask])
                 continue
-            y_pred[mask] = LinearRegression().fit(self.poly.fit_transform(self.X)[maskT], self.y[maskT]).predict(
-                self.poly.fit_transform(to_pred)[mask])
+            y_pred[mask] = self.__output_estimation(maskT, to_pred[mask])
             valid_regions += 1
 
         if valid_regions < self.min_rules:
             return -9999,
 
-        return (r2_score if self.metric == 'R2' else -mean_absolute_error)(true, y_pred),
+        return self.__score(true, y_pred),
 
     def setup(self, warm=False):
         if not warm:

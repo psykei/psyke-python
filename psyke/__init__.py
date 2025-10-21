@@ -397,7 +397,7 @@ class Extractor(EvaluableModel, ABC):
     @staticmethod
     def ginger(predictor, features: Iterable[str], sigmas: Iterable[float], max_slices: int, min_rules: int = 1,
                max_poly: int = 1, alpha: float = 0.5, indpb: float = 0.5, tournsize: int = 3, metric:str = 'R2',
-               n_gen: int = 50, n_pop: int = 50, threshold=None, valid=None,
+               n_gen: int = 50, n_pop: int = 50, threshold=None, valid=None, output=Target.REGRESSION,
                normalization: dict[str, tuple[float, float]] = None,
                seed: int = get_default_random_seed()) -> Extractor:
         """
@@ -405,7 +405,7 @@ class Extractor(EvaluableModel, ABC):
         """
         from psyke.extraction.hypercubic.ginger import GInGER
         return GInGER(predictor, features, sigmas, max_slices, min_rules, max_poly, alpha, indpb, tournsize, metric,
-                      n_gen, n_pop, threshold, valid, normalization, seed)
+                      n_gen, n_pop, threshold, valid, output, normalization, seed)
 
     @staticmethod
     def gridrex(predictor, grid, min_examples: int = 250, threshold: float = 0.1,

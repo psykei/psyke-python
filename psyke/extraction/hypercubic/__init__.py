@@ -28,12 +28,12 @@ class HyperCubeExtractor(HyperCubePredictor, PedagogicalExtractor, ABC):
         self._default_surrounding_cube = False
         self.threshold = None
 
-    def _default_cube(self) -> HyperCube | RegressionCube | ClassificationCube:
+    def _default_cube(self, dimensions=None) -> HyperCube | RegressionCube | ClassificationCube:
         if self._output == Target.CONSTANT:
-            return HyperCube()
+            return HyperCube(dimensions)
         if self._output == Target.REGRESSION:
-            return RegressionCube()
-        return ClassificationCube()
+            return RegressionCube(dimensions)
+        return ClassificationCube(dimensions)
 
     @staticmethod
     def _find_couples(to_split: Iterable[HyperCube], not_in_cache: set[HyperCube],

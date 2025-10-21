@@ -3,10 +3,11 @@ from typing import Iterable
 
 import numpy as np
 import pandas as pd
+from sklearn.base import ClassifierMixin
 from sklearn.preprocessing import PolynomialFeatures
 from tuprolog.theory import Theory
 
-from psyke import get_default_random_seed
+from psyke import get_default_random_seed, Target
 from psyke.extraction.hypercubic import HyperCubeExtractor, HyperCube, RegressionCube
 
 from deap import base, creator
@@ -20,9 +21,10 @@ class GInGER(HyperCubeExtractor):
     """
 
     def __init__(self, predictor, features, sigmas, max_slices, min_rules=1, max_poly=1, alpha=0.5, indpb=0.5,
-                 tournsize=3, metric='R2', n_gen=50, n_pop=50, threshold=None, valid=None, normalization=None,
-                 seed: int = get_default_random_seed()):
-        super().__init__(predictor, normalization)
+                 tournsize=3, metric='R2', n_gen=50, n_pop=50, threshold=None, valid=None,
+                 output: Target = Target.CONSTANT, normalization=None, seed: int = get_default_random_seed()):
+        super().__init__(predictor, output=Target.CLASSIFICATION if isinstance(predictor, ClassifierMixin) else output,
+                         normalization=normalization)
         self.threshold = threshold
         np.random.seed(seed)
 
@@ -60,8 +62,8 @@ class GInGER(HyperCubeExtractor):
         for poly in range(self.poly):
             for slices in list(itertools.product(range(1, self.max_slices + 1), repeat=self.max_features)):
                 gr = GIn((dataframe.iloc[:, :-1], dataframe.iloc[:, -1]), self.valid, self.features, self.sigmas,
-                         slices, min_rules=self.min_rules, poly=poly + 1, alpha=self.alpha,
-                         indpb=self.indpb, tournsize=self.tournsize, metric=self.metric, warm=True)
+                         slices, min_rules=self.min_rules, poly=poly + 1, alpha=self.alpha, indpb=self.indpb,
+                         tournsize=self.tournsize, metric=self.metric, output=self._output, warm=True)
 
                 b, score, _, _ = gr.run(n_gen=self.n_gen, n_pop=self.n_pop)
                 best[(score, poly + 1, slices)] = b
@@ -81,8 +83,8 @@ class GInGER(HyperCubeExtractor):
 
         hypercubes = [{f: iv for f, iv in zip(self.features, combo)} for combo in itertools.product(*intervals)]
         mi_ma = {f: (transformed[f].min(), transformed[f].max()) for f in transformed.columns if f not in self.features}
-        self._hypercubes = [RegressionCube({feat: h[feat] if feat in self.features else mi_ma[feat]
-                                            for feat in transformed.columns[:-1]}) for h in hypercubes]
+        self._hypercubes = [self._default_cube({feat: h[feat] if feat in self.features else mi_ma[feat]
+                                                for feat in transformed.columns[:-1]}) for h in hypercubes]
         self._hypercubes = [c for c in self._hypercubes if c.count(transformed) >= 2]
         for c in self._hypercubes:
             for feature in transformed.columns:
