@@ -78,15 +78,16 @@ class GIn:
         regions = self.region(to_pred, cuts)
         regionsT = self.region(self.X, cuts)
 
-        # y_pred = np.empty(len(to_pred), dtype=type(self.y.iloc[0]))
-        y_pred = np.zeros(len(to_pred))
+        y_pred = np.empty(len(to_pred), dtype=f'U{self.y.str.len().max()}') if self.output == Target.CLASSIFICATION \
+            else np.zeros_like(self.y)
         valid_regions = 0
 
         for r in range(np.prod([s + 1 for s in self.slices])):
             mask = regions == r
             maskT = regionsT == r
             if min(mask.sum(), maskT.sum()) < 3:
-                y_pred[mask] = mode(self.y[mask]) if self.output == Target.CLASSIFICATION else np.mean(self.y[mask])
+                if self.output != Target.CLASSIFICATION:
+                    y_pred[mask] = np.mean(self.y)
                 continue
             y_pred[mask] = self.__output_estimation(maskT, to_pred[mask])
             valid_regions += 1
