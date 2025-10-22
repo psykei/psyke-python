@@ -32,6 +32,7 @@ class GIn:
         self.toolbox = None
         self.stats = None
         self.hof = None
+        self.best = None
 
         self.setup(warm)
 
@@ -70,8 +71,11 @@ class GIn:
             return accuracy_score(true, pred)
         raise NameError('Supported metrics are R2, MAE, MSE, F1, ACC')
 
-    def evaluate(self, individual):
-        to_pred, true = self.valid or (self.X, self.y)
+    def predict(self, to_pred):
+        return self.__predict(to_pred=to_pred)[0]
+
+    def __predict(self, individual=None, to_pred=None):
+        individual = individual or self.best
         boundaries = np.cumsum([0] + list(self.slices))
         cuts = [sorted(individual[boundaries[i]:boundaries[i + 1]]) for i in range(len(self.slices))]
 
@@ -79,7 +83,7 @@ class GIn:
         regionsT = self.region(self.X, cuts)
 
         y_pred = np.empty(len(to_pred), dtype=f'U{self.y.str.len().max()}') if self.output == Target.CLASSIFICATION \
-            else np.zeros_like(self.y)
+            else np.zeros(len(to_pred))
         valid_regions = 0
 
         for r in range(np.prod([s + 1 for s in self.slices])):
@@ -92,10 +96,13 @@ class GIn:
             y_pred[mask] = self.__output_estimation(maskT, to_pred[mask])
             valid_regions += 1
 
+        return y_pred, valid_regions
+
+    def evaluate(self, individual=None):
+        y_pred, valid_regions = self.__predict(individual or self.best, self.X if self.valid is None else self.valid[0])
         if valid_regions < self.min_rules:
             return -9999,
-
-        return self.__score(true, y_pred),
+        return self.__score(self.y if self.valid is None else self.valid[1], y_pred),
 
     def setup(self, warm=False):
         if not warm:
@@ -131,5 +138,5 @@ class GIn:
         pop = self.toolbox.population(n=n_pop)
         result, log = algorithms.eaSimple(pop, self.toolbox, cxpb=cxpb, mutpb=mutpb, ngen=n_gen,
                                           stats=self.stats, halloffame=self.hof, verbose=False)
-        best = tools.selBest(pop, 1)[0]
-        return best, self.evaluate(best)[0], result, log
+        self.best = tools.selBest(pop, 1)[0]
+        return self.best, self.evaluate()[0], result, log
