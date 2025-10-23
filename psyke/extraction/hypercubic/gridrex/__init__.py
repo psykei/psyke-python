@@ -5,7 +5,7 @@ from psyke.extraction.hypercubic.gridex import GridEx
 
 class GridREx(GridEx):
     """
-    Explanator implementing GridREx algorithm.
+    Explanator implementing GridREx algorithm, doi:10.24963/kr.2022/57.
     """
 
     def __init__(self, predictor, grid: Grid, min_examples: int, threshold: float, normalization,
