@@ -48,7 +48,7 @@ class GIn:
 
         return regions
 
-    def __output_estimation(self, mask, to_pred):
+    def _output_estimation(self, mask, to_pred):
         if self.output == Target.REGRESSION:
             return LinearRegression().fit(self.poly.fit_transform(self.X)[mask], self.y[mask]).predict(
                 self.poly.fit_transform(to_pred))
@@ -95,7 +95,7 @@ class GIn:
                 if self.output != Target.CLASSIFICATION:
                     pred[mask] = np.mean(self.y)
                 continue
-            pred[mask] = self.__output_estimation(maskT, to_pred[mask])
+            pred[mask] = self._output_estimation(maskT, to_pred[mask])
             valid_regions += 1
 
         return pred, valid_regions

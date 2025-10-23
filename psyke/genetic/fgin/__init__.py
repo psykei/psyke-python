@@ -1,8 +1,5 @@
-from statistics import mode
-
 import numpy as np
 import pandas as pd
-from sklearn.linear_model import LinearRegression
 
 from psyke import Target
 from psyke.genetic.gin import GIn
@@ -23,16 +20,6 @@ class FGIn(GIn):
         if valid_regions < self.min_rules:
             return -9999,
         return self._score(self.y if self.valid is None else self.valid[1], y_pred),
-
-    def __output_estimation(self, mask, to_pred):
-        if self.output == Target.REGRESSION:
-            return LinearRegression().fit(self.poly.fit_transform(self.X)[mask], self.y[mask]).predict(
-                self.poly.fit_transform(to_pred))
-        if self.output == Target.CONSTANT:
-            return np.ones(len(to_pred)) * np.mean(self.y[mask])
-        if self.output == Target.CLASSIFICATION:
-            return np.ones(len(to_pred)) * mode(self.y[mask])
-        raise ValueError('Supported outputs are Target.{REGRESSION, CONSTANT, CLASSIFICATION}')
 
     @staticmethod
     def __generate_membership(var, domain, thresholds, shape='tri'):
@@ -74,7 +61,14 @@ class FGIn(GIn):
         masks = [mask for mask in masks if mask.sum() >= 3]
         functions_domains = self.__fuzzify(cuts)
 
-        pred = np.array([self.__output_estimation(mask, to_pred) for mask in masks]).T
+        pred = np.array([self._output_estimation(mask, to_pred) for mask in masks]).T
         activations = np.array([self.__get_activations(x, functions_domains, valid_masks) for x in to_pred.values])
 
-        return pd.DataFrame((pred * activations).sum(axis=1), index=to_pred.index), len(masks)
+        if self.output == Target.CLASSIFICATION:
+            classes, idx = np.unique(pred, return_inverse=True)
+            pred = classes[np.argmax(np.vstack([activations[:, idx == i].sum(axis=1) for i, c in enumerate(classes)]),
+                                     axis=0)]
+        else:
+            pred = (pred * activations).sum(axis=1)
+
+        return pd.DataFrame(pred, index=to_pred.index), len(masks)
