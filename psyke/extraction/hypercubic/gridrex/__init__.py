@@ -12,5 +12,5 @@ class GridREx(GridEx):
                  seed=get_default_random_seed()):
         super().__init__(predictor, grid, min_examples, threshold, Target.REGRESSION, None, normalization, seed)
 
-    def _default_cube(self) -> RegressionCube:
+    def _default_cube(self, dimensions=None) -> RegressionCube:
         return RegressionCube()
