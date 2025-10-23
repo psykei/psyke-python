@@ -34,13 +34,13 @@ class GIn:
         self.hof = None
         self.best = None
 
-        self.setup(warm)
+        self.__setup(warm)
 
-    def region(self, X, cuts):
-        indices = [np.searchsorted(np.array(cut), X[f].to_numpy(), side='right')
+    def _region(self, x, cuts):
+        indices = [np.searchsorted(np.array(cut), x[f].to_numpy(), side='right')
                    for cut, f in zip(cuts, self.features)]
 
-        regions = np.zeros(len(X), dtype=int)
+        regions = np.zeros(len(x), dtype=int)
         multiplier = 1
         for idx, n in zip(reversed(indices), reversed([len(cut) + 1 for cut in cuts])):
             regions += idx * multiplier
@@ -48,7 +48,7 @@ class GIn:
 
         return regions
 
-    def __output_estimation(self, mask, to_pred):
+    def _output_estimation(self, mask, to_pred):
         if self.output == Target.REGRESSION:
             return LinearRegression().fit(self.poly.fit_transform(self.X)[mask], self.y[mask]).predict(
                 self.poly.fit_transform(to_pred))
@@ -56,9 +56,9 @@ class GIn:
             return np.mean(self.y[mask])
         if self.output == Target.CLASSIFICATION:
             return mode(self.y[mask])
-        raise TypeError('Supported outputs are Target.{REGRESSION, CONSTANT, CLASSIFICATION}')
+        raise ValueError('Supported outputs are Target.{REGRESSION, CONSTANT, CLASSIFICATION}')
 
-    def __score(self, true, pred):
+    def _score(self, true, pred):
         if self.metric == 'R2':
             return r2_score(true, pred)
         if self.metric == 'MAE':
@@ -69,20 +69,22 @@ class GIn:
             return f1_score(true, pred, average='weighted')
         if self.metric == 'ACC':
             return accuracy_score(true, pred)
-        raise NameError('Supported metrics are R2, MAE, MSE, F1, ACC')
+        raise ValueError('Supported metrics are R2, MAE, MSE, F1, ACC')
 
     def predict(self, to_pred):
         return self.__predict(to_pred=to_pred)[0]
 
-    def __predict(self, individual=None, to_pred=None):
-        individual = individual or self.best
+    def _get_cuts(self, individual):
         boundaries = np.cumsum([0] + list(self.slices))
-        cuts = [sorted(individual[boundaries[i]:boundaries[i + 1]]) for i in range(len(self.slices))]
+        return [sorted(individual[boundaries[i]:boundaries[i + 1]]) for i in range(len(self.slices))]
 
-        regions = self.region(to_pred, cuts)
-        regionsT = self.region(self.X, cuts)
+    def __predict(self, individual=None, to_pred=None):
+        cuts = self._get_cuts(individual or self.best)
 
-        y_pred = np.empty(len(to_pred), dtype=f'U{self.y.str.len().max()}') if self.output == Target.CLASSIFICATION \
+        regions = self._region(to_pred, cuts)
+        regionsT = self._region(self.X, cuts)
+
+        pred = np.empty(len(to_pred), dtype=f'U{self.y.str.len().max()}') if self.output == Target.CLASSIFICATION \
             else np.zeros(len(to_pred))
         valid_regions = 0
 
@@ -91,20 +93,20 @@ class GIn:
             maskT = regionsT == r
             if min(mask.sum(), maskT.sum()) < 3:
                 if self.output != Target.CLASSIFICATION:
-                    y_pred[mask] = np.mean(self.y)
+                    pred[mask] = np.mean(self.y)
                 continue
-            y_pred[mask] = self.__output_estimation(maskT, to_pred[mask])
+            pred[mask] = self._output_estimation(maskT, to_pred[mask])
             valid_regions += 1
 
-        return y_pred, valid_regions
+        return pred, valid_regions
 
-    def evaluate(self, individual=None):
+    def _evaluate(self, individual=None):
         y_pred, valid_regions = self.__predict(individual or self.best, self.X if self.valid is None else self.valid[0])
         if valid_regions < self.min_rules:
             return -9999,
-        return self.__score(self.y if self.valid is None else self.valid[1], y_pred),
+        return self._score(self.y if self.valid is None else self.valid[1], y_pred),
 
-    def setup(self, warm=False):
+    def __setup(self, warm=False):
         if not warm:
             creator.create("FitnessMax", base.Fitness, weights=(1.0,))
             creator.create("Individual", list, fitness=creator.FitnessMax)
@@ -123,7 +125,7 @@ class GIn:
         self.toolbox.register("mutate", tools.mutGaussian, indpb=self.indpb, mu=0,
                               sigma=sum([[sig] * s for sig, s in zip(self.sigmas, self.slices)], []))
         self.toolbox.register("select", tools.selTournament, tournsize=self.tournsize)
-        self.toolbox.register("evaluate", self.evaluate)
+        self.toolbox.register("evaluate", self._evaluate)
 
         self.stats = tools.Statistics(lambda ind: ind.fitness.values[0])
         self.stats.register("avg", np.mean)
@@ -139,4 +141,4 @@ class GIn:
         result, log = algorithms.eaSimple(pop, self.toolbox, cxpb=cxpb, mutpb=mutpb, ngen=n_gen,
                                           stats=self.stats, halloffame=self.hof, verbose=False)
         self.best = tools.selBest(pop, 1)[0]
-        return self.best, self.evaluate()[0], result, log
+        return self.best, self._evaluate()[0], result, log
