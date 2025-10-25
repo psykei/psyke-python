@@ -16,7 +16,7 @@ kneed==0.8.5
 sympy==1.14.0
 matplotlib==3.9.4
 deap>=1.4.3
-ml-dtypes~=0.3.1
+ml-dtypes~=0.5.3
 joblib>=1.5.1
 keras>=3.10.0
 scikit-fuzzy>=0.5.0
