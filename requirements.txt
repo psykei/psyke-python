@@ -2,7 +2,7 @@ numpy==1.26.4
 pandas==2.3.3
 scikit-learn==1.7.2
 matplotlib==3.10.7
-sympy==1.13.3
+sympy==1.14.0
 parameterized==0.9.0
 kneed==0.8.5
 deap==1.4.3
@@ -17,6 +17,6 @@ onnxconverter-common==1.16.0
 skl2onnx==1.19.1
 joblib>=1.5.1
 keras>=3.10.0
-tensorflow==2.16.2
+tensorflow==2.20.0
 protobuf>=3.20.3
 ml-dtypes>=0.3.1
