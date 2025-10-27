@@ -2,7 +2,7 @@
 
 ![PSyKE Logo](.img/logo-wide.png)
 
-Some quick links:
+Quick links:
 * [Home Page](https://apice.unibo.it/xwiki/bin/view/PSyKE/)
 * [GitHub Repository](https://github.com/psykei/psyke-python)
 * [PyPi Repository](https://pypi.org/project/psyke/)
@@ -11,7 +11,7 @@ Some quick links:
 ## Intro
 
 [PSyKE](https://apice.unibo.it/xwiki/bin/view/PSyKE/) (Platform for Symbolic Knowledge Extraction)
-is intended as a library for extracting symbolic knowledge (in the form of logic rules) out of sub-symbolic predictors.
+is intended as a library for extracting symbolic knowledge (in the form of logic rule lists) out of sub-symbolic predictors.
 
 More precisely, PSyKE offers a general purpose API for knowledge extraction, and a number of different algorithms implementing it,
 supporting both classification and regression problems.
@@ -60,16 +60,14 @@ We are working on PSyKE to extend its features to encompass explainable clusteri
 
 ### End users
 
-PSyKE is deployed as a library on Pypi, and it can therefore be installed as Python package by running:
+PSyKE is deployed as a library on Pypi. It can be installed as Python package by running:
 ```bash
 pip install psyke
 ```
 
 #### Requirements
-* `numpy`
-* `pandas`
-* `scikit-learn`
-* `2ppy`
+
+Please refer to the [requirements file](https://github.com/psykei/psyke-python/blob/master/requirements.txt)
 
 ##### Test requirements
 * `skl2onnx`
@@ -77,15 +75,15 @@ pip install psyke
 * `parameterized`
 
 Once installed, it is possible to create an extractor from a predictor 
-(e.g. Neural Network, Support Vector Machine, K-Nearest Neighbor, Random Forest, etc.)
-and from the dataset used to train the predictor.
+(e.g. Neural Network, Support Vector Machine, K-Nearest Neighbours, Random Forest, etc.)
+and from the data set used to train the predictor.
 
 > **Note:** the predictor must expose a method named `predict` to be properly used as an oracle.
 
 #### End users
 
 A brief example is presented in `demo.py` script in the `demo/` folder.
-Using `sklearn`'s Iris dataset we train a K-Nearest Neighbor to predict the correct output class.
+Using `sklearn`'s Iris data set we train a K-Nearest Neighbours to predict the correct output class.
 Before training, we make the dataset discrete.
 After that we create two different extractors: REAL and Trepan.
 We output the extracted theory for both extractors.
@@ -112,7 +110,7 @@ iris(PetalLength8, PetalWidth8, SepalLength8, SepalWidth8, setosa) :- true.
 
 Working with PSyKE codebase requires a number of tools to be installed:
 * Python 3.11
-  + Python version greater than `3.11.x` are currently __not__ supported
+  + Python version >= `3.12.x` are currently __not__ supported
 
 * JDK 11+ (please ensure the `JAVA_HOME` environment variable is properly configured)
 * Git 2.20+
