@@ -111,8 +111,8 @@ iris(PetalLength8, PetalWidth8, SepalLength8, SepalWidth8, setosa) :- true.
 ## Developers
 
 Working with PSyKE codebase requires a number of tools to be installed:
-* Python 3.9
-  + Python version greater than `3.9.x` are currently __not__ supported
+* Python 3.11
+  + Python version greater than `3.11.x` are currently __not__ supported
 
 * JDK 11+ (please ensure the `JAVA_HOME` environment variable is properly configured)
 * Git 2.20+

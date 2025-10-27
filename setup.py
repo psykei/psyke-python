@@ -195,7 +195,7 @@ setup(
         'Topic :: Scientific/Engineering :: Artificial Intelligence',
         'License :: OSI Approved :: Apache Software License',
         'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.9',
+        'Programming Language :: Python :: 3.11',
         'Programming Language :: Python :: 3 :: Only',
         'Programming Language :: Prolog'
     ],
@@ -203,7 +203,7 @@ setup(
     # package_dir={'': 'src'},  # Optional
     packages=find_packages('.'),  # Required
     include_package_data=True,
-    python_requires='>=3.9.0, <3.10',
+    python_requires='==3.11',
     install_requires=REQUIREMENTS,  # Optional
     zip_safe=False,
     platforms="Independant",
