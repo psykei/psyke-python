@@ -22,7 +22,7 @@ class CartPredictor:
         self.discretization = discretization
         self.normalization = normalization
 
-    def __get_constraints(self, nodes: Iterable[(int, bool)]) -> LeafConstraints:
+    def __get_constraints(self, nodes: Iterable[tuple[int, bool]]) -> LeafConstraints:
         thresholds = [self._predictor.tree_.threshold[i[0]] for i in nodes]
         features = [self._predictor.feature_names_in_[self._predictor.tree_.feature[node[0]]] for node in nodes]
         conditions = [node[1] for node in nodes]
@@ -52,7 +52,7 @@ class CartPredictor:
         else:
             return self._predictor.tree_.value[node]
 
-    def __path(self, node: int, path=None) -> Iterable[(int, bool)]:
+    def __path(self, node: int, path=None) -> Iterable[tuple[int, bool]]:
         path = [] if path is None else path
         if node == 0:
             return path
@@ -90,7 +90,7 @@ class CartPredictor:
                                            isinstance(condition, GreaterThan)))
         return results
 
-    def create_theory(self, data: pd.DataFrame, simplify: True) -> Theory:
+    def create_theory(self, data: pd.DataFrame, simplify: bool = True) -> Theory:
         new_theory = mutable_theory()
         nodes = [node for node in self]
         nodes = self._simplify_nodes(nodes) if simplify else nodes
