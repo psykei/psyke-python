@@ -1,4 +1,4 @@
-from collections import Iterable
+from collections.abc import Iterable
 from typing import Union, Any
 import numpy as np
 import pandas as pd
