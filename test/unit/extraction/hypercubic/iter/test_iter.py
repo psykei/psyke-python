@@ -1,7 +1,7 @@
 from psyke import logger
 from parameterized import parameterized_class
 from psyke.utils import get_default_precision
-from test.psyke import initialize
+from test.unit import initialize
 import unittest
 
 

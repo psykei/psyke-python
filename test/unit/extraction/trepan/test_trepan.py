@@ -3,7 +3,7 @@ from parameterized import parameterized_class
 from psyke import logger
 from psyke.utils import get_default_precision
 from psyke.utils.logic import pretty_theory
-from test.psyke import initialize
+from test.unit import initialize
 import unittest
 
 

@@ -1,7 +1,7 @@
 import unittest
 from parameterized import parameterized_class
 from psyke import logger
-from test.psyke import initialize
+from test.unit import initialize
 
 
 @parameterized_class(initialize('real'))

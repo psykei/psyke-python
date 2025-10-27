@@ -1,6 +1,6 @@
 from psyke import logger
 from parameterized import parameterized_class
-from test.psyke import initialize
+from test.unit import initialize
 import unittest
 
 

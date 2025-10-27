@@ -14,7 +14,7 @@ import unittest
 
 
 # TODO: should be refactored using the a .csv file
-from test.psyke import get_substitutions
+from test.unit import get_substitutions
 
 
 @parameterized_class([{"dataset": "iris", "predictor": "DTC", "task": "extraction"},
