@@ -69,7 +69,6 @@ jobs:
           - windows-latest
           - macos-latest
           - ubuntu-22.04
-          - windows-2019
           - macos-13
         python-version:
           - '3.11.0'
