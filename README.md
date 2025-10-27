@@ -8,6 +8,14 @@ Quick links:
 * [PyPi Repository](https://pypi.org/project/psyke/)
 * [Issues](https://github.com/psykei/psyke-python/issues)
 
+## Latest Releases
+
+* PSyKE 1.0: Compatibility with Python 3.11.x
+* PSyKE 0.10: New genetic algorithms for knowledge extraction
+* PSyKE 0.9: Fairness mitigation support for knowedge extractors
+* PSyKE 0.8: New features: local explainability and counterfactual support
+* PSyKE 0.7: New SKE algorithms implemented
+
 ## Intro
 
 [PSyKE](https://apice.unibo.it/xwiki/bin/view/PSyKE/) (Platform for Symbolic Knowledge Extraction)
