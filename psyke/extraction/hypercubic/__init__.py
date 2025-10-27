@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC
-from collections import Iterable
+from collections.abc import Iterable
 from itertools import combinations
 
 import numpy as np

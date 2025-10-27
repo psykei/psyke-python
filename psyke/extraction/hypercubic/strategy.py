@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from functools import reduce
-from collections import Iterable
+from collections.abc import Iterable
 
 
 class Strategy:

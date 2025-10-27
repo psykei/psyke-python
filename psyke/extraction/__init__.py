@@ -1,5 +1,4 @@
 from abc import ABC
-from collections import Iterable
 
 import pandas as pd
 from tuprolog.theory import Theory
