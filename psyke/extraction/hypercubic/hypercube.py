@@ -176,8 +176,8 @@ class HyperCube:
 
     def subcubes(self, cubes: Iterable[GenericCube], only_largest: bool = True) -> Iterable[GenericCube]:
         subcubes = [c for c in cubes if c in self and c.output != self.output]
-        if only_largest:
-            subsubcubes = [c for cube_list in [c.subcubes(cubes) for c in subcubes] for c in cube_list]
+        if only_largest and subcubes:
+            subsubcubes = {sc for c in subcubes for sc in c.subcubes(subcubes)}
             subcubes = [c for c in subcubes if c not in subsubcubes]
         return subcubes
 
@@ -247,7 +247,7 @@ class HyperCube:
         if dimension not in self._infinite_dimensions:
             return Between(unscale(self[dimension][0], dimension), unscale(self[dimension][1], dimension))
         if len(self._infinite_dimensions[dimension]) == 2:
-            return
+            return None
         if '+' in self._infinite_dimensions[dimension]:
             return GreaterThan(unscale(self[dimension][0], dimension))
         if '-' in self._infinite_dimensions[dimension]:

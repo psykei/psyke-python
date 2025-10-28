@@ -8,6 +8,7 @@ from sklearn.metrics import mean_absolute_error, r2_score, mean_squared_error, f
 from sklearn.preprocessing import PolynomialFeatures
 
 from psyke import Target
+from psyke.genetic import regions_from_cuts, output_estimation
 
 
 class GIn:
@@ -36,28 +37,6 @@ class GIn:
 
         self.__setup(warm)
 
-    def _region(self, x, cuts):
-        indices = [np.searchsorted(np.array(cut), x[f].to_numpy(), side='right')
-                   for cut, f in zip(cuts, self.features)]
-
-        regions = np.zeros(len(x), dtype=int)
-        multiplier = 1
-        for idx, n in zip(reversed(indices), reversed([len(cut) + 1 for cut in cuts])):
-            regions += idx * multiplier
-            multiplier *= n
-
-        return regions
-
-    def _output_estimation(self, mask, to_pred):
-        if self.output == Target.REGRESSION:
-            return LinearRegression().fit(self.poly.fit_transform(self.X)[mask], self.y[mask]).predict(
-                self.poly.fit_transform(to_pred))
-        if self.output == Target.CONSTANT:
-            return np.mean(self.y[mask])
-        if self.output == Target.CLASSIFICATION:
-            return mode(self.y[mask])
-        raise ValueError('Supported outputs are Target.{REGRESSION, CONSTANT, CLASSIFICATION}')
-
     def _score(self, true, pred):
         if self.metric == 'R2':
             return r2_score(true, pred)
@@ -81,8 +60,8 @@ class GIn:
     def __predict(self, individual=None, to_pred=None):
         cuts = self._get_cuts(individual or self.best)
 
-        regions = self._region(to_pred, cuts)
-        regionsT = self._region(self.X, cuts)
+        regions = regions_from_cuts(to_pred, cuts, self.features)
+        regionsT = regions_from_cuts(self.X, cuts, self.features)
 
         pred = np.empty(len(to_pred), dtype=f'U{self.y.str.len().max()}') if self.output == Target.CLASSIFICATION \
             else np.zeros(len(to_pred))
@@ -95,7 +74,7 @@ class GIn:
                 if self.output != Target.CLASSIFICATION:
                     pred[mask] = np.mean(self.y)
                 continue
-            pred[mask] = self._output_estimation(maskT, to_pred[mask])
+            pred[mask] = output_estimation(self.X, self.y, self.output, self.poly, maskT, to_pred[mask])
             valid_regions += 1
 
         return pred, valid_regions
@@ -141,4 +120,4 @@ class GIn:
         result, log = algorithms.eaSimple(pop, self.toolbox, cxpb=cxpb, mutpb=mutpb, ngen=n_gen,
                                           stats=self.stats, halloffame=self.hof, verbose=False)
         self.best = tools.selBest(pop, 1)[0]
-        return self.best, self._evaluate()[0], result, log
+        return [float(f) for f in self.best], self._evaluate()[0], result, log

@@ -22,9 +22,10 @@ class GInGER(HyperCubeExtractor):
 
     def __init__(self, predictor, features, sigmas, max_slices, min_rules=1, max_poly=1, alpha=0.5, indpb=0.5,
                  tournsize=3, metric='R2', n_gen=50, n_pop=50, threshold=None, valid=None,
-                 output: Target = Target.REGRESSION, normalization=None, seed: int = get_default_random_seed()):
+                 output: Target = Target.REGRESSION, discretization=None, normalization=None,
+                 seed: int = get_default_random_seed()):
         super().__init__(predictor, output=Target.CLASSIFICATION if isinstance(predictor, ClassifierMixin) else output,
-                         normalization=normalization)
+                         discretization=discretization, normalization=normalization)
         self.threshold = threshold
         np.random.seed(seed)
 

@@ -251,12 +251,12 @@ class Extractor(EvaluableModel, ABC):
         plt.show()
 
     def make_fair(self, features: Iterable[str]):
-        raise NotImplementedError(f'Fairness for {type(self).__name__} is not supported at the moment')
+        raise NotImplementedError(f'Fairness for {type(self).__name__} is not currently supported')
 
     def mae(self, dataframe: pd.DataFrame, predictor=None, brute: bool = False, criterion: str = 'center',
             n: int = 3) -> float:
         """
-        Calculates the predictions' MAE w.r.t. the instances given as input.
+        Calculates the predictions' MAE with respect to the instances given as input.
 
         :param dataframe: the set of instances to be used to calculate the mean absolute error.
         :param predictor: if provided, its predictions on the dataframe are taken instead of the dataframe instances.
@@ -271,7 +271,7 @@ class Extractor(EvaluableModel, ABC):
     def mse(self, dataframe: pd.DataFrame, predictor=None, brute: bool = False, criterion: str = 'center',
             n: int = 3) -> float:
         """
-        Calculates the predictions' MSE w.r.t. the instances given as input.
+        Calculates the predictions' MSE with respect to the instances given as input.
 
         :param dataframe: the set of instances to be used to calculate the mean squared error.
         :param predictor: if provided, its predictions on the dataframe are taken instead of the dataframe instances.
@@ -286,7 +286,7 @@ class Extractor(EvaluableModel, ABC):
     def r2(self, dataframe: pd.DataFrame, predictor=None, brute: bool = False, criterion: str = 'center',
             n: int = 3) -> float:
         """
-        Calculates the predictions' R2 score w.r.t. the instances given as input.
+        Calculates the predictions' R2 score with respect to the instances given as input.
 
         :param dataframe: the set of instances to be used to calculate the R2 score.
         :param predictor: if provided, its predictions on the dataframe are taken instead of the dataframe instances.
@@ -301,7 +301,7 @@ class Extractor(EvaluableModel, ABC):
     def accuracy(self, dataframe: pd.DataFrame, predictor=None, brute: bool = False, criterion: str = 'center',
                  n: int = 3) -> float:
         """
-        Calculates the predictions' accuracy classification score w.r.t. the instances given as input.
+        Calculates the predictions' accuracy classification score with respect to the instances given as input.
 
         :param dataframe: the set of instances to be used to calculate the accuracy classification score.
         :param predictor: if provided, its predictions on the dataframe are taken instead of the dataframe instances.
@@ -317,7 +317,7 @@ class Extractor(EvaluableModel, ABC):
     def f1(self, dataframe: pd.DataFrame, predictor=None, brute: bool = False, criterion: str = 'center',
             n: int = 3) -> float:
         """
-        Calculates the predictions' F1 score w.r.t. the instances given as input.
+        Calculates the predictions' F1 score with respect to the instances given as input.
 
         :param dataframe: the set of instances to be used to calculate the F1 score.
         :param predictor: if provided, its predictions on the dataframe are taken instead of the dataframe instances.
@@ -398,14 +398,14 @@ class Extractor(EvaluableModel, ABC):
     def ginger(predictor, features: Iterable[str], sigmas: Iterable[float], max_slices: int, min_rules: int = 1,
                max_poly: int = 1, alpha: float = 0.5, indpb: float = 0.5, tournsize: int = 3, metric: str = 'R2',
                n_gen: int = 50, n_pop: int = 50, threshold=None, valid=None, output=Target.REGRESSION,
-               normalization: dict[str, tuple[float, float]] = None,
+               discretization=None, normalization: dict[str, tuple[float, float]] = None,
                seed: int = get_default_random_seed()) -> Extractor:
         """
         Creates a new GInGER extractor.
         """
         from psyke.extraction.hypercubic.ginger import GInGER
         return GInGER(predictor, features, sigmas, max_slices, min_rules, max_poly, alpha, indpb, tournsize, metric,
-                      n_gen, n_pop, threshold, valid, output, normalization, seed)
+                      n_gen, n_pop, threshold, valid, output, discretization, normalization, seed)
 
     @staticmethod
     def gridrex(predictor, grid, min_examples: int = 250, threshold: float = 0.1,
