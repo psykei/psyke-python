@@ -26,7 +26,7 @@ class FGIn(GIn):
 
     def __predict(self, individual=None, to_pred=None):
         cuts = self._get_cuts(individual or self.best)
-        masks = np.array([regions_from_cuts(to_pred, cuts, self.features) == r
+        masks = np.array([regions_from_cuts(self.X, cuts, self.features) == r
                           for r in range(np.prod([s + 1 for s in self.slices]))])
         valid_masks = masks.sum(axis=1) >= 3
         masks = masks[valid_masks]

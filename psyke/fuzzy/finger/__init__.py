@@ -86,7 +86,7 @@ class FInGER:
 
         functions_domains = {k: (v[0], v[1], fuzzy_labels(len(v[0]))) for k, v in self.functions_domains.items()}
         return "\n".join(generate_fuzzy_rules({k: v[2] for k, v in functions_domains.items()}, self.outputs,
-                                              dataframe.columns[:-1], self.valid_masks))
+                                              dataframe.columns, self.valid_masks))
 
     def show_membership_functions(self):
         functions_domains = {k: (v[0], v[1], fuzzy_labels(len(v[0]))) for k, v in self.functions_domains.items()}

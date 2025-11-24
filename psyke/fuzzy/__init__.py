@@ -56,16 +56,16 @@ def get_activations(x, functions_domains, valid):
               for mfs, domain, index in functions_domains.values()]
     return np.prod(np.meshgrid(*levels, indexing='ij'), axis=0).ravel()[valid]
 
-def crisp_or_equation(lr: float | str | LinearRegression, features=Iterable[str], decimals: int = 3) -> str | float:
+def crisp_or_equation(lr: float | str | LinearRegression, features=Iterable[str], decimals: int = 2) -> str | float:
     if isinstance(lr, LinearRegression):
-        terms = [f"{c:.{decimals}f}*{f}" for c, f in zip(lr.coef_, features)]
-        return f"y = {lr.intercept_:.{decimals}f} + " + " + ".join(terms)
+        terms = ''.join([f"{' + ' if c >= 0 else ' - '}{abs(c):.{decimals}f} {f}" for c, f in zip(lr.coef_, features)])
+        return f"{lr.intercept_:.{decimals}f}{terms}"
     return lr
 
 def generate_fuzzy_rules(variables: dict[str, Iterable[str]], outputs: Iterable[str | float | LinearRegression],
-                         features: Iterable[str], valid: Iterable[bool]) -> list[str]:
+                         features: list[str], valid: Iterable[bool]) -> list[str]:
     outputs = [crisp_or_equation(output, features) for output in outputs]
-    return [f'Output is {output} if {" and ".join(f"{var} is {label}" for var, label in zip(variables.keys(), combo))}'
+    return [f'{features[-1]} = {output} if {" and ".join(f"{v} is {lab}" for v, lab in zip(variables.keys(), combo))}'
             for combo, output in zip(np.array(list(product(*list(variables.values()))))[valid], outputs)]
 
 def plot_membership(functions_domains):
