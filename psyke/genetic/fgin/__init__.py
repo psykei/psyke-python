@@ -6,8 +6,6 @@ from psyke.fuzzy import fuzzify, get_activations
 from psyke.genetic import regions_from_cuts, output_estimation
 from psyke.genetic.gin import GIn
 
-import skfuzzy as skf
-
 
 class FGIn(GIn):
 
