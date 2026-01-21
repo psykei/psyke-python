@@ -10,7 +10,7 @@ scikit-fuzzy==0.5.0
 2ppy==0.4.1
 build==1.4.0
 twine==6.2.0
-setuptools==80.9.0
+setuptools==80.10.1
 onnx==1.20.1
 onnxruntime==1.23.2
 onnxconverter-common==1.16.0
