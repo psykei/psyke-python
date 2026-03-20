@@ -4,7 +4,7 @@ scikit-learn~=1.8.0
 matplotlib==3.10.8
 sympy==1.14.0
 parameterized==0.9.0
-kneed==0.8.5
+kneed==0.8.6
 deap==1.4.3
 scikit-fuzzy==0.5.0
 2ppy==0.4.1
