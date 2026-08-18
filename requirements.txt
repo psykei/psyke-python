@@ -12,7 +12,7 @@ build==1.5.1
 twine==7.0.0
 setuptools==84.0.0
 onnx==1.22.0
-onnxruntime==1.28.0
+onnxruntime==1.29.0
 onnxconverter-common==1.16.0
 skl2onnx==1.20.0
 joblib>=1.5.1
