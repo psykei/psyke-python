@@ -8,7 +8,7 @@ kneed==0.8.6
 deap==1.4.4
 scikit-fuzzy==0.5.0
 2ppy==0.4.1
-build==1.5.1
+build==1.6.0
 twine==7.0.0
 setuptools==84.0.0
 onnx==1.22.0
