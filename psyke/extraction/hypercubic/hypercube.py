@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copy
 import itertools
 from statistics import mode
 from functools import reduce
@@ -148,7 +149,7 @@ class HyperCube:
         self._infinite_dimensions[dimension].add(direction)
 
     def copy_infinite_dimensions(self, dimensions: dict[str, str]):
-        self._infinite_dimensions = dimensions.copy()
+        self._infinite_dimensions = copy.deepcopy(dimensions)
 
     @property
     def dimensions(self) -> Dimensions:
@@ -401,6 +402,9 @@ class HyperCube:
         (a1, b1) = self[feature]
         (a2, b2) = cube[feature]
         new_cube.update_dimension(feature, (min(a1, a2), max(b1, b2)))
+        if feature in new_cube._infinite_dimensions and feature in cube._infinite_dimensions:
+            new_cube._infinite_dimensions[feature] |= cube._infinite_dimensions[feature]
+
         return new_cube
 
     def merge(self, other: HyperCube) -> HyperCube:

@@ -9,18 +9,19 @@ from psyke.genetic.gin import GIn
 
 class FGIn(GIn):
 
-    def __init__(self, train, valid, features, sigmas, slices, min_rules=1, poly=1, alpha=0.5, indpb=0.5, tournsize=3,
-                 membership_shape='trap', metric='R2', output=Target.REGRESSION, warm=False):
-        super().__init__(train, valid, features, sigmas, slices, min_rules, poly, alpha, indpb, tournsize,
+    def __init__(self, train, valid, features, sigmas, slices, min_max_rules=(1, 999), poly=1, alpha=0.5, indpb=0.5,
+                 tournsize=3, membership_shape='trap', metric='R2', output=Target.REGRESSION, warm=False):
+        super().__init__(train, valid, features, sigmas, slices, min_max_rules, poly, alpha, indpb, tournsize,
                          metric, output, warm)
         self.shape = membership_shape
         self.feature_to_idx = {f: i for i, f in enumerate(self.X.columns)}
 
     def _evaluate(self, individual=None):
         y_pred, valid_regions = self.__predict(individual or self.best, self.X if self.valid is None else self.valid[0])
-        if valid_regions < self.min_rules:
+        if valid_regions < self.min_max_rules[0] or valid_regions > self.min_max_rules[1]:
             return -9999,
-        return self._score(self.y if self.valid is None else self.valid[1], y_pred),
+        idx = ~y_pred[0].isna().values
+        return self._score((self.y if self.valid is None else self.valid[1])[idx], y_pred[idx]),
 
     def __predict(self, individual=None, to_pred=None):
         cuts = self._get_cuts(individual or self.best)
@@ -38,6 +39,6 @@ class FGIn(GIn):
             pred = classes[np.argmax(np.vstack([activations[:, idx == i].sum(axis=1) for i, c in enumerate(classes)]),
                                      axis=0)]
         else:
-            pred = (pred * activations).sum(axis=1)
+            pred = (pred * activations).sum(axis=1) / activations.sum(axis=1)
 
         return pd.DataFrame(pred, index=to_pred.index), len(masks)

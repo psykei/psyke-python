@@ -252,6 +252,9 @@ class FeatureRanker:
     def rankings(self):
         return list(zip(self.feat, self.scores))
 
+    def top(self, k: int):
+        return [x for _, x in sorted(zip(self.scores, self.feat), reverse=True)][:k]
+
 
 class Grid:
     def __init__(self, iterations: int = 1, strategy: Strategy | Iterable[Strategy] = FixedStrategy()):

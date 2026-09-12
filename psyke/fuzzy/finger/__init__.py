@@ -1,11 +1,11 @@
 import itertools
+import math
 from collections.abc import Iterable
 
 import numpy as np
 import pandas as pd
 from deap import base, creator
 from sklearn.base import ClassifierMixin
-from sklearn.linear_model import LinearRegression
 from sklearn.preprocessing import PolynomialFeatures
 
 from psyke import Target
@@ -16,16 +16,15 @@ from psyke.genetic.fgin import FGIn
 
 class FInGER:
 
-    def __init__(self, predictor, features, sigmas, max_slices, min_rules=1, max_poly=1, alpha=0.5, indpb=0.5,
-                 tournsize=3, n_gen=50, n_pop=50, membership_shape='trap', metric='R2', valid=None,
+    def __init__(self, predictor, features, min_max_slices=(0, 1), min_max_rules=(1, 999), max_poly=1, alpha=0.5,
+                 indpb=0.5, tournsize=3, metric='R2', n_gen=50, n_pop=50, membership_shape='trap', valid=None,
                  output=Target.REGRESSION):
 
         self.predictor = predictor
-        self.features = features
+        self.features = np.array(features)
         self.max_features = len(features)
-        self.sigmas = sigmas
-        self.max_slices = max_slices
-        self.min_rules = min_rules
+        self.min_max_slices = min_max_slices
+        self.min_max_rules = min_max_rules
         self.poly = max_poly
         self._output = Target.CLASSIFICATION if isinstance(predictor, ClassifierMixin) else output
         self.valid = valid
@@ -60,9 +59,16 @@ class FInGER:
     def extract(self, dataframe: pd.DataFrame) -> str:
         best = {}
         for poly in range(self.poly):
-            for slices in list(itertools.product(range(1, self.max_slices + 1), repeat=self.max_features)):
-                gr = FGIn((dataframe.iloc[:, :-1], dataframe.iloc[:, -1]), self.valid, self.features, self.sigmas,
-                          slices, min_rules=self.min_rules, poly=poly + 1, alpha=self.alpha, indpb=self.indpb,
+            for slices in list(itertools.product(range(self.min_max_slices[0], self.min_max_slices[1] + 1),
+                                                 repeat=self.max_features)):
+                if (self._output == Target.CLASSIFICATION and
+                        math.prod(i + 1 for i in slices) < dataframe.iloc[:, -1].nunique() or
+                        not (self.min_max_rules[0] <= math.prod(i + 1 for i in slices) <= self.min_max_rules[1])):
+                    continue
+                mask = [s != 0 for s in slices]
+                gr = FGIn((dataframe.iloc[:, :-1], dataframe.iloc[:, -1]), self.valid, self.features[mask],
+                          np.array(dataframe.describe().loc['std', self.features] / 3)[mask], np.array(slices)[mask],
+                          min_max_rules=self.min_max_rules, poly=poly + 1, alpha=self.alpha, indpb=self.indpb,
                           tournsize=self.tournsize, membership_shape=self.shape, metric=self.metric,
                           output=self._output, warm=True)
 

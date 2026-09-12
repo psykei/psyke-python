@@ -24,7 +24,7 @@ def generate_membership(var, domain, thresholds, shape='tri'):
 def extend_domain(x, q_low=0.05, q_high=0.95, p=0.05, k_sigma=2.0, abs_min_margin=0.0):
     ql, qh = np.quantile(x, [q_low, q_high])
     margin = max(p * (qh - ql), k_sigma * np.std(x), abs_min_margin)
-    return np.linspace(ql - margin, qh + margin, 200)
+    return np.linspace(min(x) - margin, max(x) + margin, 200)
 
 def fuzzify(cuts, data, features, feature_to_idx, shape='tri'):
     cuts = dict(zip(features, cuts))
@@ -70,6 +70,8 @@ def generate_fuzzy_rules(variables: dict[str, Iterable[str]], outputs: Iterable[
 
 def plot_membership(functions_domains):
     fig, ax = plt.subplots(nrows=len(functions_domains), figsize=(6, len(functions_domains) * 3))
+    if not isinstance(ax, Iterable):
+        ax = [ax]
 
     for i, (k, v) in enumerate(functions_domains.items()):
         for s, l in zip(v[0], v[2]):

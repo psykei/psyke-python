@@ -1,9 +1,6 @@
-from statistics import mode
-
 import numpy as np
 from deap import base, creator, tools, algorithms
 import random
-from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_absolute_error, r2_score, mean_squared_error, f1_score, accuracy_score
 from sklearn.preprocessing import PolynomialFeatures
 
@@ -13,8 +10,8 @@ from psyke.genetic import regions_from_cuts, output_estimation
 
 class GIn:
 
-    def __init__(self, train, valid, features, sigmas, slices, min_rules=1, poly=1, alpha=0.5, indpb=0.5, tournsize=3,
-                 metric='R2', output=Target.REGRESSION, warm=False):
+    def __init__(self, train, valid, features, sigmas, slices, min_max_rules=(1, 999), poly=1, alpha=0.5, indpb=0.5,
+                 tournsize=3, metric='R2', output=Target.REGRESSION, warm=False):
         self.X, self.y = train
         self.valid = valid
         self.output = output
@@ -22,7 +19,7 @@ class GIn:
         self.features = features
         self.sigmas = sigmas
         self.slices = slices
-        self.min_rules = min_rules
+        self.min_max_rules = min_max_rules
         self.poly = PolynomialFeatures(degree=poly, include_bias=False)
 
         self.alpha = alpha
@@ -67,7 +64,7 @@ class GIn:
             else np.zeros(len(to_pred))
         valid_regions = 0
 
-        for r in range(np.prod([s + 1 for s in self.slices])):
+        for r in range(int(np.prod([s + 1 for s in self.slices]))):
             mask = regions == r
             maskT = regionsT == r
             if min(mask.sum(), maskT.sum()) < 3:
@@ -81,7 +78,7 @@ class GIn:
 
     def _evaluate(self, individual=None):
         y_pred, valid_regions = self.__predict(individual or self.best, self.X if self.valid is None else self.valid[0])
-        if valid_regions < self.min_rules:
+        if valid_regions < self.min_max_rules[0] or valid_regions > self.min_max_rules[1]:
             return -9999,
         return self._score(self.y if self.valid is None else self.valid[1], y_pred),
 
