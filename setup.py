@@ -18,7 +18,7 @@ REQUIREMENTS = [
     'pandas~=3.0.0',
     'scikit-learn~=1.9.0',
     '2ppy~=0.4.0',
-    'kneed~=0.8.1',
+    'kneed~=0.9.0',
     'sympy~=1.11'
 ]  # Optional
 
